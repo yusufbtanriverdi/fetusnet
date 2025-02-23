@@ -1,0 +1,2 @@
+def precision(*args):
+    pass

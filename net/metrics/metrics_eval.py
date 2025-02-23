@@ -1,0 +1,35 @@
+import torch
+from net.evaluation.RSquared import rsquare
+from net.evaluation.KLDivergence import kl_divergence, entropy, ce
+from net.evaluation.ConfusionMatrix import precision
+from net.evaluation.dMean import d_mean_mm
+
+def compute_metrics(outputs, targets, spacings):
+    """
+    Computes and optionally aggregates evaluation metrics.
+
+    Args:
+        outputs (torch.Tensor): Model predictions.
+        targets (torch.Tensor): Ground truth values.
+        spacings (torch.Tensor): Spacing values for distance calculations.
+        exp_dir (str): Experiment directory (not used in function but kept for flexibility).
+        metrics_list (list, optional): List of previously computed metrics for aggregation.
+
+    Returns:
+        dict: Scores.
+    """
+    # Define metric functions
+    metric_functions = {
+        "rsquare": rsquare,
+        "dmean": d_mean_mm,
+        "kld": kl_divergence,
+        "entropy": entropy,
+        "ce": ce,
+        "precision": precision
+    }
+
+    # Compute metrics
+    scores = {key: func(outputs, targets, spacings) for key, func in metric_functions.items()}
+
+    return scores
+
