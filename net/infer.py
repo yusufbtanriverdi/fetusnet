@@ -52,13 +52,14 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False):
             wandb_steps['val_loss'] += 1  # Increment step
 
     # Concatenate all stored tensors
-    ep_outputs = torch.cat(ep_outputs, dim=0)
-    ep_targets = torch.cat(ep_targets, dim=0)
+    ep_outputs = torch.cat(ep_outputs, dim=0).view(-1, 128, 128, 128) # number of batches * batch_size, 128, 128, 128
+    ep_targets = torch.cat(ep_targets, dim=0).view(-1, 128, 128, 128)
 
     # Compute evaluation metrics if required
     scores = {}
     scores = compute_metrics(ep_outputs, ep_targets, ep_spacings)
     for k, v in scores.items():
-        wandb.log({f'val/{k}': v, 'val/eval': wandb_steps['val_eval']})
-
+        wandb.log({f'epoc/{k}': v, 'epoc/epoch': wandb_steps['epoch']})
+    wandb_steps['epoch'] += 1  # Increment step
+    
     return avg_loss, scores, wandb_steps

@@ -43,8 +43,8 @@ def d_mean_mm(outputs, targets, spacings, method='argmax'):
         gt_peak = get_peak_location(targets[i], method)
 
         if pred_peak is not None and gt_peak is not None:
-            pred_peak *= torch.tensor(spacings, device=pred_peak.device)
-            gt_peak *= torch.tensor(spacings, device=gt_peak.device)
+            pred_peak *= torch.tensor(spacings[i][0], device=pred_peak.device)
+            gt_peak *= torch.tensor(spacings[i][0], device=gt_peak.device)
 
             distance = torch.norm(pred_peak - gt_peak)
             all_distances.append(distance)

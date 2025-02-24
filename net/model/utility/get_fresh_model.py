@@ -12,7 +12,7 @@ def get_fresh_model(params):
     # Load model with default fallbacks
     model = ResUNet3D.ResUNet3D(
         input_channels=1, 
-        output_channels=getattr(params, "num_lmks", 10),  
+        output_channels=len(params.lmks),  
         base_features=getattr(params, "num_fts", 64)
     )
     model.to(getattr(params, "device", "cuda" if torch.cuda.is_available() else "cpu"))

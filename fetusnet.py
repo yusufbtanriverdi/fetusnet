@@ -15,6 +15,7 @@ from net.infer import infer_one_ep
 from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.model.utility.get_fresh_model import get_fresh_model
 import warnings
+import wandb
 # Ignore all UserWarnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -27,7 +28,7 @@ if params.use_wandb:
     initialize_wandb(params)
 
 # Initialize global tracking dictionary
-global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'val_eval': 0}
+global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
 
 # Create local experiment log (timestamp, params)
 log_file = os.path.join(experiment_directory, "experiment_log.txt")
@@ -104,11 +105,15 @@ if params.mode in ['train', 'train_test']:
                     model, train_dl, criterion, optimizer, params.device, 
                     wandb_steps=global_wandb_steps
                 )
+
                 val_loss, ep_scores, global_wandb_steps = infer_one_ep(
                     model, val_dl, criterion, params.device, 
                     wandb_steps=global_wandb_steps
                 )
 
+                wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': epoch})
+                wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': epoch})
+                
                 # Save Best Model
                 if val_loss < best_criteria:
                     best_criteria = val_loss
