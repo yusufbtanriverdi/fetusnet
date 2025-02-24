@@ -40,7 +40,7 @@ def main(params):
     winfo_df = []
     sinfo_df = []
         
-    ct = 0
+    # ct = 0
     for fname in tqdm(fnames, total=len(fnames), desc='Scanning images......'):
         path_to_im_fold = os.path.join(raw_files, 'Casos', fname)
         # Get weeks.
@@ -127,8 +127,8 @@ def main(params):
         row1['source'] = 'Casos Mar'
         pinfo_df.append(row1)
 
-        ct +=1
-        if ct > 3: break
+        # ct +=1
+        # if ct > 3: break
 
     # Save files
     pd.DataFrame.from_records(pinfo_df).to_csv(params.sys + params.root + 'pinfo.csv', index=False)

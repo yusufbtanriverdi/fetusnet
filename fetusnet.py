@@ -53,13 +53,15 @@ else:
     raise FileNotFoundError
 sinfo_df = sinfo_df[sinfo_df['landmark_antonia_found']].reset_index(drop=True)
 
-# 🔹 (TODO) Test - Generate target datasets
-if params.mode == 'script_generate':
-    generate_targets.main(sinfo_df, experiment_directory, params)
+# # 🔹 (TODO) Rotate/alignment step - Verify ground truth consistency
+# if params.mode == 'script_rotate':
+#     rotate.main(sinfo_df, params)
 
-# 🔹 (TODO) Rotate/alignment step - Verify ground truth consistency
-if params.mode == 'script_rotate':
-    rotate.main(sinfo_df, params)
+
+# 🔹 (TODO) Test - Generate target datasets
+if params.mode == 'script_generate_targets':
+    print(params.sys)
+    generate_targets.main(sinfo_df, experiment_directory, params)
 
 # Training Phase
 if params.mode in ['train', 'train_test']:

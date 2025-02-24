@@ -41,7 +41,7 @@ def create_gaussian_heatmap(coord, template, alpha = 3, eps=1e-6, **args):
     heatmap[heatmap < eps] = 0
 
     # Find indices where `template` is 0 and set corresponding heatmap values to 0
-    heatmap[:, template == 0] = 0
+    heatmap[template == 0] = 0
 
     return heatmap
 
