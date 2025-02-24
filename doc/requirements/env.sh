@@ -6,7 +6,7 @@ eval "$(conda shell.bash hook)"
 # Update Conda and create environment if needed
 if ! conda info --envs | grep -q fetusnet; then
     echo "Creating conda environment 'fetusnet' .........................."
-    conda create -y -n segment3d python=3.8
+    conda create -y -n fetusnet python=3.8
 else
     echo "Conda environment 'fetusnet' already exists!"
 fi
@@ -15,7 +15,7 @@ conda activate fetusnet
 
 pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
-pip install -r requirements.txt
+pip install -r doc/requirements/requirements.txt
 
 echo "Environment is here!" 
 

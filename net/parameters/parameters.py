@@ -54,15 +54,16 @@ def parameters_parsing() -> argparse.Namespace:
                                default=parameters_default['root'],
                                help=parameters_help['root'])
         
-        subparser.add_argument('--experiments_path',
+        subparser.add_argument('--raw_dir',
                                type=str,
-                               default=parameters_default['experiments_path'],
-                               help=parameters_help['experiments_path'])
+                               default=parameters_default['raw_dir'],
+                               help=parameters_help['raw_dir'])
+        
 
-        subparser.add_argument('--sys',
+        subparser.add_argument('--os',
                         type=str,
-                        default=parameters_default['sys'],
-                        help=parameters_help['sys'])
+                        default=parameters_default['os'],
+                        help=parameters_help['os'])
         
         subparser.add_argument('--wandbpro', 
                                type=str, 
@@ -94,7 +95,7 @@ def parameters_parsing() -> argparse.Namespace:
         # LOAD DATASET #
         # ------------ #
 
-        subparser.add_argument('--dataset_clinics',
+        subparser.add_argument('--dataset',
                                nargs='+',
                                type=str,
                                default=parameters_default['dataset'],
@@ -113,11 +114,6 @@ def parameters_parsing() -> argparse.Namespace:
                             type=int,
                             default=parameters_default['test_patients'],
                             help=parameters_help['test_patients'])
-        
-        subparser.add_argument('--save_dir',
-                    type=str,
-                    default=parameters_default['save_dir'],
-                    help=parameters_help['save_dir'])
         
         # -------------- #
         # UTILITY TARGET #

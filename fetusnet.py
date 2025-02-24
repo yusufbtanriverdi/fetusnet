@@ -4,10 +4,11 @@ import torchio as tio
 
 # Import project modules
 from net.config.wandb import initialize_wandb
+from net.dataset import generate_targets
 from net.dataset.utility.loaders import get_train_val_dl, get_test_dl
 from net.config.create_experiment_id import create_experiment_id
 from net.dataset.statistics import create_info_frames, split_patient_fold
-from scripts_preprocess import rotate, generate_targets
+from net.dataset import rotate
 from net.parameters.parameters import parameters_parsing
 from net.train import train_one_ep
 from net.infer import infer_one_ep
@@ -31,24 +32,34 @@ with open(log_file, "w") as log:
     log.write(f"Experiment ID: {experiment_id}\n")
     log.write(f"Parameters: {vars(params)}\n")
 
+
+if params.os in ['linux', 'l']:
+    params.sys = "/media/yusuf/HDD 4TB/"
+else:
+    params.sys = "D:/"
+
+if params.mode in ['script_prepare', 'script_split']:
+    print(f" WELCOME TO {params.mode} MODE. \n .......................creating info frames......................................... \n")
+    sinfo_df = create_info_frames.main(params)
+if params.mode == 'script_split':
+    print(f" WELCOME TO {params.mode} MODE. \n .......................splitting patients into train-test sets......................................... \n")
+    sinfo_df = split_patient_fold.main(sinfo_df, params)
+
 # Load or create sinfo dataframe
-sinfo_path = os.path.join(params.root, 'sinfo.csv')
-sinfo_df = pd.read_csv(sinfo_path) if os.path.exists(sinfo_path) else None
-if not sinfo_df: raise FileNotFoundError
+sinfo_path = params.sys + params.root + 'sinfo.csv'
+if os.path.exists(sinfo_path):
+    sinfo_df = pd.read_csv(sinfo_path) 
+else: 
+    raise FileNotFoundError
 sinfo_df = sinfo_df[sinfo_df['landmark_antonia_found']].reset_index(drop=True)
 
-if params.mode in ['prepare', 'split']:
-    sinfo_df = create_info_frames.main(params)
-if params.mode == 'split':
-    sinfo_df = split_patient_fold.main(params)
+# 🔹 (TODO) Test - Generate target datasets
+if params.mode == 'script_generate':
+    generate_targets.main(sinfo_df, experiment_directory, params)
 
 # 🔹 (TODO) Rotate/alignment step - Verify ground truth consistency
-if params.mode == 'rotate':
+if params.mode == 'script_rotate':
     rotate.main(sinfo_df, params)
-
-# 🔹 (TODO) Test - Generate target datasets
-if params.mode == 'generate':
-    generate_targets.main(sinfo_df, experiment_directory, params)
 
 # Training Phase
 if params.mode in ['train', 'train_test']:

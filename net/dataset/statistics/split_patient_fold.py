@@ -3,7 +3,7 @@ from sklearn.model_selection import GroupKFold
 import os
 
 
-def main(params):
+def main(dataframe, params):
     """ 
     Splits a dataframe into train, test, and validation sets using StratifiedGroupKFold.
     
@@ -13,9 +13,6 @@ def main(params):
     Returns:
         tuple: Indices for train, test, and validation sets.
     """
-
-    if os.path.exists(params.root + 'sinfo.csv'):
-        dataframe = pd.read_csv(params.root + 'sinfo.csv') 
 
     # test_patients = [7,
     #                 19,
@@ -28,13 +25,13 @@ def main(params):
     dataframe.loc[:, 'test'] = 0  # Initialize the 'test' column with zeros
     test_ind = dataframe['pid'].isin(test_patients)  # Vectorized approach
     dataframe.loc[test_ind, 'test'] = 1
-    dataframe.to_csv(params.root + 'sinfo.csv', index=False)
+    dataframe.to_csv(params.sys + params.root + 'sinfo.csv', index=False)
 
 
     dataframe = dataframe[dataframe['landmark_antonia_found']].reset_index(drop=True)
     dataframe = dataframe[dataframe['test'] != 1].reset_index(drop=True)
 
-    splitter = GroupKFold(n_splits=params.n_splits)  # Added random_state for reproducibility
+    splitter = GroupKFold(n_splits=params.n_split)  # Added random_state for reproducibility
     
     # Split into train and test sets
     for num, fold in enumerate(splitter.split(dataframe, dataframe['week'], dataframe['pid'])): 
@@ -46,6 +43,6 @@ def main(params):
         dataframe.loc[val_ind, 'set'] = 1
 
         print('Fold ', str(num), ' :', len(train_ind), '\n' , len(val_ind))
-        dataframe.to_csv(params.root + 'fold' + str(num) + '_sinfo_updated.csv', index=False)
+        dataframe.to_csv(params.sys + params.root + 'sinfo__fold' + str(num) + '__.csv', index=False)
 
     return dataframe
