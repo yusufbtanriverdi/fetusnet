@@ -20,7 +20,8 @@ def get_fresh_model(params):
 
     # Loss function mapping
     loss_dict = {
-        "MSE": MSELoss.MSELoss,
+        "MSE": MSELoss.MSELoss, # TODO: how to call with a param?
+        "HistMSE": MSELoss.HistMSELoss, # TODO: how to call with a param?
         # "KLD": KLDivergenceLoss,
         # "DCE": CrossEntropyLoss,
         # "EMD": EMDLoss
