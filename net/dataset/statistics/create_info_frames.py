@@ -27,6 +27,18 @@ def extract_image(filename):
 
     return data, header
 
+def update(sinfo_df, params):
+    # Construct full paths
+    paths = sinfo_df['processed__vol_path'].apply(lambda x: os.path.join(params.sys + params.root, x))
+
+    # Create a mask for existing files
+    mask = paths.apply(os.path.exists)
+
+    # Filter out missing files
+    updated_sinfo_df = sinfo_df[mask].reset_index(drop=True)
+
+    return updated_sinfo_df
+
 def main(params):
     if len(params.dataset) !=1:
         print("Not valid!")

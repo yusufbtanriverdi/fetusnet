@@ -1,6 +1,5 @@
 import pandas as pd
 from sklearn.model_selection import GroupKFold
-import os
 
 
 def main(dataframe, params):

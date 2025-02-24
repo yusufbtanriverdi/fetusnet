@@ -57,9 +57,8 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False):
 
     # Compute evaluation metrics if required
     scores = {}
-    if eval:
-        scores = compute_metrics(ep_outputs, ep_targets, ep_spacings, exp_dir=None)
-        for k, v in scores.items():
-            wandb.log({f'val/{k}': v, 'val/eval': wandb_steps['val_eval']})
+    scores = compute_metrics(ep_outputs, ep_targets, ep_spacings)
+    for k, v in scores.items():
+        wandb.log({f'val/{k}': v, 'val/eval': wandb_steps['val_eval']})
 
     return avg_loss, scores, wandb_steps

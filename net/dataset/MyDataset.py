@@ -69,12 +69,12 @@ class MyDataset(Dataset):
             tio.Subject: TorchIO Subject containing the image, target, and metadata.
         """
         # Load 3D volume
-        image_path = os.path.join(self.root, self.dataframe.loc[idx, 'heatmap_dts_vol_path'])
+        image_path = os.path.join(self.root, self.dataframe.loc[idx, 'processed__vol_path'])
         volume, header = extract_image(image_path)
         image_tensor = torch.tensor(volume).unsqueeze(0)  # Add channel dimension
 
         # Load landmark file
-        landmark_path = os.path.join(self.root, self.dataframe.loc[idx, 'heatmap_dts_lmk_path'])
+        landmark_path = os.path.join(self.root, self.dataframe.loc[idx, 'processed__csv_path'])
         landmark_df = pd.read_csv(landmark_path)
 
         # Extract coordinates for the selected landmark
@@ -87,7 +87,7 @@ class MyDataset(Dataset):
 
         # Generate target heatmap
         if self.target_mode == 'gaussian':
-            target = gaussian_heatmap.create_gaussian_heatmap(coord_tensor, volume, alpha=self.alpha, eps=self.eps)
+            target = torch.tensor(gaussian_heatmap.create_gaussian_heatmap(coord_tensor, volume, alpha=self.alpha, eps=self.eps)).unsqueeze(0)
         else:
             raise ValueError(f"Unsupported target mode: {self.target_mode}")
 
@@ -100,7 +100,7 @@ class MyDataset(Dataset):
             target=tio.ScalarImage(tensor=target),
             name=self.dataframe.loc[idx, 'full_id'],
             pid=self.dataframe.loc[idx, 'pid'],
-            original_spacings=header['spacings'][:3],
+            spacings=header['spacings'][:3],
             coord_x=coord_tensor[0],
             coord_y=coord_tensor[1],
             coord_z=coord_tensor[2]

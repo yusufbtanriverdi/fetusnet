@@ -27,7 +27,7 @@ def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps):
     t = tqdm(loader, desc='Initializing.............', total=len(loader))
     for ind, batch in enumerate(t):
 
-        images, targets = batch['image']['data'].to(device), batch['heatmap']['data'].to(device)
+        images, targets = batch['image']['data'].to(device), batch['target']['data'].to(device)
         optimizer.zero_grad()
 
         # Forward pass

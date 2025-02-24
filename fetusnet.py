@@ -14,6 +14,9 @@ from net.train import train_one_ep
 from net.infer import infer_one_ep
 from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.model.utility.get_fresh_model import get_fresh_model
+import warnings
+# Ignore all UserWarnings
+warnings.filterwarnings("ignore", category=UserWarning)
 
 # Initialize parameters
 params = parameters_parsing()
@@ -38,6 +41,11 @@ if params.os in ['linux', 'l']:
 else:
     params.sys = "D:/"
 
+if params.GPU != -1:
+    params.device = 'cuda'
+else:
+    params.device = 'cpu'
+
 if params.mode in ['script_prepare', 'script_split']:
     print(f" WELCOME TO {params.mode} MODE. \n .......................creating info frames......................................... \n")
     sinfo_df = create_info_frames.main(params)
@@ -52,6 +60,9 @@ if os.path.exists(sinfo_path):
 else: 
     raise FileNotFoundError
 sinfo_df = sinfo_df[sinfo_df['landmark_antonia_found']].reset_index(drop=True)
+print(len(sinfo_df))
+sinfo_df = create_info_frames.update(sinfo_df, params)
+print(len(sinfo_df))
 
 # # 🔹 (TODO) Rotate/alignment step - Verify ground truth consistency
 # if params.mode == 'script_rotate':
@@ -70,17 +81,17 @@ if params.mode in ['train', 'train_test']:
     transformations = tio.Compose(transforms)
 
     # Check execution type
-    if params.execution != 'one-by-one':
-        raise ValueError(f"Unsupported execution mode: {params.execution}. "
+    if params.training_mode != 'one-by-one':
+        raise ValueError(f"Unsupported execution mode: {params.training_mode}. "
                          "Multiple landmarks cause high computation costs.")
 
-    for lmk in params.lmk:
+    for lmk in params.lmks:
         # Training across Folds
         for fold in range(params.n_split):
             print(f"\n--- Training Fold {fold + 1}/{params.n_split} ---")
 
             # Load Data
-            train_dl, val_dl = get_train_val_dl(sinfo_df, params, lmk, transformations=transformations)
+            train_dl, val_dl = get_train_val_dl(lmk, fold, params, transformations=transformations)
 
             # Initialize Model, Loss, Optimizer
             model, criterion, optimizer, best_criteria = get_fresh_model(params)

@@ -2,7 +2,7 @@ import torch.optim as optim
 import torch
 
 # Default imports
-from net.model.backbone import ResUnet3D  
+from net.model.backbone import ResUNet3D  
 from net.loss import KLDivergenceLoss, CrossEntropyLoss, MSELoss, EMDLoss
 
 
@@ -10,20 +10,20 @@ def get_fresh_model(params):
     """Initialize a fresh model, loss function, and optimizer based on params."""
     
     # Load model with default fallbacks
-    model = ResUnet3D(
-        in_channels=1, 
-        out_channels=getattr(params, "num_lmks", 10),  
-        num_features=getattr(params, "num_fts", 64)
+    model = ResUNet3D.ResUNet3D(
+        input_channels=1, 
+        output_channels=getattr(params, "num_lmks", 10),  
+        base_features=getattr(params, "num_fts", 64)
     )
     model.to(getattr(params, "device", "cuda" if torch.cuda.is_available() else "cpu"))
     print(model)
 
     # Loss function mapping
     loss_dict = {
-        "MSE": MSELoss,
-        "KLD": KLDivergenceLoss,
-        "DCE": CrossEntropyLoss,
-        "EMD": EMDLoss
+        "MSE": MSELoss.MSELoss,
+        # "KLD": KLDivergenceLoss,
+        # "DCE": CrossEntropyLoss,
+        # "EMD": EMDLoss
     }
     
     # Set loss function with fallback

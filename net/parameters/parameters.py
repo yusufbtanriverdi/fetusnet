@@ -118,7 +118,7 @@ def parameters_parsing() -> argparse.Namespace:
         # -------------- #
         # UTILITY TARGET #
         # -------------- #
-        subparser.add_argument('--target_mode',
+        subparser.add_argument('--generate',
                                type=str,
                                default=parameters_default['generate'],
                                help=parameters_help['generate'])
