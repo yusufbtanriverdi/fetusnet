@@ -31,12 +31,12 @@ with open(log_file, "w") as log:
     log.write(f"Experiment ID: {experiment_id}\n")
     log.write(f"Parameters: {vars(params)}\n")
 
-# # Load or create sinfo dataframe
-# sinfo_path = os.path.join(params.root, 'sinfo.csv')
-# sinfo_df = pd.read_csv(sinfo_path) if os.path.exists(sinfo_path) else None
-# sinfo_df = sinfo_df[sinfo_df['landmark_antonia_found']].reset_index(drop=True)
+# Load or create sinfo dataframe
+sinfo_path = os.path.join(params.root, 'sinfo.csv')
+sinfo_df = pd.read_csv(sinfo_path) if os.path.exists(sinfo_path) else None
+if not sinfo_df: raise FileNotFoundError
+sinfo_df = sinfo_df[sinfo_df['landmark_antonia_found']].reset_index(drop=True)
 
-# 🔹 (TODO) Consider raising an error if sinfo.csv is mandatory
 if params.mode in ['prepare', 'split']:
     sinfo_df = create_info_frames.main(params)
 if params.mode == 'split':
@@ -46,14 +46,14 @@ if params.mode == 'split':
 if params.mode == 'rotate':
     rotate.main(sinfo_df, params)
 
-# 🔹 (TODO) Generate target datasets
+# 🔹 (TODO) Test - Generate target datasets
 if params.mode == 'generate':
     generate_targets.main(sinfo_df, experiment_directory, params)
 
 # Training Phase
 if params.mode in ['train', 'train_test']:
     # Define transformations for 3D images
-    transforms = [tio.RescaleIntensity((0, 1))] if params.rescale else []
+    transforms = [tio.RescaleIntensity((0, 1))] if params.rescale else [] # In this version, only for input image.
     transformations = tio.Compose(transforms)
 
     # Check execution type
