@@ -88,7 +88,7 @@ if params.mode in ['train', 'train_test']:
 
     for lmk in params.lmks:
         # Training across Folds
-        for fold in range(params.n_split):
+        for fold in [1, 2, 3, 0]:
             print(f"\n--- Training Fold {fold + 1}/{params.n_split} ---")
             # Load Data
             train_dl, val_dl = get_train_val_dl(lmk, fold, params, transformations=transformations)
@@ -127,6 +127,8 @@ if params.mode in ['train', 'train_test']:
             val_loss, ep_scores, global_wandb_steps = infer_one_ep(model, val_dl, criterion, params.device, 
                         wandb_steps=global_wandb_steps, eval=True)
             wandb.finish()
+            # Re-initialize global tracking dictionary
+            global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
             initialize_wandb(params, fold=fold+1)
             
 if params.mode in ['test', 'eval']:
