@@ -321,7 +321,6 @@ def parameters_parsing() -> argparse.Namespace:
         
         subparser.add_argument('--n_bins',
                                 type=int,
-                                choices=parameters_choices['n_bins'],
                                 default=parameters_default['n_bins'],
                                 help=parameters_help['n_bins'])
         # ---------- #

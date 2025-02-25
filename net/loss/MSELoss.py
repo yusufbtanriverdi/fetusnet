@@ -122,8 +122,8 @@ class JointMSELoss(nn.Module):
             torch.Tensor: Computed loss.
         """
 
-        hig = histogram_2d.create_joint_histogram(outputs, targets) # Size N x n_bins x n_bins
-        hgg = histogram_2d.create_joint_histogram(outputs, outputs)
+        hig = histogram_2d.create_joint_histogram(outputs, targets, self.n_bins) # Size N x n_bins x n_bins
+        hgg = histogram_2d.create_joint_histogram(outputs, outputs, self.n_bins)
 
         loss = (hig - hgg) ** 2  # Element-wise squared difference
         

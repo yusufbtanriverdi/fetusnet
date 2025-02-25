@@ -90,7 +90,6 @@ if params.mode in ['train', 'train_test']:
         # Training across Folds
         for fold in range(params.n_split):
             print(f"\n--- Training Fold {fold + 1}/{params.n_split} ---")
-
             # Load Data
             train_dl, val_dl = get_train_val_dl(lmk, fold, params, transformations=transformations)
 
@@ -111,8 +110,8 @@ if params.mode in ['train', 'train_test']:
                     wandb_steps=global_wandb_steps
                 )
 
-                wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': epoch})
-                wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': epoch})
+                wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': global_wandb_steps['epoch']})
+                wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': global_wandb_steps['epoch']})
                 
                 # Save Best Model
                 if val_loss < best_criteria:
@@ -127,7 +126,9 @@ if params.mode in ['train', 'train_test']:
             # Final Evaluation on Validation Set
             val_loss, ep_scores, global_wandb_steps = infer_one_ep(model, val_dl, criterion, params.device, 
                         wandb_steps=global_wandb_steps, eval=True)
-
+            wandb.finish()
+            initialize_wandb(params, fold=fold+1)
+            
 if params.mode in ['test', 'eval']:
     
     # Check execution type

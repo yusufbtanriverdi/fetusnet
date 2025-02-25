@@ -96,7 +96,7 @@ parameters_help = {
 parameters_choices = {
     'execution': ['train', 'test'],
     'optimizer': ['adam', 'sgd'],
-    'criterion': ['mse', 'dce', 'kld', 'emd'],
+    'criterion': ['mse', 'histmse', 'dce', 'kld', 'emd'],
     'reduction': ['mean', 'sum', 'none'],
     'type_draw': ['heatmap', 'overlay'],
 }

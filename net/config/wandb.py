@@ -1,6 +1,6 @@
 import wandb
 
-def initialize_wandb(params):
+def initialize_wandb(params, fold=0):
     """ Initializes wandb for selected parameters. """
     wandb.init(
             # set the wandb project where this run will be logged
@@ -9,6 +9,6 @@ def initialize_wandb(params):
             config=params,
             # name for run
             # TODO: take this as argument and test.
-            name=params.run_name
+            name=params.run_name + 'fold_' + str(fold)
         )
     

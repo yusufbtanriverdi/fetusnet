@@ -1,9 +1,11 @@
 import torch.optim as optim
 import torch
+from functools import partial
 
 # Default imports
 from net.model.backbone import ResUNet3D  
 from net.loss import KLDivergenceLoss, CrossEntropyLoss, MSELoss, EMDLoss
+
 
 
 def get_fresh_model(params):
@@ -18,27 +20,26 @@ def get_fresh_model(params):
     model.to(getattr(params, "device", "cuda" if torch.cuda.is_available() else "cpu"))
     print(model)
 
-    # Loss function mapping
+    # Loss function mapping with optional parameters
     loss_dict = {
-        "MSE": MSELoss.MSELoss, # TODO: how to call with a param?
-        "HistMSE": MSELoss.HistMSELoss, # TODO: how to call with a param?
-        # "KLD": KLDivergenceLoss,
-        # "DCE": CrossEntropyLoss,
-        # "EMD": EMDLoss
+        'mse': partial(MSELoss.MSELoss, reduction=getattr(params, "reduction", 'mean')),  
+        'histmse': partial(MSELoss.HistMSELoss, reduction=getattr(params, "reduction", 'mean'), bins=getattr(params, "n_bins", 10)),  
     }
     
     # Set loss function with fallback
-    loss_name = getattr(params, "loss", "MSE")  # Default to "MSE"
-    criterion = loss_dict.get(loss_name, MSELoss)()
+    loss_name = getattr(params, 'loss', 'MSE')  # Default to mse
+    if loss_name in loss_dict:
+        criterion = loss_dict[loss_name]()  # Call the function to create an instance
+    else:
+        raise ValueError(f"Unsupported loss function '{loss_name}'. Choose from {list(loss_dict.keys())}.")
 
     # Optimizer mapping
     optim_dict = {
-        "Adam": optim.Adam,
-        "SGD": optim.SGD
+        'adam': optim.adam,
+        'sgd': optim.SGD
     }
-
     # Get optimizer with default fallback
-    optim_name = getattr(params, "optim", "Adam")  # Default to "Adam"
+    optim_name = getattr(params, 'optim', 'adam')  # Default to adam
     optimizer_cls = optim_dict.get(optim_name)  
 
     if optimizer_cls is None:
