@@ -1,9 +1,13 @@
 from tqdm import tqdm
 import torch
 import wandb
-from net.metrics.metrics_eval import compute_metrics
+import nrrd, os
 
-def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False):
+
+from net.metrics.metrics_eval import compute_metrics
+from net.dataset.MyDataset import extract_image
+
+def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save_dir=None):
     """
     Validate the model for one epoch.
     
@@ -62,4 +66,9 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False):
         wandb.log({f'epoc/{k}': v, 'epoc/epoch': wandb_steps['epoch']})
     wandb_steps['epoch'] += 1  # Increment step
     
+    if eval:
+        template_header = extract_image('templates/template.nrrd')[1]
+        for ind, batch in enumerate(loader):
+            name = batch['name'][0]
+            nrrd.write(os.path.join(save_dir, f"{name}.nrrd"), ep_outputs[ind].cpu().numpy(), header=template_header)
     return avg_loss, scores, wandb_steps

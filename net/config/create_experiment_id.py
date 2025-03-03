@@ -3,11 +3,9 @@ import os
 
 def create_experiment_id(params, create_directory = True):
 
-    if params.mode in ['test', 'eval']:
-        experiment_id = params.experiment_id
-    else:
-        current_time = datetime.now()
-        experiment_id = params.run_name + current_time.strftime("%Y-%m-%d_%H-%M-%S")
+
+    current_time = datetime.now()
+    experiment_id = params.run_name + current_time.strftime("%Y-%m-%d_%H-%M-%S")
 
     if create_directory:
         experiment_directory = f'runs/{experiment_id}'

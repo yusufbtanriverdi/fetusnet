@@ -75,12 +75,11 @@ if params.mode == 'script_generate_targets':
     print(params.sys)
     generate_targets.main(sinfo_df, experiment_directory, params)
 
+# Define transformations for 3D images
+transforms = [tio.RescaleIntensity((0, 1))] if params.rescale else [] # In this version, only for input image.
+transformations = tio.Compose(transforms)
 # Training Phase
 if params.mode in ['train', 'train_test']:
-    # Define transformations for 3D images
-    transforms = [tio.RescaleIntensity((0, 1))] if params.rescale else [] # In this version, only for input image.
-    transformations = tio.Compose(transforms)
-
     # Check execution type
     if params.training_mode != 'one-by-one':
         raise ValueError(f"Unsupported execution mode: {params.training_mode}. "
@@ -88,7 +87,7 @@ if params.mode in ['train', 'train_test']:
 
     for lmk in params.lmks:
         # Training across Folds
-        for fold in [1, 2, 3, 0]:
+        for fold in range(params.n_split):
             print(f"\n--- Training Fold {fold + 1}/{params.n_split} ---")
             # Load Data
             train_dl, val_dl = get_train_val_dl(lmk, fold, params, transformations=transformations)
@@ -130,21 +129,22 @@ if params.mode in ['train', 'train_test']:
             # Re-initialize global tracking dictionary
             global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
             initialize_wandb(params, fold=fold+1)
-            
+
 if params.mode in ['test', 'eval']:
     
     # Check execution type
-    if params.execution != 'one-by-one':
+    if params.training_mode != 'one-by-one':
         raise ValueError(f"Unsupported execution mode: {params.execution}. "
                          "Multiple landmarks cause high computation costs.")
 
-    for lmk in params.lmk:
+    for lmk in params.lmks:
         # Initialize Model, Loss, Optimizer
         model, criterion, optimizer, best_criteria = get_fresh_model(params)
-        model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, experiment_directory)
+        model_dir = f'runs/{params.model_dir}/best.pt'
+        model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
         # Load Data
-        test_dl = get_test_dl(sinfo_df, params, lmk, transformations=transformations)
+        test_dl = get_test_dl(params, lmk, transformations=transformations)
 
         # Final Evaluation on Validation Set
         infer_one_ep(model, test_dl, criterion, params.device, 
-                        wandb_steps=global_wandb_steps, eval=True)
+                        wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory)

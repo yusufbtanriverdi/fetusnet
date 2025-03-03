@@ -27,7 +27,7 @@ def get_fresh_model(params):
     }
     
     # Set loss function with fallback
-    loss_name = getattr(params, 'loss', 'MSE')  # Default to mse
+    loss_name = getattr(params, 'loss', 'mse')  # Default to mse
     if loss_name in loss_dict:
         criterion = loss_dict[loss_name]()  # Call the function to create an instance
     else:
@@ -35,7 +35,7 @@ def get_fresh_model(params):
 
     # Optimizer mapping
     optim_dict = {
-        'adam': optim.adam,
+        'adam': optim.Adam,
         'sgd': optim.SGD
     }
     # Get optimizer with default fallback

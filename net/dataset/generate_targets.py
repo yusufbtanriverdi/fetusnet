@@ -7,8 +7,8 @@ import time
 
 def main(dataframe, exp_dir, params):
     for lmk in params.lmks:
-        for i in range(len(params.target_idx)):
-            if params.target_mode == 'gaussian':
+        for i in params.target_idx:
+            if params.generate == 'gaussian':
                 start_time = time.time()  # Start timing
                 # Load 3D volume
                 image_path = os.path.join(params.sys + params.root, dataframe.loc[i, 'processed__vol_path'])
@@ -29,9 +29,8 @@ def main(dataframe, exp_dir, params):
                 coord_tensor = torch.abs(torch.tensor(coord, dtype=torch.float32)) 
 
                 # Generate target heatmap
-                if params.target_mode == 'gaussian':
-                    print(volume.shape)
-                    target = create_gaussian_heatmap(coord_tensor, volume, alpha=params.alpha, eps=params.eps)
+
+                target = create_gaussian_heatmap(coord_tensor, volume, alpha=params.alpha, eps=params.eps)
                 end_time = time.time()  # End timing
                 elapsed_time = end_time - start_time  # Compute elapsed time
                 print(f"Processed {os.path.join(params.sys, params.root, params.dataset[0], dataframe.loc[i, 'processed__vol_path'])} in {elapsed_time:.4f} seconds")

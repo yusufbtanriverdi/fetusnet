@@ -36,7 +36,8 @@ parameters_default = {
     'num_images': 10,
     'idx': 0,
     'wandbpro': 'heatmap3d',
-    'n_bins': 10
+    'n_bins': 10,
+    'model_dir': ''
 }
 
 parameters_help = {
@@ -90,7 +91,8 @@ parameters_help = {
     'idx': 'Index of the sample to visualize.',
     'mode': 'Script mode',
     'wandbpro': 'Project name to log in wandb.',
-    'n_bins': 'Number of bins for histogram-based losses.'
+    'n_bins': 'Number of bins for histogram-based losses.',
+    'model_dir': 'Model directory for test.',
 }
 
 parameters_choices = {

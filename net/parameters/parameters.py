@@ -349,6 +349,11 @@ def parameters_parsing() -> argparse.Namespace:
                                type=int,
                                default=parameters_default['idx'],
                                help=parameters_help['idx'])
+        
+        subparser.add_argument('--model_dir',
+                               type=str,
+                               default=parameters_default['model_dir'],
+                               help=parameters_help['model_dir'])   
 
         # --------------- #
         # POST PROCESSING #

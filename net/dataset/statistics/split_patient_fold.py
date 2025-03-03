@@ -22,6 +22,7 @@ def main(dataframe, params):
 
     dataframe = pd.DataFrame.from_records(dataframe)
     dataframe.loc[:, 'test'] = 0  # Initialize the 'test' column with zeros
+    # TODO: This doesn"t work!
     test_ind = dataframe['pid'].isin(test_patients)  # Vectorized approach
     dataframe.loc[test_ind, 'test'] = 1
     dataframe.to_csv(params.sys + params.root + 'sinfo.csv', index=False)
@@ -45,3 +46,7 @@ def main(dataframe, params):
         dataframe.to_csv(params.sys + params.root + 'sinfo__fold' + str(num) + '__.csv', index=False)
 
     return dataframe
+
+
+def get_patient_numbers_per_fold(dataframe):
+    return len(dataframe[dataframe['set'] == 1]['pid'].unique())
