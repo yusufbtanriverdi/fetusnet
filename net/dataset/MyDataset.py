@@ -83,6 +83,7 @@ class MyDataset(Dataset):
             raise ValueError(f"Landmark '{self.lmk}' not found in {landmark_path}")
 
         coord = landmark_row[['x', 'y', 'z']].iloc[0].tolist()  # Convert to list
+        coord = coord / header['spacings'][:3]
         coord_tensor = torch.tensor(coord, dtype=torch.float32)
 
         # Generate target heatmap
@@ -105,5 +106,5 @@ class MyDataset(Dataset):
             coord_y=coord_tensor[1],
             coord_z=coord_tensor[2]
         )
-
+        
         return subject
