@@ -23,7 +23,12 @@ def get_fresh_model(params):
     # Loss function mapping with optional parameters
     loss_dict = {
         'mse': partial(MSELoss.MSELoss, reduction=getattr(params, "reduction", 'mean')),  
-        'histmse': partial(MSELoss.HistMSELoss, reduction=getattr(params, "reduction", 'mean'), bins=getattr(params, "n_bins", 10)),  
+        'histmse': partial(MSELoss.HistMSELoss, reduction=getattr(params, "reduction", 'mean'), bins=getattr(params, "n_bins", 10)), 
+        'jointmse': partial(MSELoss.JointMSELoss, reduction=getattr(params, "reduction", 'mean'), bins=getattr(params, "n_bins", 10)), 
+        'kld': partial(KLDivergenceLoss.KLDLoss, reduction=getattr(params, "reduction", 'mean')),  
+        'histkld': partial(KLDivergenceLoss.HistKLDLoss, reduction=getattr(params, "reduction", 'mean'), bins=getattr(params, "n_bins", 10)), 
+        'jointkld': partial(KLDivergenceLoss.JointKLDLoss, reduction=getattr(params, "reduction", 'mean'), bins=getattr(params, "n_bins", 10)), 
+
     }
     
     # Set loss function with fallback

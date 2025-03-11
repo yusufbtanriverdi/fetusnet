@@ -1,0 +1,57 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+
+def get_best_slices(ground_truth):
+    """
+    Find the slices (x, y, z) that contain the maximum landmark intensity in the ground truth heatmap.
+    """
+    max_index = np.unravel_index(np.argmax(ground_truth), ground_truth.shape)
+    return max_index  # (z, y, x)
+
+def overlay_heatmaps(us_image, pred_heatmap, gt_heatmap, alpha=0.5):
+    """
+    Generates overlay visualizations of the ultrasound image with the predicted and ground truth heatmaps.
+    
+    Args:
+        us_image (numpy array): 3D ultrasound image (Z, Y, X)
+        pred_heatmap (numpy array): 3D predicted heatmap (Z, Y, X)
+        gt_heatmap (numpy array): 3D ground truth heatmap (Z, Y, X)
+        alpha (float): Transparency level for overlays
+    """
+    # Get the most meaningful slice indices
+    z_idx, y_idx, x_idx = get_best_slices(gt_heatmap)
+    
+    # Extract slices
+    sagittal_img = us_image[:, :, x_idx]  # Sagittal plane (YZ)
+    coronal_img = us_image[:, y_idx, :]  # Coronal plane (XZ)
+    axial_img = us_image[z_idx, :, :]  # Axial plane (XY)
+    
+    sagittal_gt = gt_heatmap[:, :, x_idx]
+    coronal_gt = gt_heatmap[:, y_idx, :]
+    axial_gt = gt_heatmap[z_idx, :, :]
+    
+    sagittal_pred = pred_heatmap[:, :, x_idx]
+    coronal_pred = pred_heatmap[:, y_idx, :]
+    axial_pred = pred_heatmap[z_idx, :, :]
+    
+    # Create figure
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    
+    planes = [
+        (sagittal_img, sagittal_gt, sagittal_pred, 'Sagittal (YZ)'),
+        (coronal_img, coronal_gt, coronal_pred, 'Coronal (XZ)'),
+        (axial_img, axial_gt, axial_pred, 'Axial (XY)')
+    ]
+    
+    for ax, (img, gt, pred, title) in zip(axes, planes):
+        ax.imshow(img, cmap='gray')  # Base ultrasound image
+        # Overlay ground truth heatmap in red
+        ax.imshow(gt, cmap=mcolors.ListedColormap(['red']), alpha=alpha * (gt > 0))
+        # Overlay predicted heatmap in yellow
+        ax.imshow(pred, cmap=mcolors.ListedColormap(['yellow']), alpha=alpha * (pred > 0))
+        ax.set_title(title)
+        ax.axis('off')
+    
+    plt.show()
+    return fig  # Return figure object for saving or further processing

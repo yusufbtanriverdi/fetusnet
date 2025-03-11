@@ -14,13 +14,17 @@ def create_histogram(tensors, n_bins):
     """
     N = tensors.shape[0]  # Batch size
     histograms = []
-
+    device = tensors.device
     for i in range(N):
         flattened = tensors[i].flatten()  # Flatten to 1D
-        hist = torch.histc(flattened, bins=n_bins, min=flattened.min().item(), max=flattened.max().item())
+        hist = torch.histc(flattened, bins=n_bins, min=flattened.min().item(), max=flattened.max().item()).to(device)
+
+        # plt.bar(range(len(hist)), height=hist)
+        # plt.show()
+
         histograms.append(hist)
 
-    return torch.stack(histograms)  # Shape: (N, n_bins)
+    return torch.stack(histograms).to(device)  # Shape: (N, n_bins)
 
 # ==== Example Usage ====
 

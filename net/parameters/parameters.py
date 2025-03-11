@@ -313,7 +313,7 @@ def parameters_parsing() -> argparse.Namespace:
                                default=parameters_default['reduction'],
                                help=parameters_help['reduction'])
         
-        subparser.add_argument('--criterion',
+        subparser.add_argument('--criterion', '--loss', '-l',
                                 type=str,
                                 choices=parameters_choices['criterion'],
                                 default=parameters_default['criterion'],

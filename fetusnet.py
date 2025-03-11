@@ -116,19 +116,22 @@ if params.mode in ['train', 'train_test']:
                 if val_loss < best_criteria:
                     best_criteria = val_loss
                     save_checkpoint(model, optimizer, epoch, val_loss, 
-                                    os.path.join(experiment_directory, 'best.pt'))
+                                    os.path.join(experiment_directory, f'best_fold{fold}.pt'))
 
                 # Save Last Model
                 save_checkpoint(model, optimizer, epoch, val_loss, 
-                                os.path.join(experiment_directory, 'last.pt'))
+                                os.path.join(experiment_directory, f'last_fold{fold}.pt'))
 
+                print("Last Ep d-mean Score: ", ep_scores['dmean'])
+                
             # Final Evaluation on Validation Set
             val_loss, ep_scores, global_wandb_steps = infer_one_ep(model, val_dl, criterion, params.device, 
                         wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory)
             wandb.finish()
             # Re-initialize global tracking dictionary
             global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
-            initialize_wandb(params, fold=fold+1)
+            if params.use_wandb:
+                initialize_wandb(params, fold=fold)
 
 if params.mode in ['test', 'eval']:
     

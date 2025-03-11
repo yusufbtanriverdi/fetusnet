@@ -3,9 +3,9 @@ import torch
 import wandb
 import nrrd, os
 
-
 from net.metrics.metrics_eval import compute_metrics
 from net.dataset.MyDataset import extract_image
+from net.visual.detection.planes import overlay_heatmaps
 
 def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save_dir=None):
     """
@@ -71,4 +71,11 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save
         for ind, batch in enumerate(loader):
             name = batch['name'][0]
             nrrd.write(os.path.join(save_dir, f"{name}.nrrd"), ep_outputs[ind].cpu().numpy(), header=template_header)
+            fig = overlay_heatmaps(batch['image']['data'][0].cpu().numpy(),
+                                   batch['target']['data'][0].cpu().numpy(),
+                                   ep_outputs[ind].cpu().numpy() # assuming batch size = 1
+                                   )
+            os.makedirs(os.path.join(save_dir, 'detection_planes'), exist_ok=True)
+            fig.savefig(os.path.join(save_dir, 'detection_planes', f"{name}.nrrd"))
+            
     return avg_loss, scores, wandb_steps
