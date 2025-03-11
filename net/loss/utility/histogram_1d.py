@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 def create_histogram(tensors, n_bins):
     """
-    Compute histograms for a batch of 3D images.
+    Compute histograms for a batch of 3D images using torch.bincount.
 
     Args:
         tensors (torch.Tensor): Input tensor of shape (N, D, H, W).
@@ -15,16 +15,43 @@ def create_histogram(tensors, n_bins):
     N = tensors.shape[0]  # Batch size
     device = tensors.device
 
+    # Flatten each 3D image to a 1D vector
+    flattened = tensors.view(N, -1)
+
     histos = torch.zeros((N, n_bins), device=device)
     for i in range(N):
-        flattened = tensors[i].flatten()  # Flatten to 1D
-        histos[i] = torch.histc(flattened, bins=n_bins, min=flattened.min().item(), max=flattened.max().item()).to(device)
+        img = flattened[i]
+        # Compute the minimum and maximum values for the image
+        min_val = img.min()
+        max_val = img.max()
 
-        # plt.bar(range(len(histos[i])), height=histos[i].cpu().numpy())
-        # plt.show()
+        if max_val == min_val:
+            # If all pixel values are the same, assign all counts to bin 0.
+            bin_idx = torch.zeros_like(img, dtype=torch.long)
+        else:
+            # Scale each value into [0, n_bins)
+            scaled = (img - min_val) / (max_val - min_val) * n_bins
+            # Floor to get the bin index; convert to long
+            bin_idx = scaled.floor().long()
+            # Clamp indices to ensure they lie in the range [0, n_bins-1]
+            bin_idx = torch.clamp(bin_idx, 0, n_bins - 1)
+
+        # Count occurrences in each bin using torch.bincount.
+        # Ensure that the output has exactly n_bins elements.
+        count = torch.bincount(bin_idx, minlength=n_bins).to(device)
+        histos[i] = count
+
+
+        plt.bar(range(len(histos[i])), height=histos[i].cpu().numpy())
+        plt.show()
 
     histos.requires_grad = True
     return histos  # Shape: (N, n_bins)
+
+
+def do_something(tensor, *args):
+    tensor = torch.zeros_like(tensor, device=tensor.device, requires_grad=True)
+    return tensor
 
 # ==== Example Usage ====
 

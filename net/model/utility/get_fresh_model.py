@@ -28,7 +28,7 @@ def get_fresh_model(params):
         'kld': partial(KLDivergenceLoss.KLDLoss, reduction=getattr(params, "reduction", 'mean')),  
         'histkld': partial(KLDivergenceLoss.HistKLDLoss, reduction=getattr(params, "reduction", 'mean'), n_bins=getattr(params, "n_bins", 10)), 
         'jointkld': partial(KLDivergenceLoss.JointKLDLoss, reduction=getattr(params, "reduction", 'mean'), n_bins=getattr(params, "n_bins", 10)), 
-
+        'dosth': partial(KLDivergenceLoss.DoSthLoss), 
     }
     
     # Set loss function with fallback

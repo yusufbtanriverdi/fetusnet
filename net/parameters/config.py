@@ -103,7 +103,8 @@ parameters_choices = {
     'criterion': ['mse', 'histmse', 'jointmse', 
                   'dce', 
                   'kld', 'histkld', 'jointkld', 
-                  'emd', 'dm'
+                  'emd', 'dm',
+                  'dosth'
                   ],
     'reduction': ['mean', 'sum', 'none'],
     'type_draw': ['heatmap', 'overlay'],

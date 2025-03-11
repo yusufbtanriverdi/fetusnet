@@ -81,9 +81,10 @@ class HistKLDLoss(nn.Module):
 
         outputs = histogram_1d.create_histogram(outputs, self.n_bins) # should return N x number_of_bins
         targets = histogram_1d.create_histogram(targets, self.n_bins)
-
+        
         outputs = torch.nn.functional.softmax(outputs, dim=0) # Avoid log(<=0) or log(>1)
         targets = torch.nn.functional.softmax(targets, dim=0) # Avoid log(<=0) or log(>1)
+
 
         loss = targets * (torch.log(targets) - torch.log(outputs))  # Histogram-based KLD
 
@@ -152,3 +153,28 @@ class JointKLDLoss(nn.Module):
         elif self.reduction == 'none':
             # Return the per-sample loss without reduction
             return loss
+
+class DoSthLoss(nn.Module):
+    def __init__(self):
+        """
+        """
+        super(DoSthLoss, self).__init__()
+
+    def do_something(self, tensor, *args):
+        tensor = torch.ones_like(tensor, device=tensor.device, requires_grad=True) * torch.rand(1).item()
+        return tensor
+
+    def forward(self, outputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """
+        Computes the Do Something loss.
+        """
+
+        outputs = self.do_something(outputs)
+        targets = self.do_something(targets)
+
+        loss = (targets - outputs) ** 2
+
+        # Sum over spatial dimensions (D, H, W for 3D, or H, W for 2D)
+        loss = loss.view(loss.size(0), -1).sum(dim=-1)  # Sum over D,H,W
+
+        return loss.mean()
