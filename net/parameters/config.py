@@ -14,7 +14,7 @@ parameters_default = {
     'eps': 1e-6,
     'run_name': 'experiment_1',
     'use_wandb': False,
-    'GPU': '0',
+    'GPU': 0,
     'num_threads': 4,
     'seed': 42,
     'rescale': True,
@@ -37,7 +37,8 @@ parameters_default = {
     'idx': 0,
     'wandbpro': 'heatmap3d',
     'n_bins': 10,
-    'model_dir': ''
+    'model_dir': '',
+    'test_fold': 0
 }
 
 parameters_help = {
@@ -93,6 +94,7 @@ parameters_help = {
     'wandbpro': 'Project name to log in wandb.',
     'n_bins': 'Number of bins for histogram-based losses.',
     'model_dir': 'Model directory for test.',
+    'test_fold': 'Select fold to test patients.'
 }
 
 parameters_choices = {

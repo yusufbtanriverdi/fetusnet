@@ -47,6 +47,7 @@ if params.GPU != -1:
 else:
     params.device = 'cpu'
 
+print('Device: ', params.device)
 if params.mode in ['script_prepare', 'script_split']:
     print(f" WELCOME TO {params.mode} MODE. \n .......................creating info frames......................................... \n")
     sinfo_df = create_info_frames.main(params)
@@ -60,6 +61,7 @@ if os.path.exists(sinfo_path):
     sinfo_df = pd.read_csv(sinfo_path) 
 else: 
     raise FileNotFoundError
+
 sinfo_df = sinfo_df[sinfo_df['landmark_antonia_found']].reset_index(drop=True)
 print(len(sinfo_df))
 sinfo_df = create_info_frames.update(sinfo_df, params)
@@ -95,6 +97,7 @@ if params.mode in ['train', 'train_test']:
             # Initialize Model, Loss, Optimizer
             model, criterion, optimizer, best_criteria = get_fresh_model(params)
 
+            print(criterion)
             # Epoch Training Loop
             for epoch in range(params.epochs):
                 print(f"\n[Epoch {epoch + 1}/{params.epochs}]")
@@ -143,7 +146,7 @@ if params.mode in ['test', 'eval']:
     for lmk in params.lmks:
         # Initialize Model, Loss, Optimizer
         model, criterion, optimizer, best_criteria = get_fresh_model(params)
-        model_dir = f'runs/{params.model_dir}/best.pt'
+        model_dir = f'runs/{params.model_dir}/best_fold{params.test_fold}.pt'
         model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
         # Load Data
         test_dl = get_test_dl(params, lmk, transformations=transformations)

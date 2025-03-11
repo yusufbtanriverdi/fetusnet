@@ -79,11 +79,11 @@ class HistKLDLoss(nn.Module):
             torch.Tensor: Computed loss.
         """
 
-        out_hist = histogram_1d.create_histogram(outputs, self.n_bins) # should return N x number_of_bins
-        tar_hist = histogram_1d.create_histogram(targets, self.n_bins)
+        outputs = histogram_1d.create_histogram(outputs, self.n_bins) # should return N x number_of_bins
+        targets = histogram_1d.create_histogram(targets, self.n_bins)
 
-        outputs = torch.nn.functional.softmax(out_hist, dim=0) # Avoid log(<=0) or log(>1)
-        targets = torch.nn.functional.softmax(tar_hist, dim=0) # Avoid log(<=0) or log(>1)
+        outputs = torch.nn.functional.softmax(outputs, dim=0) # Avoid log(<=0) or log(>1)
+        targets = torch.nn.functional.softmax(targets, dim=0) # Avoid log(<=0) or log(>1)
 
         loss = targets * (torch.log(targets) - torch.log(outputs))  # Histogram-based KLD
 

@@ -115,6 +115,11 @@ def parameters_parsing() -> argparse.Namespace:
                             default=parameters_default['test_patients'],
                             help=parameters_help['test_patients'])
         
+        subparser.add_argument('--test_fold', '-f',
+                            type=int,
+                            default=parameters_default['test_fold'],
+                            help=parameters_help['test_fold'])
+        
         # -------------- #
         # UTILITY TARGET #
         # -------------- #
@@ -161,7 +166,7 @@ def parameters_parsing() -> argparse.Namespace:
         # DEVICE #
         # ------ #
         subparser.add_argument('--GPU',
-                               type=str,
+                               type=int,
                                default=parameters_default['GPU'],
                                help=parameters_help['GPU'])
 

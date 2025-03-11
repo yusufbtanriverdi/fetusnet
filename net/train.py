@@ -33,7 +33,6 @@ def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps):
         # Forward pass
         outputs = model(images)
         loss = criterion(outputs, targets)
-
         # Backward pass and optimization
         loss.backward()
         optimizer.step()

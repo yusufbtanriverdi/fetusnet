@@ -71,11 +71,12 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save
         for ind, batch in enumerate(loader):
             name = batch['name'][0]
             nrrd.write(os.path.join(save_dir, f"{name}.nrrd"), ep_outputs[ind].cpu().numpy(), header=template_header)
-            fig = overlay_heatmaps(batch['image']['data'][0].cpu().numpy(),
-                                   batch['target']['data'][0].cpu().numpy(),
+            fig_gt, fig_pr = overlay_heatmaps(batch['image']['data'][0, 0].cpu().numpy(),
+                                   batch['target']['data'][0, 0].cpu().numpy(),
                                    ep_outputs[ind].cpu().numpy() # assuming batch size = 1
                                    )
             os.makedirs(os.path.join(save_dir, 'detection_planes'), exist_ok=True)
-            fig.savefig(os.path.join(save_dir, 'detection_planes', f"{name}.nrrd"))
+            fig_gt.savefig(os.path.join(save_dir, 'detection_planes', f"gt_{name}.png"))
+            fig_pr.savefig(os.path.join(save_dir, 'detection_planes', f"pr_{name}.png"))
             
     return avg_loss, scores, wandb_steps
