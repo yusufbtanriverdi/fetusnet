@@ -7,17 +7,20 @@ import pandas as pd
 import nrrd
 import time
 
-def main(dataframe, exp_dir, params):
+def main(sinfo, exp_dir, params):
     for lmk in params.lmks:
-        for i in params.target_idx:
+        if params.test_patients: target_idx =  sinfo.index[sinfo['pid'].isin(params.test_patients)].tolist()
+        else: target_idx = params.target_idx
+
+        for i in target_idx:
             start_time = time.time()  # Start timing
             # Load 3D volume
-            image_path = os.path.join(params.sys + params.root, dataframe.loc[i, 'processed__vol_path'])
+            image_path = os.path.join(params.sys + params.root, sinfo.loc[i, 'processed__vol_path'])
             volume, header = extract_image(image_path)
             # image_tensor = torch.tensor(volume).unsqueeze(0)  # Add channel dimension
 
             # Load landmark file
-            landmark_path = os.path.join(params.sys +  params.root, dataframe.loc[i, 'processed__csv_path'])
+            landmark_path = os.path.join(params.sys +  params.root, sinfo.loc[i, 'processed__csv_path'])
             landmark_df = pd.read_csv(landmark_path)
 
             # Extract coordinates for the selected landmark
@@ -36,7 +39,7 @@ def main(dataframe, exp_dir, params):
                 target = create_distance_matrix(coord_tensor, volume, eps=params.eps)
             end_time = time.time()  # End timing
             elapsed_time = end_time - start_time  # Compute elapsed time
-            print(f"Processed {os.path.join(params.sys, params.root, params.dataset[0], dataframe.loc[i, 'processed__vol_path'])} in {elapsed_time:.4f} seconds")
+            print(f"Processed {os.path.join(params.sys, params.root, params.dataset[0], sinfo.loc[i, 'processed__vol_path'])} in {elapsed_time:.4f} seconds")
             # Save target
-            nrrd.write(os.path.join(exp_dir, f"{dataframe.loc[i, 'full_id']}.nrrd"), target, header=header)
+            nrrd.write(os.path.join(exp_dir, f"{sinfo.loc[i, 'full_id']}.nrrd"), target, header=header)
             

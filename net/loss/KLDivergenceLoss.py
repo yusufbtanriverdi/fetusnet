@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from net.loss.utility import histogram_1d, histogram_2d
+import gc
 
 class KLDLoss(nn.Module):
     def __init__(self, reduction: str = 'mean', eps: int =1e-20):
@@ -51,130 +52,33 @@ class KLDLoss(nn.Module):
             return loss
 
 
-class HistKLDLoss(nn.Module):
-    def __init__(self, n_bins, reduction: str = 'mean'):
-        """
-        Custom Mean Squared Error (KLD) loss that considers histogram bins of images.
-
-        Args:
-            reduction (str): Specifies the reduction method to apply.
-                - 'mean': Returns the mean of the loss.
-                - 'sum': Returns the sum of the loss.
-                - 'none': Returns the loss without reduction.
-        """
-        super(HistKLDLoss, self).__init__()
-        assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
-        self.reduction = reduction
-        self.n_bins = n_bins
-
-    def forward(self, outputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-        """
-        Computes the KLD loss between 1D histograms.
-
-        Args:
-            outputs (torch.Tensor): Predicted values.
-            targets (torch.Tensor): Ground truth values.
-
-        Returns:
-            torch.Tensor: Computed loss.
-        """
-
-        outputs = histogram_1d.create_histogram(outputs, self.n_bins) # should return N x number_of_bins
-        targets = histogram_1d.create_histogram(targets, self.n_bins)
+ # FOR 1D
+        # outputs = histogram_1d.create_histogram(outputs, self.n_bins) # should return N x number_of_bins
+        # targets = histogram_1d.create_histogram(targets, self.n_bins)
         
-        outputs = torch.nn.functional.softmax(outputs, dim=0) # Avoid log(<=0) or log(>1)
-        targets = torch.nn.functional.softmax(targets, dim=0) # Avoid log(<=0) or log(>1)
+        # outputs = torch.nn.functional.softmax(outputs, dim=0) # Avoid log(<=0) or log(>1)
+        # targets = torch.nn.functional.softmax(targets, dim=0) # Avoid log(<=0) or log(>1)
 
 
-        loss = targets * (torch.log(targets) - torch.log(outputs))  # Histogram-based KLD
+# FOR 2D
+        # hig = histogram_2d.create_joint_histogram_fast(outputs, targets, self.n_bins) # Size N x n_bins x n_bins
+        # hgg = histogram_2d.create_joint_histogram_fast(outputs, outputs, self.n_bins)
 
-        # Sum over spatial dimensions (D, H, W for 3D, or H, W for 2D)
-        loss = loss.view(loss.size(0), -1).sum(dim=-1)  # Sum over D,H,W
-        
-        if self.reduction == 'mean':
-            # Reduce over the batch dimension and return the mean
-            return loss.mean()
-        
-        elif self.reduction == 'sum':
-            # Return the sum of all the loss values over the batch
-            return loss.sum()
-        
-        elif self.reduction == 'none':
-            # Return the per-sample loss without reduction
-            return loss
+        # outputs = torch.nn.functional.softmax(hig, dim=0) # Avoid log(<=0) or log(>1)
+        # targets = torch.nn.functional.softmax(hgg, dim=0) # Avoid log(<=0) or log(>1)
 
-class JointKLDLoss(nn.Module):
-    def __init__(self, n_bins, reduction: str = 'mean'):
-        """
-        Custom Kullback-Leibler (KLD) loss between HIG and HGG joint histograms. 
-
-        Args:
-            reduction (str): Specifies the reduction method to apply.
-                - 'mean': Returns the mean of the loss.
-                - 'sum': Returns the sum of the loss.
-                - 'none': Returns the loss without reduction.
-        """
-        super(JointKLDLoss, self).__init__()
-        assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
-        self.reduction = reduction
-        self.n_bins = n_bins
-
-    def forward(self, outputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-        """
-        Computes the KLD loss.
-
-        Args:
-            outputs (torch.Tensor): Predicted values.
-            targets (torch.Tensor): Ground truth values.
-
-        Returns:
-            torch.Tensor: Computed loss.
-        """
-
-        hig = histogram_2d.create_joint_histogram_fast(outputs, targets, self.n_bins) # Size N x n_bins x n_bins
-        hgg = histogram_2d.create_joint_histogram_fast(outputs, outputs, self.n_bins)
-
-        outputs = torch.nn.functional.softmax(hig, dim=0) # Avoid log(<=0) or log(>1)
-        targets = torch.nn.functional.softmax(hgg, dim=0) # Avoid log(<=0) or log(>1)
-
-        loss = targets * (torch.log(targets) - torch.log(outputs))  # Joint Histogram-based KLD
-        
-        # Sum over spatial dimensions (D, H, W for 3D, or H, W for 2D)
-        loss = loss.view(loss.size(0), -1).sum(dim=-1)  # Sum over D,H,W
-        
-        if self.reduction == 'mean':
-            # Reduce over the batch dimension and return the mean
-            return loss.mean()
-        
-        elif self.reduction == 'sum':
-            # Return the sum of all the loss values over the batch
-            return loss.sum()
-        
-        elif self.reduction == 'none':
-            # Return the per-sample loss without reduction
-            return loss
-
+        # loss = targets * (torch.log(targets) - torch.log(outputs))  # Joint Histogram-based KLD
+   
 class DoSthLoss(nn.Module):
     def __init__(self):
         """
         """
         super(DoSthLoss, self).__init__()
 
-    def do_something(self, tensor, *args):
-        tensor = torch.ones_like(tensor, device=tensor.device, requires_grad=True) * torch.rand(1).item()
-        return tensor
-
     def forward(self, outputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
         Computes the Do Something loss.
         """
 
-        outputs = self.do_something(outputs)
-        targets = self.do_something(targets)
-
-        loss = (targets - outputs) ** 2
-
-        # Sum over spatial dimensions (D, H, W for 3D, or H, W for 2D)
-        loss = loss.view(loss.size(0), -1).sum(dim=-1)  # Sum over D,H,W
-
-        return loss.mean()
+        return None
+    

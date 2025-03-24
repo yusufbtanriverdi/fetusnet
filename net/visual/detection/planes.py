@@ -12,7 +12,7 @@ def get_best_slices(ground_truth):
 import numpy as np
 import matplotlib.pyplot as plt
 
-def overlay_heatmaps(us_image, pred_heatmap, gt_heatmap, alpha=0.5):
+def overlay_heatmaps(us_image, gt_heatmap, pred_heatmap, alpha=0.5):
     """
     Generates overlay visualizations of the ultrasound image with the predicted and ground truth heatmaps separately.
     
