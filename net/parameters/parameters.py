@@ -320,7 +320,6 @@ def parameters_parsing() -> argparse.Namespace:
         
         subparser.add_argument('--criterion', '--loss', '-l',
                                 type=str,
-                                choices=parameters_choices['criterion'],
                                 default=parameters_default['criterion'],
                                 help=parameters_help['criterion'])
         

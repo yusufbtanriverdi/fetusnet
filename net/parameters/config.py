@@ -36,7 +36,7 @@ parameters_default = {
     'num_images': 10,
     'idx': 0,
     'wandbpro': 'heatmap3d',
-    'n_bins': 10,
+    'n_bins': 100,
     'model_dir': '',
     'test_fold': 0
 }
@@ -100,12 +100,6 @@ parameters_help = {
 parameters_choices = {
     'execution': ['train', 'test', 'script_generate_targets'],
     'optimizer': ['adam', 'sgd'],
-    'criterion': ['mse', 'histmse', 'jointmse', 
-                  'dce', 
-                  'kld', 'histkld', 'jointkld', 
-                  'emd', 'dm',
-                  'dosth'
-                  ],
     'reduction': ['mean', 'sum', 'none'],
     'type_draw': ['heatmap', 'overlay'],
 }

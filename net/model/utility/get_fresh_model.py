@@ -4,7 +4,7 @@ from functools import partial
 
 # Default imports
 from net.model.backbone import ResUNet3D  
-from net.loss import KLDivergenceLoss, CrossEntropyLoss, MSELoss, EMDLoss
+from net.loss.Voxelwise import MSE, CrossEntropy, DistanceMatrix, KLDivergence
 
 
 
@@ -22,13 +22,10 @@ def get_fresh_model(params):
 
     # Loss function mapping with optional parameters
     loss_dict = {
-        'mse': partial(MSELoss.MSELoss, reduction=getattr(params, "reduction", 'mean')),  
-        'histmse': partial(MSELoss.HistMSELoss, reduction=getattr(params, "reduction", 'mean'), n_bins=getattr(params, "n_bins", 10)), 
-        'jointmse': partial(MSELoss.JointMSELoss, reduction=getattr(params, "reduction", 'mean'), n_bins=getattr(params, "n_bins", 10)), 
-        'kld': partial(KLDivergenceLoss.KLDLoss, reduction=getattr(params, "reduction", 'mean')),  
-        'histkld': partial(KLDivergenceLoss.HistKLDLoss, reduction=getattr(params, "reduction", 'mean'), n_bins=getattr(params, "n_bins", 10)), 
-        'jointkld': partial(KLDivergenceLoss.JointKLDLoss, reduction=getattr(params, "reduction", 'mean'), n_bins=getattr(params, "n_bins", 10)), 
-        'dosth': partial(KLDivergenceLoss.DoSthLoss), 
+        'mse': partial(MSE.MSELoss, reduction=getattr(params, "reduction", 'mean')),  
+        'kld': partial(KLDivergence.KLDLoss, reduction=getattr(params, "reduction", 'mean')),  
+        'dce': partial(CrossEntropy.DCELoss, reduction=getattr(params, "reduction", 'mean')),  
+        'dml': partial(DistanceMatrix.DMLoss, reduction=getattr(params, "reduction", 'mean')),  
     }
     
     # Set loss function with fallback

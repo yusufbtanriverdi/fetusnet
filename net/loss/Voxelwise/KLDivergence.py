@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-from net.loss.utility import histogram_1d, histogram_2d
-import gc
 
 class KLDLoss(nn.Module):
     def __init__(self, reduction: str = 'mean', eps: int =1e-20):
