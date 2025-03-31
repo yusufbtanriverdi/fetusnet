@@ -4,7 +4,7 @@ from functools import partial
 
 # Default imports
 from net.model.backbone import ResUNet3D  
-from net.loss.Voxelwise import MSE, CrossEntropy, DistanceMatrix, KLDivergence
+from net.loss.voxel import cross_entropy, distance_matrix_multiplication, kullback_leibler_div, mean_squared_error
 
 
 
@@ -22,10 +22,10 @@ def get_fresh_model(params):
 
     # Loss function mapping with optional parameters
     loss_dict = {
-        'mse': partial(MSE.MSELoss, reduction=getattr(params, "reduction", 'mean')),  
-        'kld': partial(KLDivergence.KLDLoss, reduction=getattr(params, "reduction", 'mean')),  
-        'dce': partial(CrossEntropy.DCELoss, reduction=getattr(params, "reduction", 'mean')),  
-        'dml': partial(DistanceMatrix.DMLoss, reduction=getattr(params, "reduction", 'mean')),  
+        'mse': partial(mean_squared_error.MSELoss, reduction=getattr(params, "reduction", 'mean')),  
+        'kld': partial(kullback_leibler_div.KLDLoss, reduction=getattr(params, "reduction", 'mean')),  
+        'dce': partial(cross_entropy.DCELoss, reduction=getattr(params, "reduction", 'mean')),  
+        'dml': partial(distance_matrix_multiplication.DMLoss, reduction=getattr(params, "reduction", 'mean')),  
     }
     
     # Set loss function with fallback
