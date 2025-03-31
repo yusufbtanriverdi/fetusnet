@@ -1,14 +1,12 @@
 import torch
-import torch.nn as nn
-from utils import norm_min_max_distributions
-from base_hist_loss import BaseHistLoss
-
+from net.loss.histogram.base_hist_loss import BaseHistLoss
+from torch.autograd import Variable
 
 class TVDLoss(BaseHistLoss):
     def __init__(self, reduction: str = 'mean'):
         """
         Custom Total Variation Distance (TVD) loss as explained in the video following.
-        
+
         https://www.youtube.com/watch?v=Bk84wAkunpo.
 
         Args:
@@ -34,43 +32,27 @@ class TVDLoss(BaseHistLoss):
         """
         # Assuming batch size = 1
 
-        out_hist = self.compute_histogram(outputs)  # h_pos
-        tar_hist = self.compute_histogram(targets)  # h_neg
+        out_hist = self.compute_histogram(outputs).cuda()  # h_pos
+        tar_hist = self.compute_histogram(targets).cuda()  # h_neg
 
-        import matplotlib.pyplot as plt
-        plt.plot(torch.linspace(0, 1, 128), out_hist)
-        plt.plot(torch.linspace(0, 1, 128), tar_hist)
-        plt.show()
-        
+        # import matplotlib.pyplot as plt
+        # plt.plot(torch.linspace(0, 1, 128), out_hist.detach().cpu())
+        # plt.plot(torch.linspace(0, 1, 128), tar_hist.detach().cpu())
+        # plt.show()
+
         # Assume that both outputs and targets are probabilistic distributions
         # TV(P, Q) = 1/2 * norm(P-Q)
-        loss = 1/2 * torch.linalg.norm(out_hist - tar_hist) 
-                
+        loss = 1/2 * torch.linalg.norm(out_hist - tar_hist)
+
         if self.reduction == 'mean':
             # Reduce over the batch dimension and return the mean
             return loss.mean()
-        
+
         elif self.reduction == 'sum':
             # Return the sum of all the loss values over the batch
             return loss.sum()
-        
+
         elif self.reduction == 'none':
             # Return the per-sample loss without reduction
             return loss
 
-
-if __name__ == '__main__':
-
-    criterion = TVDLoss(reduction='none')
-    # Define batch size and 3D image dimensions (e.g., batch of 2 images of size 16x16x16)
-    batch_size = 1
-    depth, height, width = 128, 128, 128  # 3D volume dimensions
-    
-    # Generate random tensors to simulate predicted and target distributions
-    outputs = torch.rand(batch_size, depth, height, width) 
-    targets = torch.rand(batch_size, depth, height, width) 
-
-    # Compute the loss
-    loss = criterion(outputs, targets)
-    # Print the loss
-    print(f"TVD Loss: {loss.item()}")

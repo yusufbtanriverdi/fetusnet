@@ -28,6 +28,8 @@ def triangular_histogram_with_linear_slope(inputs: Tensor, t: Tensor, delta: flo
         delta (float): step in histogram
     """
     inputs = inputs.view(-1)
+    t = t.cuda()
+
     # first condition of the second equation of the paper
     x = inputs.unsqueeze(0) - t.unsqueeze(1) + delta
     m = torch.zeros_like(x)

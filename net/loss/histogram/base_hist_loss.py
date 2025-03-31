@@ -1,7 +1,7 @@
 import torch
 from torch import nn, Tensor
 from abc import ABC, abstractmethod
-from utils import norm_min_max_distributions, discrete_intensity_histogram, triangular_histogram_with_linear_slope
+from net.loss.histogram.utils import norm_min_max_distributions, discrete_intensity_histogram, triangular_histogram_with_linear_slope
 
 
 class BaseHistLoss(nn.Module, ABC):
@@ -27,8 +27,8 @@ class BaseHistLoss(nn.Module, ABC):
         self.t = torch.arange(self._min_val, self._max_val + self.delta, step=self.delta)
 
     def compute_histogram(self, inputs: Tensor) -> Tensor:
-        # return triangular_histogram_with_linear_slope(inputs, self.t, self.delta)
-        return discrete_intensity_histogram(inputs, self.bins)
+        return triangular_histogram_with_linear_slope(inputs, self.t, self.delta)
+        # return discrete_intensity_histogram(inputs, self.bins)
     
     @abstractmethod
     def forward(self, outputs: Tensor, targets: Tensor):

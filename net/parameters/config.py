@@ -38,7 +38,8 @@ parameters_default = {
     'wandbpro': 'heatmap3d',
     'n_bins': 100,
     'model_dir': '',
-    'test_fold': 0
+    'test_fold': 0,
+    'num_fts': 64
 }
 
 parameters_help = {
@@ -94,7 +95,8 @@ parameters_help = {
     'wandbpro': 'Project name to log in wandb.',
     'n_bins': 'Number of bins for histogram-based losses.',
     'model_dir': 'Model directory for test.',
-    'test_fold': 'Select fold to test patients.'
+    'test_fold': 'Select fold to test patients.',
+    'num_fts': 'Number of features for backbone.'
 }
 
 parameters_choices = {

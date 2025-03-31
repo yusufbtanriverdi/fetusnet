@@ -271,6 +271,11 @@ def parameters_parsing() -> argparse.Namespace:
                                type=int,
                                default=parameters_default['epochs'],
                                help=parameters_help['epochs'])
+        
+        subparser.add_argument('--num_fts',
+                               type=int,
+                               default=parameters_default['num_fts'],
+                               help=parameters_help['num_fts'])
 
         subparser.add_argument('--optimizer',
                                type=str,
