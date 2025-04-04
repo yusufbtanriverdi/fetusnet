@@ -19,7 +19,6 @@ def get_fresh_model(params):
         base_features=getattr(params, "num_fts", 64)
     )
     model.to(getattr(params, "device", "cuda" if torch.cuda.is_available() else "cpu"))
-    print(model)
 
     # Set loss function with fallback
     cost_name = getattr(params, 'cost', 'voxel')  # Default to mse
@@ -56,12 +55,14 @@ def get_fresh_model(params):
         'sgd': optim.SGD
     }
     # Get optimizer with default fallback
-    optim_name = getattr(params, 'optim', 'adam')  # Default to adam
+    optim_name = getattr(params, 'optimizer', 'adam')  # Default to adam
     optimizer_cls = optim_dict.get(optim_name)  
 
     if optimizer_cls is None:
         raise ValueError(f"Unsupported optimizer '{optim_name}'. Choose from {list(optim_dict.keys())}.")
     
-    optimizer = optimizer_cls(model.parameters(), lr=getattr(params, "lr", 1e-3))
+    optimizer = optimizer_cls(model.parameters(), lr=getattr(params, 'learning_rate', 1e-3))
+    
+    print(model, criterion, optimizer)
 
     return model, criterion, optimizer, torch.inf

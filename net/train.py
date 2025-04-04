@@ -39,7 +39,7 @@ def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps):
 
         running_loss += loss.item()
         avg_loss = running_loss / (ind + 1)
-        t.set_description(desc='Running Average Loss: {:.2f}'.format(avg_loss))
+        t.set_description(desc='Running Average Loss: {:.4f}'.format(avg_loss))
 
         wandb.log({'train/step_loss': loss, 'train/step': wandb_steps['train_loss']})
         wandb.log({'train/mean_loss': avg_loss, 'train/step': wandb_steps['train_loss']})

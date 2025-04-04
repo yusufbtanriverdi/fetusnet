@@ -26,7 +26,7 @@ parameters_default = {
     'backbone': 'resunet3d',
     'training_mode': 'one-by-one',
     'epochs': 100,
-    'optimizer': 'adam',
+    'optimizer': 'sgd',
     'learning_rate': 0.001,
     'lr_momentum': 0.9,
     'reduction': 'mean',

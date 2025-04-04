@@ -97,7 +97,6 @@ if params.mode in ['train', 'train_test']:
             # Initialize Model, Loss, Optimizer
             model, criterion, optimizer, best_criteria = get_fresh_model(params)
 
-            print(criterion)
             # Epoch Training Loop
             for epoch in range(params.epochs):
                 print(f"\n[Epoch {epoch + 1}/{params.epochs}]")
