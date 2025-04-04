@@ -21,14 +21,6 @@ class TVDLoss(BaseHistLoss):
         assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
         self.reduction = reduction
 
-    def scale_to_interval(self, data, new_min, new_max):
-        """
-        Scale data to a given range [new_min, new_max]
-        Formula: X_scaled = new_min + (X - X_min) * (new_max - new_min) / (X_max - X_min)
-        """
-        old_min, old_max = torch.min(data), torch.max(data)
-        return new_min + (data - old_min) * (new_max - new_min) / (old_max - old_min)
-
     def forward(self, outputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
         Computes the MSE loss.
