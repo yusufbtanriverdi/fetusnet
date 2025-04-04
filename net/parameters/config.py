@@ -39,7 +39,8 @@ parameters_default = {
     'n_bins': 100,
     'model_dir': '',
     'test_fold': 0,
-    'num_fts': 64
+    'num_fts': 64,
+    'cost': 'voxel'
 }
 
 parameters_help = {
@@ -96,7 +97,8 @@ parameters_help = {
     'n_bins': 'Number of bins for histogram-based losses.',
     'model_dir': 'Model directory for test.',
     'test_fold': 'Select fold to test patients.',
-    'num_fts': 'Number of features for backbone.'
+    'num_fts': 'Number of features for backbone.',
+    'cost': 'The cost function methodology for loss to be calculated on.'
 }
 
 parameters_choices = {
@@ -104,6 +106,7 @@ parameters_choices = {
     'optimizer': ['adam', 'sgd'],
     'reduction': ['mean', 'sum', 'none'],
     'type_draw': ['heatmap', 'overlay'],
+    'cost': ['voxel', 'histogram', 'joint']
 }
 
 def print_help():

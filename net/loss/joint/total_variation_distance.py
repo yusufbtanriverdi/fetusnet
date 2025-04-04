@@ -1,5 +1,5 @@
 import torch
-from net.loss.histogram.base import BaseHistLoss
+from net.loss.joint.base import BaseHistLoss
 from net.loss.utils import pdf
 
 class TVDLoss(BaseHistLoss):
@@ -21,6 +21,14 @@ class TVDLoss(BaseHistLoss):
         assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
         self.reduction = reduction
 
+    def scale_to_interval(self, data, new_min, new_max):
+        """
+        Scale data to a given range [new_min, new_max]
+        Formula: X_scaled = new_min + (X - X_min) * (new_max - new_min) / (X_max - X_min)
+        """
+        old_min, old_max = torch.min(data), torch.max(data)
+        return new_min + (data - old_min) * (new_max - new_min) / (old_max - old_min)
+
     def forward(self, outputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
         Computes the MSE loss.
@@ -35,8 +43,8 @@ class TVDLoss(BaseHistLoss):
         # ¡ Assuming batch size = 1
         # ¡ Assume that both outputs and targets are probabilistic distributions
 
-        hig = self.compute_continuous_histogram(outputs, targets)
-        hgg = self.compute_continuous_histogram(targets, targets)
+        hig = self.compute_joint_histogram(outputs, targets)
+        hgg = self.compute_joint_histogram(targets, targets)
         hig, hgg = pdf(hig, hgg)
 
         # ¿ TV(P, Q) = 1/2 * norm(P-Q)

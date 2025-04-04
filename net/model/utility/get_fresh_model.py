@@ -4,9 +4,10 @@ from functools import partial
 
 # Default imports
 from net.model.backbone import ResUNet3D  
-from net.loss.voxel import cross_entropy, distance_matrix_multiplication, kullback_leibler_div, mean_squared_error
-
-
+from net.loss.voxel.mean_squared_error import MSELoss
+from net.loss.voxel.kullback_leibler_div import KLDLoss
+from net.loss.joint.total_variation_distance import TVDLoss as TVDJoint
+from net.loss.histogram.total_variation_distance import TVDLoss as TVDHist
 
 def get_fresh_model(params):
     """Initialize a fresh model, loss function, and optimizer based on params."""
@@ -20,14 +21,28 @@ def get_fresh_model(params):
     model.to(getattr(params, "device", "cuda" if torch.cuda.is_available() else "cpu"))
     print(model)
 
-    # Loss function mapping with optional parameters
-    loss_dict = {
-        'mse': partial(mean_squared_error.MSELoss, reduction=getattr(params, "reduction", 'mean')),  
-        'kld': partial(kullback_leibler_div.KLDLoss, reduction=getattr(params, "reduction", 'mean')),  
-        'dce': partial(cross_entropy.DCELoss, reduction=getattr(params, "reduction", 'mean')),  
-        'dml': partial(distance_matrix_multiplication.DMLoss, reduction=getattr(params, "reduction", 'mean')),  
-    }
+    # Set loss function with fallback
+    cost_name = getattr(params, 'cost', 'voxel')  # Default to mse
+
+    if cost_name == 'voxel':
+        # Loss function mapping with optional parameters
+        loss_dict = {
+            'mse': partial(MSELoss, reduction=getattr(params, "reduction", 'mean')),  
+            'kld': partial(KLDLoss, reduction=getattr(params, "reduction", 'mean')), 
+        }
+
+    elif cost_name == 'hist':
+            # Loss function mapping with optional parameters
+        loss_dict = {
+            'mse': partial(TVDHist, reduction=getattr(params, "reduction", 'mean')),  
+        }
     
+    elif cost_name == 'joint':
+             # Loss function mapping with optional parameters
+        loss_dict = {
+            'mse': partial(TVDJoint, reduction=getattr(params, "reduction", 'mean')),  
+        }
+   
     # Set loss function with fallback
     loss_name = getattr(params, 'criterion', 'mse')  # Default to mse
     if loss_name in loss_dict:

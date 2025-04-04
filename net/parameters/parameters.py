@@ -277,7 +277,7 @@ def parameters_parsing() -> argparse.Namespace:
                                default=parameters_default['num_fts'],
                                help=parameters_help['num_fts'])
 
-        subparser.add_argument('--optimizer',
+        subparser.add_argument('--optimizer', '--optim',
                                type=str,
                                default=parameters_default['optimizer'],
                                choices=parameters_choices['optimizer'],
@@ -323,11 +323,18 @@ def parameters_parsing() -> argparse.Namespace:
                                default=parameters_default['reduction'],
                                help=parameters_help['reduction'])
         
-        subparser.add_argument('--criterion', '--loss', '-l',
+        subparser.add_argument('--loss', '-l',
                                 type=str,
                                 default=parameters_default['criterion'],
                                 help=parameters_help['criterion'])
         
+        subparser.add_argument('--cost', '-c',
+                        type=str,
+                        default=parameters_default['cost'],
+                        help=parameters_help['cost'],
+                        choices=parameters_choices['cost'])
+
+
         subparser.add_argument('--n_bins',
                                 type=int,
                                 default=parameters_default['n_bins'],
