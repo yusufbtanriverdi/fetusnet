@@ -3,7 +3,7 @@ from net.loss.histogram.base import BaseHistLoss
 from net.loss.utils import pdf
 
 class TVDLoss(BaseHistLoss):
-    def __init__(self, reduction: str = 'mean'):
+    def __init__(self, reduction: str = 'mean', bins: int = 128):
         """
         Custom Total Variation Distance (TVD) loss as explained in the video following.
 
@@ -20,6 +20,7 @@ class TVDLoss(BaseHistLoss):
         super(TVDLoss, self).__init__()
         assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
         self.reduction = reduction
+        self.bins = bins
 
     def forward(self, outputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """

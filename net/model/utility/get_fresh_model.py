@@ -33,13 +33,13 @@ def get_fresh_model(params):
     elif cost_name == 'hist':
             # Loss function mapping with optional parameters
         loss_dict = {
-            'mse': partial(TVDHist, reduction=getattr(params, "reduction", 'mean')),  
+            'mse': partial(TVDHist, reduction=getattr(params, "reduction", 'mean'), bins=params.n_bins),  
         }
     
     elif cost_name == 'joint':
              # Loss function mapping with optional parameters
         loss_dict = {
-            'mse': partial(TVDJoint, reduction=getattr(params, "reduction", 'mean')),  
+            'mse': partial(TVDJoint, reduction=getattr(params, "reduction", 'mean'), bins=params.n_bins),  
         }
    
     # Set loss function with fallback
@@ -52,10 +52,11 @@ def get_fresh_model(params):
     # Optimizer mapping
     optim_dict = {
         'adam': optim.Adam,
-        'sgd': optim.SGD
+        'sgd': partial(optim.SGD, momentum=0.3) 
     }
     # Get optimizer with default fallback
     optim_name = getattr(params, 'optimizer', 'adam')  # Default to adam
+
     optimizer_cls = optim_dict.get(optim_name)  
 
     if optimizer_cls is None:

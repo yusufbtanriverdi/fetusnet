@@ -1,6 +1,14 @@
 from tqdm import tqdm
 import wandb
 
+# 1. Min-Max Normalization (Scales data between 0 and 1)
+def minmax_normalize(data):
+    import numpy as np
+    """
+    Normalize data to range [0, 1]
+    Formula: X_norm = (X - min) / (max - min)
+    """
+    return (data - np.min(data)) / (np.max(data) - np.min(data))
 
 def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps):
     """
@@ -37,6 +45,18 @@ def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps):
         loss.backward()
         optimizer.step()
 
+        # from net.loss.utils import soft_joint_histogram
+        # import matplotlib.pyplot as plt
+
+        # hig = soft_joint_histogram(outputs, targets, bins=128).detach().cpu().numpy()
+        # hgg = soft_joint_histogram(targets, targets, bins=128).detach().cpu().numpy()
+        # plt.figure()
+        # plt.subplot(121)
+        # plt.imshow(minmax_normalize(hig) * 255)            
+        # plt.subplot(122)
+        # plt.imshow(minmax_normalize(hgg) * 255)
+        # plt.show()
+        
         running_loss += loss.item()
         avg_loss = running_loss / (ind + 1)
         t.set_description(desc='Running Average Loss: {:.4f}'.format(avg_loss))
