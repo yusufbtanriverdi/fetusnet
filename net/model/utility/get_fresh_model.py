@@ -4,10 +4,13 @@ from functools import partial
 
 # Default imports
 from net.model.backbone import ResUNet3D  
-from net.loss.voxel.mean_squared_error import MSELoss
-from net.loss.voxel.kullback_leibler_div import KLDLoss
-from net.loss.joint.total_variation_distance import TVDLoss as TVDJoint
-from net.loss.histogram.total_variation_distance import TVDLoss as TVDHist
+from net.loss.voxel.mean_squared_error import MSELoss as voxelMSE
+from net.loss.voxel.kullback_leibler_div import KLDLoss as voxelKLD
+from net.loss.voxel.distance_matrix_multiplication import DMLoss as voxelDM
+from net.loss.voxel.emd import EMDLoss as voxelEMD
+from net.loss.joint.joint_histogram import JointHistogramLoss as joint
+from net.loss.histogram.total_variation_distance import TVDLoss as histMSE
+
 
 def get_fresh_model(params):
     """Initialize a fresh model, loss function, and optimizer based on params."""
@@ -20,30 +23,17 @@ def get_fresh_model(params):
     )
     model.to(getattr(params, "device", "cuda" if torch.cuda.is_available() else "cpu"))
 
-    # Set loss function with fallback
-    cost_name = getattr(params, 'cost', 'voxel')  # Default to mse
-
-    if cost_name == 'voxel':
-        # Loss function mapping with optional parameters
-        loss_dict = {
-            'mse': partial(MSELoss, reduction=getattr(params, "reduction", 'mean')),  
-            'kld': partial(KLDLoss, reduction=getattr(params, "reduction", 'mean')), 
-        }
-
-    elif cost_name == 'hist':
-            # Loss function mapping with optional parameters
-        loss_dict = {
-            'mse': partial(TVDHist, reduction=getattr(params, "reduction", 'mean'), bins=params.n_bins),  
-        }
-    
-    elif cost_name == 'joint':
-             # Loss function mapping with optional parameters
-        loss_dict = {
-            'mse': partial(TVDJoint, reduction=getattr(params, "reduction", 'mean'), bins=params.n_bins),  
+    loss_dict = {
+        'joi': partial(joint, reduction=getattr(params, "reduction", 'mean'), bins=params.n_bins, sigma=params.sigma),  # :(
+        'tvd': partial(histMSE, reduction=getattr(params, "reduction", 'mean'), bins=params.n_bins), # ?   :()
+        'kld': partial(voxelKLD, reduction=getattr(params, "reduction", 'mean')),  # + 
+        'dml': partial(voxelDM, reduction=getattr(params, "reduction", 'mean')), 
+        'mse': partial(voxelMSE, reduction=getattr(params, "reduction", 'mean'), bins=params.n_bins),   # + 
+        'emd': partial(voxelEMD, reduction=getattr(params, "reduction", 'mean')),  # + 
         }
    
     # Set loss function with fallback
-    loss_name = getattr(params, 'criterion', 'mse')  # Default to mse
+    loss_name = getattr(params, 'loss', 'mse')  # Default to mse
     if loss_name in loss_dict:
         criterion = loss_dict[loss_name]()  # Call the function to create an instance
     else:

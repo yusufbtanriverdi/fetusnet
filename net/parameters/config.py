@@ -30,7 +30,7 @@ parameters_default = {
     'learning_rate': 0.001,
     'lr_momentum': 0.9,
     'reduction': 'mean',
-    'criterion': 'mse',
+    'loss': 'mse',
     'criticise': 'default',
     'type_draw': 'heatmap',
     'num_images': 10,
@@ -40,7 +40,7 @@ parameters_default = {
     'model_dir': '',
     'test_fold': 0,
     'num_fts': 64,
-    'cost': 'voxel'
+    'sigma': 0.001
 }
 
 parameters_help = {
@@ -87,7 +87,7 @@ parameters_help = {
     'learning_rate': 'Learning rate for training.',
     'lr_momentum': 'Momentum for SGD optimizer.',
     'reduction': 'Reduction method for loss computation.',
-    'criterion': 'Loss function to use.',
+    'loss': 'Loss function to use.',
     'criticise': 'Evaluation mode.',
     'type_draw': 'Type of visualization output.',
     'num_images': 'Number of images to visualize.',
@@ -98,7 +98,7 @@ parameters_help = {
     'model_dir': 'Model directory for test.',
     'test_fold': 'Select fold to test patients.',
     'num_fts': 'Number of features for backbone.',
-    'cost': 'The cost function methodology for loss to be calculated on.'
+    'sigma': 'Spread of Gaussian soft assignment'
 }
 
 parameters_choices = {

@@ -140,7 +140,7 @@ def parameters_parsing() -> argparse.Namespace:
                             help=parameters_help['target_idx'])
 
         subparser.add_argument('--alpha',
-                               type=int,
+                               type=float,
                                default=parameters_default['alpha'],
                                help=parameters_help['alpha'])        
 
@@ -325,20 +325,21 @@ def parameters_parsing() -> argparse.Namespace:
         
         subparser.add_argument('--loss', '-l',
                                 type=str,
-                                default=parameters_default['criterion'],
-                                help=parameters_help['criterion'])
+                                default=parameters_default['loss'],
+                                help=parameters_help['loss'])
         
-        subparser.add_argument('--cost', '-c',
-                        type=str,
-                        default=parameters_default['cost'],
-                        help=parameters_help['cost'],
-                        choices=parameters_choices['cost'])
-
 
         subparser.add_argument('--n_bins',
                                 type=int,
                                 default=parameters_default['n_bins'],
                                 help=parameters_help['n_bins'])
+        
+
+        subparser.add_argument('--sigma',
+                               type=float,
+                               default=parameters_default['sigma'],
+                               help=parameters_help['sigma'])        
+
         # ---------- #
         # EVALUATION #
         # ---------- #

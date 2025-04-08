@@ -103,3 +103,9 @@ def soft_joint_histogram(x: torch.Tensor, y: torch.Tensor, bins: int = 10, sigma
     hist2d = torch.einsum('nb,nc->bc', wx.to(torch.float64), wy)  # [B, B]
 
     return hist2d  # Normalize to make it a PDF
+
+def target_joint_histogram(x: torch.Tensor, bins: int = 10, eps = 1e-8):
+
+    x = x.view(-1)  # Flatten the tensor
+    hist = torch.histc(x, bins=bins, min=0, max=1)
+    return torch.diag(hist + eps)
