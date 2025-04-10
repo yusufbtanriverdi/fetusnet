@@ -35,7 +35,7 @@ class EMDLoss(nn.Module):
         
         targets, outputs = cdf(targets, outputs)
         
-        loss = torch.norm(targets - outputs, 'fro')
+        loss = torch.norm(targets - outputs, 'fro') ** 2
         # Sum over spatial dimensions (D, H, W for 3D, or H, W for 2D)
         # loss = loss.view(loss.size(0), -1).sum(dim=-1)  # Sum over D,H,W
         
