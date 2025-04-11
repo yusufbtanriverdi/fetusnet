@@ -100,6 +100,7 @@ parameters_choices = {
     'optimizer': ['adam', 'sgd'],
     'reduction': ['mean', 'sum', 'none'],
     'type_draw': ['heatmap', 'overlay'],
+    'generate': ['gaussian', 'distance'],
 }
 
 def print_help():

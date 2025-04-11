@@ -69,7 +69,7 @@ def parameters_parsing() -> argparse.Namespace:
         subparser.add_argument('--test_fold', '-f', type=int, default=parameters_default['test_fold'], help=parameters_help['test_fold'])
 
         # Target generation parameters
-        subparser.add_argument('--generate', type=str, default=parameters_default['generate'], help=parameters_help['generate'])
+        subparser.add_argument('--generate', type=str, default=parameters_default['generate'], help=parameters_help['generate'], choices=parameters_choices['generate'])
         subparser.add_argument('--target_idx', nargs='+', type=int, default=parameters_default['target_idx'], help=parameters_help['target_idx'])
         subparser.add_argument('--alpha', type=float, default=parameters_default['alpha'], help=parameters_help['alpha'])
         subparser.add_argument('--eps', type=int, default=parameters_default['eps'], help=parameters_help['eps'])

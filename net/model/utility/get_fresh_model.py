@@ -75,7 +75,7 @@ def get_fresh_model(params):
                 raise ValueError(f"Unsupported loss function '{e.args[0]}'. Choose from {list(loss_dict.keys())}.")
 
     print(f"Using loss function: {loss_name}")
-    if 'emd' in [loss_name]:
+    if 'dis' in [loss_name]:
        params.dist_matrix = True  # Ensure distance matrix is computed for EMD loss
     else:
         # If not using EMD loss, ensure the model does not output a distance matrix

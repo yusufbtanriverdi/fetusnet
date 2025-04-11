@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from net.loss.utils import plot_histograms_and_stats, imshow_target_distance_matrices
 
 class DistanceMatrixLoss(nn.Module):
     """
@@ -18,7 +19,7 @@ class DistanceMatrixLoss(nn.Module):
         mu (float): Constant term added to the loss.
         w (float): Exponent applied to the targets.
     """
-    def __init__(self, reduction: str = 'mean', lambda_: float = 1.0, mu: float = 0.25, w: float = 1.0):
+    def __init__(self, reduction: str = 'mean', lambda_: float = 1e5, mu: float = 1e-10, w: float = 1.0):
         super(DistanceMatrixLoss, self).__init__()
         # Ensure the reduction method is valid
         assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
@@ -38,9 +39,21 @@ class DistanceMatrixLoss(nn.Module):
         Returns:
             torch.Tensor: Computed loss based on the specified reduction method.
         """
+        # Normalize the targets to ensure they sum to 1 (softmax-like behavior)
+        targets = targets / (targets.view(targets.size(0), -1).sum(dim=-1, keepdim=True))
+
+        # Apply softmax to the flattened outputs
+        outputs = torch.nn.functional.softmax(outputs.view(outputs.size(0), -1), dim=-1).view_as(outputs)
+
+        # Call the function to visualize
+        # plot_histograms_and_stats(outputs, targets)
+
         # Compute the loss using the formula: lambda_ * (outputs^2 * targets^w + mu)
-        loss = self.lambda_ * (outputs ** 2 * targets ** self.w + self.mu)
-        
+        loss = self.lambda_ * (outputs * targets ** self.w + self.mu)
+
+        # Call the function to visualize the target distance matrix
+        # imshow_target_distance_matrices(outputs, targets, loss)
+
         # Flatten spatial dimensions (e.g., D, H, W for 3D or H, W for 2D) and sum over them
         loss = loss.view(loss.size(0), -1).sum(dim=-1)  # Sum over spatial dimensions
         
