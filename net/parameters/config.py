@@ -14,8 +14,8 @@ parameters_default = {
     'eps': 1e-6,
     'run_name': 'experiment_1',
     'use_wandb': False,
-    'GPU': 0,
-    'num_threads': 4,
+    # 'GPU': 0,
+    # 'num_threads': 4,
     'seed': 42,
     'rescale': True,
     'lmks': ['prn'],
@@ -30,17 +30,15 @@ parameters_default = {
     'learning_rate': 0.001,
     'lr_momentum': 0.9,
     'reduction': 'mean',
-    'loss': 'mse',
+    'loss': ['mse'],
     'criticise': 'default',
     'type_draw': 'heatmap',
     'num_images': 10,
     'idx': 0,
     'wandbpro': 'heatmap3d',
-    'n_bins': 100,
     'model_dir': '',
     'test_fold': 0,
     'num_fts': 64,
-    'sigma': 0.001
 }
 
 parameters_help = {
@@ -67,7 +65,7 @@ parameters_help = {
     'test_patients': 'List of patient IDs reserved for testing.',
     'generate': 'Target mode for data generation.',
     'target_idx': 'Indices of target landmarks.',
-    'alpha': 'Alpha parameter for loss calculation.',
+    'alpha': 'Alpha parameter for Gaussian heatmaps.',
     'eps': 'Gaussian threshold for peak detection.',
     'run_name': 'Name of the current experiment run.',
     'use_wandb': 'Flag to enable logging with Weights & Biases.',
@@ -87,18 +85,16 @@ parameters_help = {
     'learning_rate': 'Learning rate for training.',
     'lr_momentum': 'Momentum for SGD optimizer.',
     'reduction': 'Reduction method for loss computation.',
-    'loss': 'Loss function to use.',
+    'loss': 'Loss function to use. Accepts a list of loss functions.',
     'criticise': 'Evaluation mode.',
     'type_draw': 'Type of visualization output.',
     'num_images': 'Number of images to visualize.',
     'idx': 'Index of the sample to visualize.',
     'mode': 'Script mode',
     'wandbpro': 'Project name to log in wandb.',
-    'n_bins': 'Number of bins for histogram-based losses.',
     'model_dir': 'Model directory for test.',
     'test_fold': 'Select fold to test patients.',
     'num_fts': 'Number of features for backbone.',
-    'sigma': 'Spread of Gaussian soft assignment'
 }
 
 parameters_choices = {
@@ -106,7 +102,6 @@ parameters_choices = {
     'optimizer': ['adam', 'sgd'],
     'reduction': ['mean', 'sum', 'none'],
     'type_draw': ['heatmap', 'overlay'],
-    'cost': ['voxel', 'histogram', 'joint']
 }
 
 def print_help():

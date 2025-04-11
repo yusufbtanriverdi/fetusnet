@@ -1,19 +1,10 @@
 from tqdm import tqdm
 import wandb
 
-# 1. Min-Max Normalization (Scales data between 0 and 1)
-def minmax_normalize(data):
-    import numpy as np
-    """
-    Normalize data to range [0, 1]
-    Formula: X_norm = (X - min) / (max - min)
-    """
-    return (data - np.min(data)) / (np.max(data) - np.min(data))
-
 def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps):
     """
     Train the model for one epoch.
-    
+
     Args:
         model (torch.nn.Module): The model being trained.
         loader (DataLoader): DataLoader for training data.
@@ -24,45 +15,52 @@ def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps):
 
     Returns:
         float: Average loss for the epoch.
-        dict: Training metrics (e.g., accuracy).
+        dict: Updated wandb_steps with training metrics.
     """
+    # Set the model to training mode
     model.train()
+
+    # Initialize running loss and average loss
     running_loss = 0.0
-    # all_metrics = []
-
     avg_loss = -1
-    
-    t = tqdm(loader, desc='Initializing.............', total=len(loader))
-    for ind, batch in enumerate(t):
 
-        images, targets = batch['image']['data'].to(device), batch['target']['data'].to(device)
+    # Create a progress bar for the DataLoader
+    t = tqdm(loader, desc='Initializing.............', total=len(loader))
+
+    # Iterate over the DataLoader
+    for ind, batch in enumerate(t):
+        # Move images and targets to the specified device
+        images = batch['image']['data'].to(device)
+        targets = batch['target']['data'].to(device)
+
+        # Zero the parameter gradients
         optimizer.zero_grad()
 
-        # Forward pass
+        # Forward pass: compute model predictions
         outputs = model(images)
+
+        # Compute the loss
         loss = criterion(outputs, targets)
-        # Backward pass and optimization
+
+        # Backward pass: compute gradients
         loss.backward()
+
+        # Update model parameters
         optimizer.step()
 
-        # from net.loss.utils import soft_joint_histogram
-        # import matplotlib.pyplot as plt
-
-        # hig = soft_joint_histogram(outputs, targets, bins=128).detach().cpu().numpy()
-        # hgg = soft_joint_histogram(targets, targets, bins=128).detach().cpu().numpy()
-        # plt.figure()
-        # plt.subplot(121)
-        # plt.imshow(minmax_normalize(hig) * 255)            
-        # plt.subplot(122)
-        # plt.imshow(minmax_normalize(hgg) * 255)
-        # plt.show()
-        
+        # Update running loss and calculate average loss
         running_loss += loss.item()
         avg_loss = running_loss / (ind + 1)
+
+        # Update the progress bar description with the running average loss
         t.set_description(desc='Running Average Loss: {:.4f}'.format(avg_loss))
 
-        wandb.log({'train/step_loss': loss, 'train/step': wandb_steps['train_loss']})
+        # Log step loss and mean loss to Weights & Biases (wandb)
+        wandb.log({'train/step_loss': loss.item(), 'train/step': wandb_steps['train_loss']})
         wandb.log({'train/mean_loss': avg_loss, 'train/step': wandb_steps['train_loss']})
-        wandb_steps['train_loss'] += ind 
 
+        # Increment the wandb step counter
+        wandb_steps['train_loss'] += 1
+
+    # Return the average loss and updated wandb_steps
     return avg_loss, wandb_steps

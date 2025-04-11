@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import torchio as tio
+import warnings
+import wandb
 
 # Import project modules
 from net.config.wandb import initialize_wandb
@@ -14,142 +16,165 @@ from net.train import train_one_ep
 from net.infer import infer_one_ep
 from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.model.utility.get_fresh_model import get_fresh_model
-import warnings
-import wandb
-# Ignore all UserWarnings
+
+# Suppress UserWarnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # Initialize parameters
 params = parameters_parsing()
-# Create experiment directory & log
+
+# Create experiment directory and log
 experiment_directory, experiment_id = create_experiment_id(params)
+
 # Initialize WandB if enabled
 if params.use_wandb:
     initialize_wandb(params)
 
-# Initialize global tracking dictionary
+# Initialize global tracking dictionary for WandB
 global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
 
-# Create local experiment log (timestamp, params)
+# Create local experiment log
 log_file = os.path.join(experiment_directory, "experiment_log.txt")
 with open(log_file, "w") as log:
     log.write(f"Experiment ID: {experiment_id}\n")
     log.write(f"Parameters: {vars(params)}\n")
 
-
+# Set system paths based on OS
 if params.os in ['linux', 'l']:
     params.sys = "/media/yusuf/HDD 4TB/"
 else:
     params.sys = "D:/"
 
-if params.GPU != -1:
-    params.device = 'cuda'
-else:
-    params.device = 'cpu'
-
+# Set device (GPU or CPU)
+params.device = 'cuda' if params.GPU != -1 else 'cpu'
 print('Device: ', params.device)
+
+# Handle specific modes for data preparation
 if params.mode in ['script_prepare', 'script_split']:
-    print(f" WELCOME TO {params.mode} MODE. \n .......................creating info frames......................................... \n")
+    print(f" WELCOME TO {params.mode} MODE. \nCreating info frames...")
     sinfo_df = create_info_frames.main(params)
+
 if params.mode == 'script_split':
-    print(f" WELCOME TO {params.mode} MODE. \n .......................splitting patients into train-test sets......................................... \n")
+    print(f" WELCOME TO {params.mode} MODE. \nSplitting patients into train-test sets...")
     sinfo_df = split_patient_fold.main(sinfo_df, params)
 
 # Load or create sinfo dataframe
-sinfo_path = params.sys + params.root + 'sinfo.csv'
+sinfo_path = os.path.join(params.sys, params.root, 'sinfo.csv')
 if os.path.exists(sinfo_path):
-    sinfo_df = pd.read_csv(sinfo_path) 
-else: 
-    raise FileNotFoundError
+    sinfo_df = pd.read_csv(sinfo_path)
+else:
+    raise FileNotFoundError("sinfo.csv not found.")
 
+# Filter and update sinfo dataframe
 sinfo_df = sinfo_df[sinfo_df['landmark_antonia_found']].reset_index(drop=True)
 print(len(sinfo_df))
 sinfo_df = create_info_frames.update(sinfo_df, params)
 print(len(sinfo_df))
 
-# # 🔹 (TODO) Rotate/alignment step - Verify ground truth consistency
+# Rotate/alignment step (commented out by default)
 # if params.mode == 'script_rotate':
 #     rotate.main(sinfo_df, params)
 
-
-# 🔹 (TODO) Test - Generate target datasets
+# Generate target datasets
 if params.mode == 'script_generate_targets':
     print(params.sys)
     generate_targets.main(sinfo_df, experiment_directory, params)
 
 # Define transformations for 3D images
-transforms = [tio.RescaleIntensity((0, 1))] if params.rescale else [] # In this version, only for input image.
+transforms = [tio.RescaleIntensity((0, 1))] if params.rescale else []
 transformations = tio.Compose(transforms)
-# Training Phase
+
+# Training phase
 if params.mode in ['train', 'train_test']:
-    # Check execution type
+    # Ensure supported training mode
     if params.training_mode != 'one-by-one':
         raise ValueError(f"Unsupported execution mode: {params.training_mode}. "
                          "Multiple landmarks cause high computation costs.")
 
+    # Loop through landmarks
     for lmk in params.lmks:
-        # Training across Folds
+        # Training across folds
         for fold in range(params.n_split):
             print(f"\n--- Training Fold {fold + 1}/{params.n_split} ---")
-            # Load Data
-            train_dl, val_dl = get_train_val_dl(lmk, fold, params, transformations=transformations)
 
-            # Initialize Model, Loss, Optimizer
+            # Initialize model, loss, optimizer
             model, criterion, optimizer, best_criteria = get_fresh_model(params)
 
-            # Epoch Training Loop
+            # Load training and validation data
+            train_dl, val_dl = get_train_val_dl(lmk, fold, params, transformations=transformations)
+
+            # Epoch training loop
             for epoch in range(params.epochs):
                 print(f"\n[Epoch {epoch + 1}/{params.epochs}]")
 
+                # Train for one epoch
                 train_loss, global_wandb_steps = train_one_ep(
                     model, train_dl, criterion, optimizer, params.device, 
                     wandb_steps=global_wandb_steps
                 )
 
+                # Validate for one epoch
                 val_loss, ep_scores, global_wandb_steps = infer_one_ep(
                     model, val_dl, criterion, params.device, 
                     wandb_steps=global_wandb_steps
                 )
 
+                # Log metrics to WandB
                 wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': global_wandb_steps['epoch']})
                 wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': global_wandb_steps['epoch']})
-                
-                # Save Best Model
+
+                # Save best model
                 if val_loss < best_criteria:
                     best_criteria = val_loss
                     save_checkpoint(model, optimizer, epoch, val_loss, 
                                     os.path.join(experiment_directory, f'best_fold{fold}.pt'))
 
-                # Save Last Model
+                # Save last model
                 save_checkpoint(model, optimizer, epoch, val_loss, 
                                 os.path.join(experiment_directory, f'last_fold{fold}.pt'))
 
                 print("Last Ep d-mean Score: ", ep_scores['dmean'])
-                
-            # Final Evaluation on Validation Set
-            val_loss, ep_scores, global_wandb_steps = infer_one_ep(model, val_dl, criterion, params.device, 
-                        wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory)
+
+            # Final evaluation on validation set
+            val_loss, ep_scores, global_wandb_steps = infer_one_ep(
+                model, val_dl, criterion, params.device, 
+                wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory
+            )
+
+            # Finish WandB logging
             wandb.finish()
-            # Re-initialize global tracking dictionary
+
+            # Reinitialize global tracking dictionary
             global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
             if params.use_wandb:
                 initialize_wandb(params, fold=fold)
 
+with open(log_file, "w") as log:
+    log.write(f"Experiment ID: {experiment_id}\n")
+    log.write(f"Parameters: {vars(params)}\n")
+    log.write(f"Training completed for all folds.\n")
+    log.write(f"Best validation loss: {best_criteria}\n")   
+
+# Testing or evaluation phase
 if params.mode in ['test', 'eval']:
-    
-    # Check execution type
+    # Ensure supported execution mode
     if params.training_mode != 'one-by-one':
         raise ValueError(f"Unsupported execution mode: {params.execution}. "
                          "Multiple landmarks cause high computation costs.")
 
+    # Loop through landmarks
     for lmk in params.lmks:
-        # Initialize Model, Loss, Optimizer
+        # Initialize model, loss, optimizer
         model, criterion, optimizer, best_criteria = get_fresh_model(params)
+        # Load the best model checkpoint
         model_dir = f'runs/{params.model_dir}/best_fold{params.test_fold}.pt'
         model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
-        # Load Data
+
+        # Load test data
         test_dl = get_test_dl(params, lmk, transformations=transformations)
 
-        # Final Evaluation on Validation Set
-        infer_one_ep(model, test_dl, criterion, params.device, 
-                        wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory)
+        # Final evaluation on test set
+        infer_one_ep(
+            model, test_dl, criterion, params.device, 
+            wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory
+        )

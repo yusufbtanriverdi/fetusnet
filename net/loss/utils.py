@@ -1,111 +1,68 @@
 import torch
-from torch import Tensor
+import matplotlib.pyplot as plt
 
-def pdf(*distributions: Tensor):
-    return (d / d.sum() for d in distributions)
-
-def cdf(*distributions: Tensor):
-    return (d / d.cumsum(dim=-1) for d in distributions)
-
-
-def discrete_intensity_histogram(inputs: torch.Tensor, bins: int):
+def plot_histograms_and_stats(outputs: torch.Tensor, targets: torch.Tensor):
     """
-    Computes a discrete histogram of intensity values efficiently.
+    Plots histograms of the outputs and targets, and prints their min, max, and mean values.
 
     Args:
-        inputs (Tensor): Input tensor (e.g., an image or heatmap)
-        bins (int): Number of bins (e.g., for pixel intensity range 0-255, use 256)
-
-    Returns:
-        Tensor: Histogram of intensity values
+        outputs (torch.Tensor): Predicted logits (unnormalized scores).
+        targets (torch.Tensor): Ground truth probabilities (one-hot encoded or soft labels).
     """
-    inputs = inputs.view(-1)  # Flatten the tensor
-    hist = torch.histc(inputs, bins=bins, min=0, max=1)
-    return hist
+    # Convert tensors to numpy for plotting
+    outputs_np = outputs.detach().cpu().numpy().flatten()
+    targets_np = targets.detach().cpu().numpy().flatten()
 
-def triangular_histogram_with_linear_slope(inputs: Tensor, t: Tensor, delta: float):
-    """
-    Function that calculates a histogram from an article
-    [Learning Deep Embeddings with Histogram Loss](https://arxiv.org/pdf/1611.00822.pdf)
-    Args:
-        input (Tensor): tensor that contains the data
-        t (Tensor): tensor that contains the nodes of the histogram
-        delta (float): step in histogram
-    """
-    inputs = inputs.view(-1)
-    t = t.cuda()
+    # Print statistics
+    print("Outputs - Min:", outputs_np.min(), "Max:", outputs_np.max(), "Mean:", outputs_np.mean())
+    print("Targets - Min:", targets_np.min(), "Max:", targets_np.max(), "Mean:", targets_np.mean())
 
-    # first condition of the second equation of the paper
-    x = inputs.unsqueeze(0) - t.unsqueeze(1) + delta
-    m = torch.zeros_like(x)
-    m[(0 <= x) & (x <= delta)] = 1
-    a = torch.sum(x * m, dim=1) / (delta * len(inputs))
+    # Plot histograms
+    plt.figure(figsize=(12, 6))
+    plt.subplot(1, 2, 1)
+    plt.hist(outputs_np, bins=50, color='blue', alpha=0.7, label='Outputs')
+    plt.title('Outputs Histogram')
+    plt.xlabel('Value')
+    plt.ylabel('Frequency')
+    plt.legend()
 
-    # second condition of the second equation of the paper
-    x = t.unsqueeze(0) - inputs.unsqueeze(1) + delta
-    m = torch.zeros_like(x)
-    m[(0 <= x) & (x <= delta)] = 1
-    b = torch.sum(x * m, dim=0) / (delta * len(inputs))
+    plt.subplot(1, 2, 2)
+    plt.hist(targets_np, bins=50, color='green', alpha=0.7, label='Targets')
+    plt.title('Targets Histogram')
+    plt.xlabel('Value')
+    plt.ylabel('Frequency')
+    plt.legend()
 
-    return torch.add(a, b)
+    plt.tight_layout()
+    plt.show()
 
-# TO BE TESTED
-def hard_joint_histogram(x: torch.Tensor, y: torch.Tensor, bins: int):
-    x, y = x.view(-1), y.view(-1)  # Flatten tensors
-    # Compute bin edges
-    bin_edges = torch.linspace(0, 1, bins + 1, device=x.device)
-    # Initialize histogram
-    m = torch.zeros(bins, bins, device=x.device)
+class CombinedLoss(torch.nn.Module):
+    def __init__(self, loss_fns, weights=None):
+        """
+        Initialize the combined loss function.
 
-    # Create masks for x and y values
-    for i in range(bins):
-        x_mask = (x >= bin_edges[i]) & (x < bin_edges[i + 1])  # Mask for x-bin
-        for j in range(bins):
-            y_mask = (y >= bin_edges[j]) & (y < bin_edges[j + 1])  # Mask for y-bin
-            # Count values in both x and y masks
-            m[i, j] = torch.sum(x_mask & y_mask)  # Element-wise AND
-    return m
+        Args:
+            loss_fns: A list of loss function instances.
+            weights: A list of weights for each loss function. If None, all weights are set to 1.
+        """
+        super(CombinedLoss, self).__init__()
+        self.loss_fns = loss_fns
+        self.weights = weights if weights is not None else [1.0] * len(loss_fns)
 
-def soft_joint_histogram(x: torch.Tensor, y: torch.Tensor, bins: int = 10, sigma: float = 0.01):
-    """
-    Differentiable 2D joint histogram using Gaussian soft binning.
-
-    Args:
-        x (Tensor): First input tensor.
-        y (Tensor): Second input tensor.
-        bins (int): Number of bins.
-        sigma (float): Bandwidth for Gaussian kernel.
-
-    Returns:
-        Tensor: Soft joint histogram (bins x bins)
-    """
-    x, y = x.view(-1), y.view(-1)  # Flatten
-    assert x.shape == y.shape
-
-    device = x.device
-    bin_centers = torch.linspace(0, 1, bins, device=device, dtype=x.dtype)
+    def __str__(self):
+        return super().__str__() + f"({self.loss_fns})"
     
-    # Expand for broadcasting
-    x = x.unsqueeze(1)  # [N, 1]
-    y = y.unsqueeze(1)  # [N, 1]
-    cx = bin_centers.unsqueeze(0)  # [1, B]
-    cy = bin_centers.unsqueeze(0)  # [1, B]
+    def forward(self, *args, **kwargs):
+        """
+        Compute the combined loss.
 
-    # Compute soft assignments using Gaussian kernel
-    wx = torch.exp(-0.5 * ((x - cx) / sigma) ** 2)  # [N, B]
-    wy = torch.exp(-0.5 * ((y - cy) / sigma) ** 2)  # [N, B]
+        Args:
+            *args, **kwargs: Arguments to be passed to each loss function.
 
-    # Normalize each row (optional for probability-like behavior)
-    # wx = wx / (wx.sum(dim=1, keepdim=True) + 1e-8)
-    # wy = wy / (wy.sum(dim=1, keepdim=True) + 1e-8)
-
-    # Outer product for each pair, then sum
-    hist2d = torch.einsum('nb,nc->bc', wx.to(torch.float64), wy)  # [B, B]
-
-    return hist2d  # Normalize to make it a PDF
-
-def target_joint_histogram(x: torch.Tensor, bins: int = 10, eps = 1e-8):
-
-    x = x.view(-1)  # Flatten the tensor
-    hist = torch.histc(x, bins=bins, min=0, max=1)
-    return torch.diag(hist + eps)
+        Returns:
+            The weighted sum of all loss functions.
+        """
+        total_loss = 0.0
+        for weight, loss_fn in zip(self.weights, self.loss_fns):
+            total_loss += weight * loss_fn(*args, **kwargs)
+        return total_loss

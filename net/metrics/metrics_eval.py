@@ -1,7 +1,3 @@
-import torch
-from net.evaluation.RSquared import rsquare
-from net.evaluation.KLDivergence import kl_divergence, entropy, ce
-from net.evaluation.ConfusionMatrix import precision
 from net.evaluation.dMean import d_mean_mm
 
 def compute_metrics(outputs, targets, spacings):
@@ -20,12 +16,7 @@ def compute_metrics(outputs, targets, spacings):
     """
     # Define metric functions
     metric_functions = {
-        "rsquare": rsquare,
         "dmean": d_mean_mm,
-        "kld": kl_divergence,
-        "entropy": entropy,
-        "ce": ce,
-        "precision": precision
     }
 
     # Compute metrics

@@ -1,12 +1,13 @@
 from net.dataset.target import gaussian_heatmap
-
+from net.dataset.target import distance_matrix
 import torchio as tio
 from torch.utils.data import Dataset
 import os 
 import torch
 import pandas as pd
 import nrrd
-
+import numpy as np
+# Import necessary libraries
 def extract_image(filename):
     """Extract the image into a 3D numpy array [x, y, z]. As it was saved in RAS
 
@@ -31,31 +32,61 @@ class MyDataset(Dataset):
     Custom dataset class for handling 3D NIfTI images and their ground truth (GT) heatmaps.
     """
 
-    def __init__(self, dataframe, root, target_mode, target_params, lmk, transformations=None):
+    def __init__(self, dataframe, root, target_mode, target_params, lmk, transformations=None, return_dist_m = False):
         """
-        Initializes the dataset by loading 3D volumes and ground truth masks.
+        Initializes the MyDataset class for loading and processing 3D medical imaging data.
 
         Args:
-            dataframe (pd.DataFrame): Dataframe containing scan metadata.
-            root (str): Root directory containing the image and landmark files.
-            target_mode (str): Target generation mode (only 'gaussian' is supported).
-            target_params (tuple): Parameters (alpha, eps) for generating targets.
-            lmk (str): Type of landmark to extract.
-            transformations (callable, optional): Transformations to apply on volumes and masks.
+            dataframe (pd.DataFrame): A pandas DataFrame containing metadata for the scans, 
+            such as file paths and associated labels.
+            root (str): The root directory where the image files and landmark files are stored.
+            target_mode (str): The mode for generating target outputs. Supported modes are 
+            'gaussian' and 'distance' for generating heatmaps or similar targets.
+            target_params (tuple): A tuple containing parameters (alpha, eps) used for generating 
+            the target outputs. 'alpha' controls the spread of the target distribution, 
+            and 'eps' is a small value for numerical stability.
+            lmk (str): The type or name of the landmark to extract from the data 
+            (e.g., anatomical points).
+            transformations (callable, optional): A callable object or function to apply data 
+            augmentations or preprocessing on the input volumes and masks. Defaults to None.
+            return_dist_m (bool, optional): If True, the dataset will also return the distance map 
+            along with the processed data. Defaults to False.
         """
+        # Validate inputs
+        if not isinstance(dataframe, pd.DataFrame):
+            raise TypeError("dataframe must be a pandas DataFrame.")
+        if not os.path.isdir(root):
+            raise ValueError(f"Root directory '{root}' does not exist.")
+        if target_mode not in ['gaussian', 'distance']:
+            raise ValueError("target_mode must be either 'gaussian' or 'distance'.")
+        if not isinstance(target_params, tuple) or len(target_params) != 2:
+            raise ValueError("target_params must be a tuple of length 2 (alpha, eps).")
+        if not isinstance(lmk, str):
+            raise TypeError("lmk must be a string.")
+        if transformations is not None and not callable(transformations):
+            raise TypeError("transformations must be callable or None.")
+        if not isinstance(return_dist_m, bool):
+            raise TypeError("return_dist_m must be a boolean.")
+        
         self.dataframe = dataframe
         self.root = root
         self.target_mode = target_mode
         self.alpha, self.eps = target_params
         self.lmk = lmk
         self.transformations = transformations
+        self.return_dist_m = return_dist_m
 
     def __len__(self): 
         """Returns the number of 3D volumes in the dataset."""
         return len(self.dataframe)
 
     def __str__(self): 
-        """Pompeu Fabra University @ 2025"""
+        """
+        Created by Yusuf B. Tanrıverdi, 2025 @ Pompeu Fabra University (UPF).
+
+        If Karl Marx were here, he'd probably say:
+        'The dataset is the opium of the programmer.'
+        """
         return len(self.dataframe)
     
     def __getitem__(self, idx):
@@ -68,43 +99,66 @@ class MyDataset(Dataset):
         Returns:
             tio.Subject: TorchIO Subject containing the image, target, and metadata.
         """
-        # Load 3D volume
+        # Load the 3D volume from the specified path
         image_path = os.path.join(self.root, self.dataframe.loc[idx, 'processed__vol_path'])
         volume, header = extract_image(image_path)
-        image_tensor = torch.tensor(volume).unsqueeze(0)  # Add channel dimension
+        image_tensor = torch.tensor(volume).unsqueeze(0)  # Add channel dimension (C, H, W, D)
 
-        # Load landmark file
+        # Load the landmark file containing coordinates
         landmark_path = os.path.join(self.root, self.dataframe.loc[idx, 'processed__csv_path'])
         landmark_df = pd.read_csv(landmark_path)
 
-        # Extract coordinates for the selected landmark
+        # Extract the coordinates for the specified landmark
         landmark_row = landmark_df[landmark_df['label'] == self.lmk]
         if landmark_row.empty:
             raise ValueError(f"Landmark '{self.lmk}' not found in {landmark_path}")
 
-        coord = landmark_row[['x', 'y', 'z']].iloc[0].tolist()  # Convert to list
-        coord = coord / header['spacings'][:3]
+        # Convert landmark coordinates to a tensor and adjust for pixel spacing
+        coord = landmark_row[['x', 'y', 'z']].iloc[0].tolist()
+        coord = coord / header['spacings'][:3]  # Normalize by pixel spacings
         coord_tensor = torch.tensor(coord, dtype=torch.float32)
 
-        # Generate target heatmap
+        # Generate the target output based on the specified mode (gaussian or distance)
         if self.target_mode == 'gaussian':
-            target = torch.tensor(gaussian_heatmap.create_gaussian_heatmap(coord_tensor, volume, alpha=self.alpha, eps=self.eps)).unsqueeze(0)
+            target = torch.tensor(
+                gaussian_heatmap.create_gaussian_heatmap(
+                    coord_tensor, volume, alpha=self.alpha, eps=self.eps
+                )
+            ).unsqueeze(0)  # Add channel dimension
+        elif self.target_mode == 'distance':
+            target = torch.tensor(
+                distance_matrix.create_distance_matrix(
+                    coord_tensor, volume, alpha=self.alpha, eps=self.eps
+                )
+            ).unsqueeze(0)  # Add channel dimension
         else:
             raise ValueError(f"Unsupported target mode: {self.target_mode}")
 
+        # Optionally generate the distance map if return_dist_m is True
+        if self.return_dist_m:
+            dist_m = torch.tensor(
+                distance_matrix.create_distance_matrix(
+                    coord_tensor, volume, alpha=self.alpha, eps=self.eps
+                )
+            ).unsqueeze(0)  # Add channel dimension
+        else:
+            dist_m = None
+
+        # Ensure transformations are provided
         if self.transformations is None:
             raise ValueError("Transformations are required but not provided.")
 
-        # Apply transformations
+        # Apply transformations and create a TorchIO Subject
         subject = tio.Subject(
-            image=self.transformations(tio.ScalarImage(tensor=image_tensor)),  # Apply transformations
-            target=tio.ScalarImage(tensor=target),
-            name=self.dataframe.loc[idx, 'full_id'],
-            pid=self.dataframe.loc[idx, 'pid'],
-            spacings=header['spacings'][:3],
-            coord_x=coord_tensor[0],
-            coord_y=coord_tensor[1],
-            coord_z=coord_tensor[2]
+            image=self.transformations(tio.ScalarImage(tensor=image_tensor)),  # Apply transformations to the image
+            target=tio.ScalarImage(tensor=target),  # Target heatmap or distance map
+            dist_m=tio.ScalarImage(tensor=dist_m) if dist_m is not None else None,  # Optional distance map
+            name=self.dataframe.loc[idx, 'full_id'],  # Metadata: full ID of the subject
+            pid=self.dataframe.loc[idx, 'pid'],  # Metadata: patient ID
+            spacings=header['spacings'][:3],  # Pixel spacings
+            coord_x=coord_tensor[0],  # X-coordinate of the landmark
+            coord_y=coord_tensor[1],  # Y-coordinate of the landmark
+            coord_z=coord_tensor[2]   # Z-coordinate of the landmark
         )
-        
+
         return subject

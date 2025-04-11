@@ -1,2 +1,0 @@
-def rsquare(*args):
-    pass
