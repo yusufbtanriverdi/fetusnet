@@ -14,8 +14,8 @@ def plot_histograms_and_stats(outputs: torch.Tensor, targets: torch.Tensor):
     targets_np = targets.detach().cpu().numpy().flatten()
 
     # Print statistics
-    print("Outputs - Min:", outputs_np.min(), "Max:", outputs_np.max(), "Mean:", outputs_np.mean())
-    print("Targets - Min:", targets_np.min(), "Max:", targets_np.max(), "Mean:", targets_np.mean())
+    print("Outputs - Min:", outputs_np.min(), "Max:", outputs_np.max(), "Mean:", outputs_np.mean(), "Std:", outputs_np.std(), "Sum:", outputs_np.sum())
+    print("Targets - Min:", targets_np.min(), "Max:", targets_np.max(), "Mean:", targets_np.mean(), "Std:", targets_np.std(), "Sum:", targets_np.sum())
 
     # Plot histograms
     plt.figure(figsize=(12, 6))

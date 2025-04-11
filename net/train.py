@@ -1,7 +1,7 @@
 from tqdm import tqdm
 import wandb
 
-def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps):
+def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps, use_wandb = False):
     """
     Train the model for one epoch.
 
@@ -55,12 +55,13 @@ def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps):
         # Update the progress bar description with the running average loss
         t.set_description(desc='Running Average Loss: {:.4f}'.format(avg_loss))
 
-        # Log step loss and mean loss to Weights & Biases (wandb)
-        wandb.log({'train/step_loss': loss.item(), 'train/step': wandb_steps['train_loss']})
-        wandb.log({'train/mean_loss': avg_loss, 'train/step': wandb_steps['train_loss']})
+        if use_wandb:
+            # Log step loss and mean loss to Weights & Biases (wandb)
+            wandb.log({'train/step_loss': loss.item(), 'train/step': wandb_steps['train_loss']})
+            wandb.log({'train/mean_loss': avg_loss, 'train/step': wandb_steps['train_loss']})
 
-        # Increment the wandb step counter
-        wandb_steps['train_loss'] += 1
+            # Increment the wandb step counter
+            wandb_steps['train_loss'] += 1
 
     # Return the average loss and updated wandb_steps
     return avg_loss, wandb_steps

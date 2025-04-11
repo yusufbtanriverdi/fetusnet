@@ -45,8 +45,7 @@ if params.os in ['linux', 'l']:
 else:
     params.sys = "D:/"
 
-# Set device (GPU or CPU)
-params.device = 'cuda' if params.GPU != -1 else 'cpu'
+print(f"System path set to: {params.sys}")
 print('Device: ', params.device)
 
 # Handle specific modes for data preparation
@@ -59,7 +58,8 @@ if params.mode == 'script_split':
     sinfo_df = split_patient_fold.main(sinfo_df, params)
 
 # Load or create sinfo dataframe
-sinfo_path = os.path.join(params.sys, params.root, 'sinfo.csv')
+sinfo_path = params.sys + params.root + 'sinfo.csv'
+print(f"Loading sinfo from {sinfo_path}...")
 if os.path.exists(sinfo_path):
     sinfo_df = pd.read_csv(sinfo_path)
 else:
@@ -100,6 +100,7 @@ if params.mode in ['train', 'train_test']:
             # Initialize model, loss, optimizer
             model, criterion, optimizer, best_criteria = get_fresh_model(params)
 
+            print(params)
             # Load training and validation data
             train_dl, val_dl = get_train_val_dl(lmk, fold, params, transformations=transformations)
 
@@ -110,13 +111,15 @@ if params.mode in ['train', 'train_test']:
                 # Train for one epoch
                 train_loss, global_wandb_steps = train_one_ep(
                     model, train_dl, criterion, optimizer, params.device, 
-                    wandb_steps=global_wandb_steps
+                    wandb_steps=global_wandb_steps,
+                    use_wandb=params.use_wandb
                 )
 
                 # Validate for one epoch
                 val_loss, ep_scores, global_wandb_steps = infer_one_ep(
                     model, val_dl, criterion, params.device, 
-                    wandb_steps=global_wandb_steps
+                    wandb_steps=global_wandb_steps,
+                    use_wandb=params.use_wandb
                 )
 
                 # Log metrics to WandB
@@ -176,5 +179,5 @@ if params.mode in ['test', 'eval']:
         # Final evaluation on test set
         infer_one_ep(
             model, test_dl, criterion, params.device, 
-            wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory
+            wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory, use_wandb=params.use_wandb
         )

@@ -55,7 +55,8 @@ def parameters_parsing() -> argparse.Namespace:
         subparser.add_argument('--raw_dir', type=str, default=parameters_default['raw_dir'], help=parameters_help['raw_dir'])
         subparser.add_argument('--os', type=str, default=parameters_default['os'], help=parameters_help['os'])
         subparser.add_argument('--wandbpro', type=str, default=parameters_default['wandbpro'], help=parameters_help['wandbpro'])
-
+        # Device parameter
+        subparser.add_argument('--device', type=str, default=parameters_default['device'], help=parameters_help['device'])
         # Rotation parameters
         subparser.add_argument('--desired_size', type=int, default=parameters_default['desired_size'], help=parameters_help['desired_size'])
         subparser.add_argument('--desired_spacings', type=int, default=parameters_default['desired_spacings'], help=parameters_help['desired_spacings'])

@@ -8,7 +8,7 @@ from net.metrics.metrics_eval import compute_metrics
 from net.dataset.MyDataset import extract_image
 from net.visual.detection.planes import overlay_heatmaps
 
-def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save_dir=None):
+def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save_dir=None, use_wandb=False):
     """
     Perform inference for one epoch.
 
@@ -61,20 +61,22 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save
             avg_loss = running_loss / (ind + 1)
             t.set_description(f"Running Average Loss: {avg_loss:.4f}")
 
-            # Log loss to Weights & Biases
-            wandb.log({'val/step_loss': loss.item(), 'val/step': wandb_steps['val_loss']})
-            wandb.log({'val/mean_loss': avg_loss, 'val/step': wandb_steps['val_loss']})
-            wandb_steps['val_loss'] += 1  # Increment step
+            if use_wandb:
+                # Log loss to Weights & Biases
+                wandb.log({'val/step_loss': loss.item(), 'val/step': wandb_steps['val_loss']})
+                wandb.log({'val/mean_loss': avg_loss, 'val/step': wandb_steps['val_loss']})
+                wandb_steps['val_loss'] += 1  # Increment step
 
-    # Concatenate all stored tensors for evaluation
-    ep_outputs = torch.cat(ep_outputs, dim=0).view(-1, 128, 128, 128)  # Reshape to match expected dimensions
-    ep_targets = torch.cat(ep_targets, dim=0).view(-1, 128, 128, 128)
+    if use_wandb:
+        # Concatenate all stored tensors for evaluation
+        ep_outputs = torch.cat(ep_outputs, dim=0).view(-1, 128, 128, 128)  # Reshape to match expected dimensions
+        ep_targets = torch.cat(ep_targets, dim=0).view(-1, 128, 128, 128)
 
-    # Compute evaluation metrics if required
-    scores = compute_metrics(ep_outputs, ep_targets, ep_spacings)
-    for k, v in scores.items():
-        wandb.log({f'epoc/{k}': v, 'epoc/epoch': wandb_steps['epoch']})
-    wandb_steps['epoch'] += 1  # Increment epoch step
+        # Compute evaluation metrics if required
+        scores = compute_metrics(ep_outputs, ep_targets, ep_spacings)
+        for k, v in scores.items():
+            wandb.log({f'epoc/{k}': v, 'epoc/epoch': wandb_steps['epoch']})
+        wandb_steps['epoch'] += 1  # Increment epoch step
 
     # If eval=True, save outputs and generate visualizations
     if eval:

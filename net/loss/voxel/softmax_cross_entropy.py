@@ -31,16 +31,16 @@ class SoftmaxCrossEntropyLoss(nn.Module):
             torch.Tensor: Computed loss.
         """
         # Normalize the targets to ensure they sum to 1 (softmax-like behavior)
-        targets = targets / (targets.sum(dim=-1, keepdim=True) + self.eps)
+        targets = targets / (targets.view(targets.size(0), -1).sum(dim=-1, keepdim=True))
 
-        # Apply softmax to the outputs to convert logits to probabilities
-        outputs = nn.functional.softmax(outputs, dim=-1)
+        # Apply softmax to the flattened outputs
+        outputs = torch.nn.functional.softmax(outputs.view(outputs.size(0), -1), dim=-1).view_as(outputs)
 
         # Call the function to visualize
-        plot_histograms_and_stats(outputs, targets)
+        # plot_histograms_and_stats(outputs, targets)
         # Compute the element-wise cross-entropy loss
         # Adding `self.eps` ensures numerical stability by avoiding log(0)
-        loss = targets * torch.log(outputs + self.eps)
+        loss = - targets * torch.log(outputs + self.eps)
 
         # Sum the loss over spatial dimensions (e.g., D, H, W for 3D or H, W for 2D)
         loss = loss.view(loss.size(0), -1).sum(dim=-1)

@@ -50,7 +50,7 @@ def get_fresh_model(params):
     }
    
     # Select the loss function based on user input or default to 'mse'
-    loss_name = getattr(params, 'loss', 'mse')  # Default: 'mse'
+    loss_name = getattr(params, 'loss', ['mse'])  # Default: 'mse'
 
     # If params.loss is a list, handle multiple losses
     if isinstance(loss_name, list):
@@ -74,14 +74,16 @@ def get_fresh_model(params):
             except KeyError as e:
                 raise ValueError(f"Unsupported loss function '{e.args[0]}'. Choose from {list(loss_dict.keys())}.")
 
-    if loss_name == 'emd':
-        # If using EMD loss, set the model to output a distance matrix
-        params.dist_matrix = True  # Set a flag for distance matrix computation 
-
+    print(f"Using loss function: {loss_name}")
+    if 'emd' in [loss_name]:
+       params.dist_matrix = True  # Ensure distance matrix is computed for EMD loss
+    else:
+        # If not using EMD loss, ensure the model does not output a distance matrix
+        params.dist_matrix = False  # Ensure distance matrix is not computed
     # Define a dictionary of available optimizers
     optim_dict = {
         'adam': optim.Adam,  # Adam optimizer
-        'sgd': partial(optim.SGD, momentum=0.3)  # SGD optimizer with momentum
+        'sgd': partial(optim.SGD, momentum=0.9)  # SGD optimizer with momentum
     }
     
     # Select the optimizer based on user input or default to 'adam'
