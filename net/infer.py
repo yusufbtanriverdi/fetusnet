@@ -3,6 +3,7 @@ import torch
 import wandb
 import nrrd
 import os
+from torch.nn.functional import sigmoid
 
 from net.metrics.metrics_eval import compute_metrics
 from net.dataset.MyDataset import extract_image
@@ -67,41 +68,42 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save
                 wandb.log({'val/mean_loss': avg_loss, 'val/step': wandb_steps['val_loss']})
                 wandb_steps['val_loss'] += 1  # Increment step
 
-    if use_wandb:
-        # Concatenate all stored tensors for evaluation
-        ep_outputs = torch.cat(ep_outputs, dim=0).view(-1, 128, 128, 128)  # Reshape to match expected dimensions
-        ep_targets = torch.cat(ep_targets, dim=0).view(-1, 128, 128, 128)
+    # Concatenate all stored tensors for evaluation
+    ep_outputs = torch.cat(ep_outputs, dim=0).view(-1, 128, 128, 128)  # Reshape to match expected dimensions
+    ep_targets = torch.cat(ep_targets, dim=0).view(-1, 128, 128, 128)
 
+    if use_wandb:
         # Compute evaluation metrics if required
         scores = compute_metrics(ep_outputs, ep_targets, ep_spacings)
         for k, v in scores.items():
             wandb.log({f'epoc/{k}': v, 'epoc/epoch': wandb_steps['epoch']})
         wandb_steps['epoch'] += 1  # Increment epoch step
+    else:  
+        scores = None
+        # If not using wandb, set scores to None    
 
     # If eval=True, save outputs and generate visualizations
     if eval:
         # Load template header for saving NRRD files
         template_header = extract_image('templates/template.nrrd')[1]
 
-        for ind, batch in enumerate(loader):
+        for ind, batch in tqdm(enumerate(loader), desc="Saving outputs", total=len(loader)):
             name = batch['name'][0]  # Extract the name of the current sample
 
             # Save the predicted output as an NRRD file
             nrrd.write(
                 os.path.join(save_dir, f"{name}.nrrd"),
-                ep_outputs[ind].cpu().numpy(),
+                sigmoid(ep_outputs[ind]).cpu().numpy(),
                 header=template_header
             )
 
             # Generate and save detection plane visualizations
-            fig_gt, fig_pr = overlay_heatmaps(
+            fig = overlay_heatmaps(
                 batch['image']['data'][0, 0].cpu().numpy(),
                 batch['target']['data'][0, 0].cpu().numpy(),
-                ep_outputs[ind].cpu().numpy()  # Assuming batch size = 1
+                sigmoid(ep_outputs[ind].cpu()).cpu().numpy()  # Assuming batch size = 1
             )
             os.makedirs(os.path.join(save_dir, 'detection_planes'), exist_ok=True)
-            fig_gt.savefig(os.path.join(save_dir, 'detection_planes', f"gt_{name}.png"))
-            fig_pr.savefig(os.path.join(save_dir, 'detection_planes', f"pr_{name}.png"))
-
+            fig.savefig(os.path.join(save_dir, 'detection_planes', f"{name}.png"))
     # Return the average loss, computed metrics, and updated wandb_steps
     return avg_loss, scores, wandb_steps

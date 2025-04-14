@@ -17,6 +17,70 @@ from net.infer import infer_one_ep
 from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.model.utility.get_fresh_model import get_fresh_model
 
+
+def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_directory, global_wandb_steps):
+    print(f"\n--- Training Fold {fold + 1}/{params.n_split} ---")
+
+    if params.use_wandb:
+        initialize_wandb(params, fold=fold)
+    # Initialize model, loss, optimizer
+    model, criterion, optimizer, best_criteria = get_fresh_model(params)
+
+    print(params)
+    # Load training and validation data
+    train_dl, val_dl = get_train_val_dl(lmk, fold, params, transformations=transformations)
+
+    # Epoch training loop
+    for epoch in range(params.epochs):
+        print(f"\n[Epoch {epoch + 1}/{params.epochs}]")
+
+        # Train for one epoch
+        train_loss, global_wandb_steps = train_one_ep(
+            model, train_dl, criterion, optimizer, params.device, 
+            wandb_steps=global_wandb_steps,
+            use_wandb=params.use_wandb
+        )
+
+        # Validate for one epoch
+        val_loss, ep_scores, global_wandb_steps = infer_one_ep(
+            model, val_dl, criterion, params.device, 
+            wandb_steps=global_wandb_steps,
+            use_wandb=params.use_wandb
+        )
+
+        # Log metrics to WandB
+        wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': global_wandb_steps['epoch']})
+        wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': global_wandb_steps['epoch']})
+
+        # Save best model
+        if val_loss < best_criteria:
+            best_criteria = val_loss
+            save_checkpoint(model, optimizer, epoch, val_loss, 
+                            os.path.join(experiment_directory, f'best_fold{fold}.pt'))
+
+        # Save last model
+        save_checkpoint(model, optimizer, epoch, val_loss, 
+                        os.path.join(experiment_directory, f'last_fold{fold}.pt'))
+
+        print("Last Ep d-mean Score: ", ep_scores['dmean'])
+
+    # Initialize model, loss, optimizer
+    model, criterion, optimizer, best_criteria = get_fresh_model(params)
+    # Load the best model checkpoint
+    model_dir = f'{experiment_directory}/best_fold{fold}.pt'
+    model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
+    print(f"Best validation loss: {best_val_loss}") 
+
+    # Final evaluation on validation set
+    val_loss, ep_scores, global_wandb_steps = infer_one_ep(
+        model, val_dl, criterion, params.device, 
+        wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory
+    )
+
+    # Finish WandB logging
+    wandb.finish()
+    return global_wandb_steps, best_val_loss
+
 # Suppress UserWarnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -25,10 +89,6 @@ params = parameters_parsing()
 
 # Create experiment directory and log
 experiment_directory, experiment_id = create_experiment_id(params)
-
-# Initialize WandB if enabled
-if params.use_wandb:
-    initialize_wandb(params)
 
 # Initialize global tracking dictionary for WandB
 global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
@@ -94,69 +154,22 @@ if params.mode in ['train', 'train_test']:
     # Loop through landmarks
     for lmk in params.lmks:
         # Training across folds
-        for fold in range(params.n_split):
-            print(f"\n--- Training Fold {fold + 1}/{params.n_split} ---")
+        if not params.iter_folds:
+            iter_folds = range(params.n_split)
+        else:
+            iter_folds = params.iter_folds
 
-            # Initialize model, loss, optimizer
-            model, criterion, optimizer, best_criteria = get_fresh_model(params)
-
-            print(params)
-            # Load training and validation data
-            train_dl, val_dl = get_train_val_dl(lmk, fold, params, transformations=transformations)
-
-            # Epoch training loop
-            for epoch in range(params.epochs):
-                print(f"\n[Epoch {epoch + 1}/{params.epochs}]")
-
-                # Train for one epoch
-                train_loss, global_wandb_steps = train_one_ep(
-                    model, train_dl, criterion, optimizer, params.device, 
-                    wandb_steps=global_wandb_steps,
-                    use_wandb=params.use_wandb
-                )
-
-                # Validate for one epoch
-                val_loss, ep_scores, global_wandb_steps = infer_one_ep(
-                    model, val_dl, criterion, params.device, 
-                    wandb_steps=global_wandb_steps,
-                    use_wandb=params.use_wandb
-                )
-
-                # Log metrics to WandB
-                wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': global_wandb_steps['epoch']})
-                wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': global_wandb_steps['epoch']})
-
-                # Save best model
-                if val_loss < best_criteria:
-                    best_criteria = val_loss
-                    save_checkpoint(model, optimizer, epoch, val_loss, 
-                                    os.path.join(experiment_directory, f'best_fold{fold}.pt'))
-
-                # Save last model
-                save_checkpoint(model, optimizer, epoch, val_loss, 
-                                os.path.join(experiment_directory, f'last_fold{fold}.pt'))
-
-                print("Last Ep d-mean Score: ", ep_scores['dmean'])
-
-            # Final evaluation on validation set
-            val_loss, ep_scores, global_wandb_steps = infer_one_ep(
-                model, val_dl, criterion, params.device, 
-                wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory
-            )
-
-            # Finish WandB logging
-            wandb.finish()
-
-            # Reinitialize global tracking dictionary
+        for fold in iter_folds:
+            # Initialize global tracking dictionary for WandB
             global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
-            if params.use_wandb:
-                initialize_wandb(params, fold=fold)
+            global_wandb_steps, best_val_loss = train_and_validate_one_fold(lmk, fold, params, transformations, experiment_directory, global_wandb_steps)
 
-with open(log_file, "w") as log:
-    log.write(f"Experiment ID: {experiment_id}\n")
-    log.write(f"Parameters: {vars(params)}\n")
-    log.write(f"Training completed for all folds.\n")
-    log.write(f"Best validation loss: {best_criteria}\n")   
+    with open(log_file, "w") as log:
+        log.write(f"Experiment ID: {experiment_id}\n")
+        log.write(f"Parameters: {vars(params)}\n")
+        log.write(f"Training completed for all folds.\n")
+        log.write(f"Best validation loss: {best_val_loss}\n")   
+
 
 # Testing or evaluation phase
 if params.mode in ['test', 'eval']:

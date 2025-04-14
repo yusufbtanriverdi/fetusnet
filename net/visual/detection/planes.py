@@ -46,38 +46,38 @@ def overlay_heatmaps(us_image, gt_heatmap, pred_heatmap, alpha=0.5):
     coronal_pred = pred_heatmap[:, y_idx, :]
     axial_pred = pred_heatmap[z_idx, :, :]
 
-    # Create a figure for ground truth overlays
-    fig_gt, axes_gt = plt.subplots(1, 3, figsize=(15, 5))
+    # Create a figure for ground truth and predicted overlays in a 2x3 layout
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
     gt_planes = [
         (sagittal_img, sagittal_gt, 'Sagittal (YZ) - Ground Truth'),
         (coronal_img, coronal_gt, 'Coronal (XZ) - Ground Truth'),
         (axial_img, axial_gt, 'Axial (XY) - Ground Truth')
     ]
-
-    # Plot the ground truth overlays
-    for ax, (img, gt, title) in zip(axes_gt, gt_planes):
-        ax.imshow(img, cmap='gray')  # Display the base ultrasound image
-        ax.imshow(gt, cmap='Reds', alpha=alpha * (gt > 0))  # Overlay ground truth heatmap in red
-        ax.set_title(title)  # Set the title for the subplot
-        ax.axis('off')  # Turn off axis labels
-
-    # Create a figure for predicted overlays
-    fig_pred, axes_pred = plt.subplots(1, 3, figsize=(15, 5))
     pred_planes = [
         (sagittal_img, sagittal_pred, 'Sagittal (YZ) - Prediction'),
         (coronal_img, coronal_pred, 'Coronal (XZ) - Prediction'),
         (axial_img, axial_pred, 'Axial (XY) - Prediction')
     ]
 
-    # Plot the predicted overlays
-    for ax, (img, pred, title) in zip(axes_pred, pred_planes):
+    # Plot the ground truth overlays in the first row
+    for ax, (img, gt, title) in zip(axes[0], gt_planes):
+        ax.imshow(img, cmap='gray')  # Display the base ultrasound image
+        ax.imshow(gt, cmap='Reds', alpha=alpha * (gt > 0))  # Overlay ground truth heatmap in red
+        ax.set_title(title)  # Set the title for the subplot
+        ax.axis('off')  # Turn off axis labels
+
+    # Plot the predicted overlays in the second row
+    for ax, (img, pred, title) in zip(axes[1], pred_planes):
         ax.imshow(img, cmap='gray')  # Display the base ultrasound image
         ax.imshow(pred, cmap='Blues', alpha=alpha * (pred > 0))  # Overlay predicted heatmap in blue
         ax.set_title(title)  # Set the title for the subplot
         ax.axis('off')  # Turn off axis labels
 
+    # Adjust layout for better spacing
+    plt.tight_layout()
+
     # Close the figures to prevent automatic display
     plt.close()
 
     # Return the figure objects for further processing or saving
-    return fig_gt, fig_pred
+    return fig

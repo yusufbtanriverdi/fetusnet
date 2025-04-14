@@ -38,6 +38,7 @@ parameters_default = {
     'model_dir': '',
     'test_fold': 0,
     'num_fts': 64,
+    'iter_folds': None,
 }
 
 parameters_help = {
@@ -93,6 +94,7 @@ parameters_help = {
     'model_dir': 'Model directory for test.',
     'test_fold': 'Select fold to test patients.',
     'num_fts': 'Number of features for backbone.',
+    'iter_folds': 'Cross-validation folds selected (optional).',
 }
 
 parameters_choices = {
