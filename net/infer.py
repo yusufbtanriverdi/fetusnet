@@ -71,15 +71,13 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save
     # Concatenate all stored tensors for evaluation
     ep_outputs = torch.cat(ep_outputs, dim=0).view(-1, 128, 128, 128)  # Reshape to match expected dimensions
     ep_targets = torch.cat(ep_targets, dim=0).view(-1, 128, 128, 128)
+    # Compute evaluation metrics if required
+    scores = compute_metrics(ep_outputs, ep_targets, ep_spacings)
 
     if use_wandb:
-        # Compute evaluation metrics if required
-        scores = compute_metrics(ep_outputs, ep_targets, ep_spacings)
         for k, v in scores.items():
             wandb.log({f'epoc/{k}': v, 'epoc/epoch': wandb_steps['epoch']})
         wandb_steps['epoch'] += 1  # Increment epoch step
-    else:  
-        scores = None
         # If not using wandb, set scores to None    
 
     # If eval=True, save outputs and generate visualizations

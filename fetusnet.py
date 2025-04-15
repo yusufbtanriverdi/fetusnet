@@ -23,15 +23,22 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
 
     if params.use_wandb:
         initialize_wandb(params, fold=fold)
+        
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
-
+    if params.resume:
+        experiment_directory = params.exp_dir
+        model_dir = f'{experiment_directory}/last_fold{fold}.pt'
+        model, optimizer, epoch, best_criteria = load_checkpoint(model, optimizer, model_dir)
+    else:
+        epoch = 0
+        best_criteria = float('inf')
     print(params)
     # Load training and validation data
     train_dl, val_dl = get_train_val_dl(lmk, fold, params, transformations=transformations)
 
     # Epoch training loop
-    for epoch in range(params.epochs):
+    for epoch in range(epoch, params.epochs):
         print(f"\n[Epoch {epoch + 1}/{params.epochs}]")
 
         # Train for one epoch
@@ -48,9 +55,10 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
             use_wandb=params.use_wandb
         )
 
-        # Log metrics to WandB
-        wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': global_wandb_steps['epoch']})
-        wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': global_wandb_steps['epoch']})
+        if params.use_wandb:
+            # Log metrics to WandB
+            wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': global_wandb_steps['epoch']})
+            wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': global_wandb_steps['epoch']})
 
         # Save best model
         if val_loss < best_criteria:
@@ -62,7 +70,7 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
         save_checkpoint(model, optimizer, epoch, val_loss, 
                         os.path.join(experiment_directory, f'last_fold{fold}.pt'))
 
-        print("Last Ep d-mean Score: ", ep_scores['dmean'])
+        print("Last Ep d-mean Score: ", ep_scores['dmean'].item())
 
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
@@ -77,8 +85,10 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
         wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory
     )
 
-    # Finish WandB logging
-    wandb.finish()
+    if params.use_wandb:
+        # Finish WandB logging
+        wandb.finish()
+
     return global_wandb_steps, best_val_loss
 
 # Suppress UserWarnings
@@ -194,3 +204,7 @@ if params.mode in ['test', 'eval']:
             model, test_dl, criterion, params.device, 
             wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory, use_wandb=params.use_wandb
         )
+
+
+# Experiments to be done_
+# python fetusnet.py train --ep 100 --wandbpro fetusnetv1 --run_name softmax_crosse_adam --optim adam --num_fts 32 --lr 0.0001 --loss sce --use_wandb --iter_folds 0 1 2 3

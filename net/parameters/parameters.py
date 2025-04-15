@@ -79,7 +79,9 @@ def parameters_parsing() -> argparse.Namespace:
         subparser.add_argument('--use_wandb', action='store_true', default=parameters_default['use_wandb'], help=parameters_help['use_wandb'])
         # Iterative folds parameter
         subparser.add_argument('--iter_folds', nargs='+', type=int, default=parameters_default['iter_folds'], help=parameters_help['iter_folds'])
-
+        # Resume and experiment directory parameters
+        subparser.add_argument('--resume', action='store_true', default=parameters_default['resume'], help=parameters_help['resume'])
+        subparser.add_argument('--exp_dir', type=str, default=parameters_default['exp_dir'], help=parameters_help['exp_dir'])
         # Reproducibility
         subparser.add_argument('--seed', type=int, default=parameters_default['seed'], help=parameters_help['seed'])
 

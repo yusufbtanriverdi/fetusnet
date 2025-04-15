@@ -6,6 +6,7 @@ from functools import partial
 from net.model.backbone import ResUNet3D  
 from net.loss.voxel.v1.mean_squared_error import MeanSquaredErrorLoss
 from net.loss.voxel.v1.kullback_leibler_div import KullbackLeiblerDivLoss
+from net.loss.voxel.kullback_leibler_div import KullbackLeiblerDivLossV2
 from net.loss.voxel.softmax_cross_entropy import SoftmaxCrossEntropyLoss
 from net.loss.voxel.emd_regularization import DistanceMatrixLoss
 from net.loss.utils import CombinedLoss
@@ -43,6 +44,7 @@ def get_fresh_model(params):
     loss_dict = {
         # Version 1 loss functions
         'kld': partial(KullbackLeiblerDivLoss, reduction=getattr(params, "reduction", 'mean')),  
+        'kldv2': partial(KullbackLeiblerDivLossV2, reduction=getattr(params, "reduction", 'mean')),
         'mse': partial(MeanSquaredErrorLoss, reduction=getattr(params, "reduction", 'mean')),   
         # Version 2 loss functions
         'sce': partial(SoftmaxCrossEntropyLoss, reduction=getattr(params, "reduction", 'mean')), 

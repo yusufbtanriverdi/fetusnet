@@ -39,6 +39,8 @@ parameters_default = {
     'test_fold': 0,
     'num_fts': 64,
     'iter_folds': None,
+    'resume': False,
+    'exp_dir': '',
 }
 
 parameters_help = {
@@ -95,6 +97,8 @@ parameters_help = {
     'test_fold': 'Select fold to test patients.',
     'num_fts': 'Number of features for backbone.',
     'iter_folds': 'Cross-validation folds selected (optional).',
+    'resume': 'Resume training from a checkpoint.',
+    'exp_dir': 'Directory for saving experiment results.',
 }
 
 parameters_choices = {

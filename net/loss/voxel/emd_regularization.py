@@ -19,7 +19,7 @@ class DistanceMatrixLoss(nn.Module):
         mu (float): Constant term added to the loss.
         w (float): Exponent applied to the targets.
     """
-    def __init__(self, reduction: str = 'mean', lambda_: float = 1e5, mu: float = 1e-10, w: float = 1.0):
+    def __init__(self, reduction: str = 'mean', lambda_: float = 1e10, mu: float = 0, w: float = 1.0):
         super(DistanceMatrixLoss, self).__init__()
         # Ensure the reduction method is valid
         assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
