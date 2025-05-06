@@ -8,7 +8,7 @@ from net.loss.voxel.v1.mean_squared_error import MeanSquaredErrorLoss
 from net.loss.voxel.v1.kullback_leibler_div import KullbackLeiblerDivLoss
 from net.loss.voxel.kullback_leibler_div import KullbackLeiblerDivLossV2
 from net.loss.voxel.softmax_cross_entropy import SoftmaxCrossEntropyLoss
-from net.loss.voxel.emd_regularization import DistanceMatrixLoss
+from net.loss.voxel.emd_regularization import DistanceMatrixLoss, EMDRegularizedLoss
 from net.loss.utils import CombinedLoss
 
 def get_fresh_model(params):
@@ -49,6 +49,7 @@ def get_fresh_model(params):
         # Version 2 loss functions
         'sce': partial(SoftmaxCrossEntropyLoss, reduction=getattr(params, "reduction", 'mean')), 
         'dis': partial(DistanceMatrixLoss, reduction=getattr(params, "reduction", 'mean')), 
+        'emd': partial(EMDRegularizedLoss, reduction=getattr(params, "reduction", 'mean')),  # EMD loss
     }
    
     # Select the loss function based on user input or default to 'mse'

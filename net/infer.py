@@ -86,20 +86,24 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save
         template_header = extract_image('templates/template.nrrd')[1]
 
         for ind, batch in tqdm(enumerate(loader), desc="Saving outputs", total=len(loader)):
-            name = batch['name'][0]  # Extract the name of the current sample
+            output = sigmoid(ep_outputs[ind])
+            target = ep_targets[ind]
+            input = batch['image']['data'][0, 0]
+            output[input == 0] = 0
 
+            name = batch['name'][0]  # Extract the name of the current sample
             # Save the predicted output as an NRRD file
             nrrd.write(
                 os.path.join(save_dir, f"{name}.nrrd"),
-                sigmoid(ep_outputs[ind]).cpu().numpy(),
+                output.cpu().numpy(),
                 header=template_header
             )
 
             # Generate and save detection plane visualizations
             fig = overlay_heatmaps(
-                batch['image']['data'][0, 0].cpu().numpy(),
-                batch['target']['data'][0, 0].cpu().numpy(),
-                sigmoid(ep_outputs[ind].cpu()).cpu().numpy()  # Assuming batch size = 1
+                input.cpu().numpy(),
+                target,
+                output
             )
             os.makedirs(os.path.join(save_dir, 'detection_planes'), exist_ok=True)
             fig.savefig(os.path.join(save_dir, 'detection_planes', f"{name}.png"))

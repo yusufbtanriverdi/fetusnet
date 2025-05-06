@@ -195,16 +195,17 @@ if params.mode in ['test', 'eval']:
         # Load the best model checkpoint
         model_dir = f'runs/{params.model_dir}/best_fold{params.test_fold}.pt'
         model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
+        print(f"Best validation loss: {best_val_loss}") 
 
         # Load test data
         test_dl = get_test_dl(params, lmk, transformations=transformations)
 
         # Final evaluation on test set
-        infer_one_ep(
+        val_loss, ep_scores, global_wandb_steps = infer_one_ep(
             model, test_dl, criterion, params.device, 
             wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory, use_wandb=params.use_wandb
         )
-
+        print("Last Ep d-mean Score: ", ep_scores['dmean'].item())
 
 # Experiments to be done_
 # python fetusnet.py train --ep 100 --wandbpro fetusnetv1 --run_name softmax_crosse_adam --optim adam --num_fts 32 --lr 0.0001 --loss sce --use_wandb --iter_folds 0 1 2 3
