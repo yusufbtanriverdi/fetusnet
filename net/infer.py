@@ -99,6 +99,16 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save
                 header=template_header
             )
 
+            try:
+                # Visualize the target distance matrix
+                loss = criterion(outputs, targets, flag_visualize=False)
+            except Exception as e:
+                print(f"Error during visualization: {e}")
+                print(f"Visualization is not implemented for this loss fn!")
+                raise e
+                                # Visualize the target distance matrix
+                loss = criterion(outputs, targets, flag_visualize=False)
+
             # Generate and save detection plane visualizations
             fig = overlay_heatmaps(
                 input.cpu().numpy(),

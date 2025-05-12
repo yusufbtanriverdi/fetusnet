@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from net.loss.utils import plot_histograms_and_stats, imshow_target_distance_matrices
+from net.loss.utils import plot_histograms_and_stats, imshow_target_distance_matrices_to_gif
 
 class DistanceMatrixLoss(nn.Module):
     """
@@ -56,7 +56,7 @@ class DistanceMatrixLoss(nn.Module):
 
         # Call the function to visualize the target distance matrix
         if flag_visualize:
-            imshow_target_distance_matrices(outputs, targets, dist_ms, loss, titles=['Probability Maps', 'GT Heatmap', 'Distance Matrix', 'Loss'])
+            imshow_target_distance_matrices_to_gif(outputs, targets, dist_ms, loss, titles=['Probability Maps', 'GT Heatmap', 'Distance Matrix', 'Loss'])
 
         # Flatten spatial dimensions (e.g., D, H, W for 3D or H, W for 2D) and sum over them
         loss = loss.view(loss.size(0), -1).sum(dim=-1)  # Sum over spatial dimensions
@@ -128,7 +128,7 @@ class EMDRegularizedLoss(nn.Module):
 
         # Call the function to visualize the target distance matrix
         if flag_visualize:
-            imshow_target_distance_matrices(outputs, targets, dist_ms, loss1, loss2, titles=['Probability Maps', 'GT Heatmap', 'Distance Matrix', 'Softmax CE Loss', 'EMD Loss'])
+            imshow_target_distance_matrices_to_gif(outputs, targets, dist_ms, loss1, loss2, titles=['Probability Maps', 'GT Heatmap', 'Distance Matrix', 'Softmax CE Loss', 'EMD Loss'])
 
         # Flatten spatial dimensions (e.g., D, H, W for 3D or H, W for 2D) and sum over them
         loss2 = loss2.view(loss2.size(0), -1).sum(dim=-1)  # Sum over spatial dimensions

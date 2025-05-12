@@ -1,4 +1,7 @@
 import torch
+from matplotlib.animation import PillowWriter
+import numpy as np
+from matplotlib import widgets
 import matplotlib.pyplot as plt
 
 def plot_histograms_and_stats(outputs: torch.Tensor, targets: torch.Tensor):
@@ -36,23 +39,22 @@ def plot_histograms_and_stats(outputs: torch.Tensor, targets: torch.Tensor):
     plt.tight_layout()
     plt.show()
 
-def imshow_target_distance_matrices(*targets: torch.Tensor, titles: list = None):
+def imshow_target_distance_matrices_to_gif(*targets: torch.Tensor, titles: list = None, gif_path: str = "distance_matrices.gif"):
     """
-    Visualize multiple target distance matrices using matplotlib with an interactive slider.
+    Visualize multiple target distance matrices and save the visualization as a GIF.
 
     Args:
         *targets (torch.Tensor): Variable number of ground truth distance matrices (assumed to be 3D).
+        titles (list): Titles for each target distance matrix.
+        gif_path (str): Path to save the generated GIF.
     """
     # Convert tensors to numpy arrays for visualization
     targets_np = [target.cpu().detach().numpy()[0, 0] for target in targets]
-
-    import matplotlib.widgets as widgets
-
     # Define a function to update the slices being displayed
     def update_slice(val):
         slice_idx = int(slider.val)
         for i, (ax, target_np) in enumerate(zip(axes, targets_np)):
-            slice_np = target_np[slice_idx]
+            slice_np = target_np[:, :, slice_idx]
             ax.imshow(slice_np, cmap='viridis', interpolation='nearest')
             title = titles[i] if titles and i < len(titles) else f'Target {i + 1}'
             ax.set_title(f'{title} (Slice {slice_idx})')
@@ -69,10 +71,11 @@ def imshow_target_distance_matrices(*targets: torch.Tensor, titles: list = None)
     # Initial slice to display
     initial_slice = 0
     for i, (ax, target_np) in enumerate(zip(axes, targets_np)):
-        slice_np = target_np[initial_slice]
+        slice_np = target_np[:, :, initial_slice]
         im = ax.imshow(slice_np, cmap='viridis', interpolation='nearest')
         title = titles[i] if titles and i < len(titles) else f'Target {i + 1}'
         ax.set_title(f'{title} (Slice {initial_slice})')
+        ax.axis('off')  # Hide axes
         plt.colorbar(im, ax=ax, label='Distance')
 
     # Add a slider for selecting slices
@@ -81,8 +84,23 @@ def imshow_target_distance_matrices(*targets: torch.Tensor, titles: list = None)
 
     # Connect the slider to the update function
     slider.on_changed(update_slice)
-
     plt.show()
+    # # Automatically slide through slices and save as GIF frames
+    # images = []
+    # for slice_idx in range(targets_np[0].shape[0]):
+    #     slider.set_val(slice_idx)
+    #     fig.canvas.draw_idle()  # Use draw_idle instead of draw for better performance
+    #     plt.pause(0.1)  # Pause to allow visualization
+
+    #     # Capture the current figure as an image
+    #     image = np.frombuffer(fig.canvas.tostring_rgb(), dtype='uint8')
+    #     image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    #     images.append(image)
+
+    # plt.close(fig)  # Close the figure to release memory
+    # # Save the collected images as a GIF
+    # imageio.mimsave(gif_path, images, fps=1)
+
 
 class CombinedLoss(torch.nn.Module):
     def __init__(self, loss_fns, weights=None):
