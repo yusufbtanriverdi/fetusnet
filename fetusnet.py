@@ -3,6 +3,7 @@ import pandas as pd
 import torchio as tio
 import warnings
 import wandb
+import torch
 
 # Import project modules
 from net.config.wandb import initialize_wandb
@@ -16,7 +17,7 @@ from net.train import train_one_ep
 from net.infer import infer_one_ep
 from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.model.utility.get_fresh_model import get_fresh_model
-
+from net.plot.average_expected_local_accuracy import plot_aela_figure
 
 def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_directory, global_wandb_steps):
     print(f"\n--- Training Fold {fold + 1}/{params.n_split} ---")
@@ -190,22 +191,36 @@ if params.mode in ['test', 'eval']:
 
     # Loop through landmarks
     for lmk in params.lmks:
-        # Initialize model, loss, optimizer
-        model, criterion, optimizer, best_criteria = get_fresh_model(params)
-        # Load the best model checkpoint
-        model_dir = f'runs/{params.model_dir}/best_fold{params.test_fold}.pt'
-        model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
-        print(f"Best validation loss: {best_val_loss}") 
+        if not params.iter_folds:
+            iter_folds = range(params.n_split)
+        else:
+            iter_folds = params.iter_folds
 
-        # Load test data
-        test_dl = get_test_dl(params, lmk, transformations=transformations)
+        aela = []
+        for fold in iter_folds:
+            # Initialize model, loss, optimizer
+            model, criterion, optimizer, best_criteria = get_fresh_model(params)
+            # Load the best model checkpoint
+            model_dir = f'runs/{params.model_dir}/best_fold{fold}.pt'
+            model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
+            print(f"Best validation loss: {best_val_loss}") 
 
-        # Final evaluation on test set
-        val_loss, ep_scores, global_wandb_steps = infer_one_ep(
-            model, test_dl, criterion, params.device, 
-            wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory, use_wandb=params.use_wandb
-        )
-        print("Last Ep d-mean Score: ", ep_scores['dmean'].item())
+            # Load test data
+            test_dl = get_test_dl(params, fold, lmk, transformations=transformations)
 
-# Experiments to be done_
-# python fetusnet.py train --ep 100 --wandbpro fetusnetv1 --run_name softmax_crosse_adam --optim adam --num_fts 32 --lr 0.0001 --loss sce --use_wandb --iter_folds 0 1 2 3
+            # Final evaluation on test set
+            val_loss, ep_scores, global_wandb_steps = infer_one_ep(
+                model, test_dl, criterion, params.device, 
+                wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory, use_wandb=params.use_wandb
+            )
+            # Append AELA scores
+            print(ep_scores['aela'].shape)
+            aela.append(ep_scores['aela'].cpu())
+        # Concatenate AELA scores across folds
+        aela = torch.stack(aela, dim=0).mean(dim=0)
+        aela_csv_path = os.path.join(experiment_directory, f'aela_{lmk}.csv')
+        pd.DataFrame(aela.numpy(), columns=['AELA']).to_csv(aela_csv_path, index=False)
+        print(f"AELA scores saved to {aela_csv_path}")
+        print(aela.shape)
+        plot_aela_figure(torch.linspace(0, 100, 40), aela.tolist(), save_dir=os.path.join(experiment_directory, f'aela_{lmk}.png'))
+

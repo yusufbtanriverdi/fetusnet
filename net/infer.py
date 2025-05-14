@@ -8,6 +8,7 @@ from torch.nn.functional import sigmoid
 from net.metrics.metrics_eval import compute_metrics
 from net.dataset.MyDataset import extract_image
 from net.visual.detection.planes import overlay_heatmaps
+from net.plot.average_expected_local_accuracy import average_expected_local_accuracy
 
 def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save_dir=None, use_wandb=False):
     """
@@ -69,7 +70,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save
                 wandb_steps['val_loss'] += 1  # Increment step
 
     # Concatenate all stored tensors for evaluation
-    ep_outputs = torch.cat(ep_outputs, dim=0).view(-1, 128, 128, 128)  # Reshape to match expected dimensions
+    ep_outputs = sigmoid(torch.cat(ep_outputs, dim=0).view(-1, 128, 128, 128))  # Reshape to match expected dimensions
     ep_targets = torch.cat(ep_targets, dim=0).view(-1, 128, 128, 128)
     # Compute evaluation metrics if required
     scores = compute_metrics(ep_outputs, ep_targets, ep_spacings)
@@ -79,22 +80,28 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save
             wandb.log({f'epoc/{k}': v, 'epoc/epoch': wandb_steps['epoch']})
         wandb_steps['epoch'] += 1  # Increment epoch step
         # If not using wandb, set scores to None    
-
+    else:
+        print("Scores: ", scores)
     # If eval=True, save outputs and generate visualizations
     if eval:
+        scores['aela'] = average_expected_local_accuracy(ep_outputs, ep_targets, ep_spacings, torch.linspace(0, 100, 40), save_dir=os.path.join(save_dir, f"aela.png"))
         # Load template header for saving NRRD files
         template_header = extract_image('templates/template.nrrd')[1]
 
         for ind, batch in tqdm(enumerate(loader), desc="Saving outputs", total=len(loader)):
-            output = sigmoid(ep_outputs[ind])
+            output = ep_outputs[ind]
             target = ep_targets[ind]
             input = batch['image']['data'][0, 0]
             output[input == 0] = 0
 
             name = batch['name'][0]  # Extract the name of the current sample
-            # Save the predicted output as an NRRD file
+            # Create a subdirectory within save_dir for saving outputs
+            output_dir = os.path.join(save_dir, "predicted_outputs")
+            os.makedirs(output_dir, exist_ok=True)
+
+            # Save the predicted output as an NRRD file in the subdirectory
             nrrd.write(
-                os.path.join(save_dir, f"{name}.nrrd"),
+                os.path.join(output_dir, f"{name}.nrrd"),
                 output.cpu().numpy(),
                 header=template_header
             )
@@ -109,13 +116,14 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save
                                 # Visualize the target distance matrix
                 loss = criterion(outputs, targets, flag_visualize=False)
 
-            # Generate and save detection plane visualizations
-            fig = overlay_heatmaps(
-                input.cpu().numpy(),
-                target,
-                output
-            )
-            os.makedirs(os.path.join(save_dir, 'detection_planes'), exist_ok=True)
-            fig.savefig(os.path.join(save_dir, 'detection_planes', f"{name}.png"))
+            # # Generate and save detection plane visualizations
+            # fig = overlay_heatmaps(
+            #     input.cpu().numpy(),
+            #     target,
+            #     output
+            # )
+            # os.makedirs(os.path.join(save_dir, 'detection_planes'), exist_ok=True)
+            # fig.savefig(os.path.join(save_dir, 'detection_planes', f"{name}.png"))
+
     # Return the average loss, computed metrics, and updated wandb_steps
     return avg_loss, scores, wandb_steps

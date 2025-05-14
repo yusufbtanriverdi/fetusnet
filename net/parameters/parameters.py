@@ -65,8 +65,7 @@ def parameters_parsing() -> argparse.Namespace:
         # Dataset parameters
         subparser.add_argument('--dataset', nargs='+', type=str, default=parameters_default['dataset'], help=parameters_help['dataset'])
         subparser.add_argument('--n_split', type=int, default=parameters_default['n_split'], help=parameters_help['n_split'])
-        subparser.add_argument('--test_patients', nargs='+', type=int, default=parameters_default['test_patients'], help=parameters_help['test_patients'])
-        subparser.add_argument('--test_fold', '-f', type=int, default=parameters_default['test_fold'], help=parameters_help['test_fold'])
+        subparser.add_argument('--test_patients', nargs='+', type=int, help=parameters_help['test_patients'])
 
         # Target generation parameters
         subparser.add_argument('--generate', type=str, default=parameters_default['generate'], help=parameters_help['generate'], choices=parameters_choices['generate'])

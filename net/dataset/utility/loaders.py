@@ -65,7 +65,7 @@ def get_train_val_dl(lmk, num, params, transformations):
     return train_dl, val_dl
 
 
-def get_test_dl(params, lmk, transformations):
+def get_test_dl(params, num, lmk, transformations):
     """
     Create a DataLoader for the test set.
 
@@ -78,11 +78,20 @@ def get_test_dl(params, lmk, transformations):
         DataLoader: Test DataLoader.
     """
     # Load dataset information from a CSV file for the test set
-    sinfo_path = f"{params.sys}{params.root}sinfo__fold0__.csv"
+    sinfo_path = f"{params.sys}{params.root}sinfo__fold{num}__.csv"
     sinfo = pd.read_csv(sinfo_path)
 
-    # Identify indices for test set based on patient IDs
-    test_idx = sinfo.index[sinfo['pid'].isin(params.test_patients)].tolist()
+    # Update dataset information (e.g., preprocessing or additional metadata)
+    sinfo = update(sinfo, params)
+    
+    if params.test_patients is None:
+        print("Test patients list is empty. I will iterate all validation patients in current fold.")
+        test_idx = sinfo.index[sinfo['set'] == 1].tolist()    # Indices for validation set
+
+    else: 
+        print(f"Test patients: {params.test_patients}")
+        # Identify indices for test set based on patient IDs
+        test_idx = sinfo.index[sinfo['pid'].isin(params.test_patients)].tolist()
 
     # Create test dataset
     test_ds = MyDataset(
