@@ -72,27 +72,33 @@ def average_expected_local_accuracy(outputs, targets, spacings, radii, save_dir=
             # Visualize the output 3D volume on the z-axis
             
             ct += 1
-            if ct % 200000 == 0:
-                slice_z = output[:, :, z].cpu().numpy()
+            if landmark_coord[0] == 64 and landmark_coord[1] == 75 and landmark_coord[2] == 44:
+                slice_z_output = output[:, :, z].cpu().numpy()
+                slice_z_target = target[:, :, z].cpu().numpy()
                 print(f"ROI Peak: {roi_peak}, Landmark Coord: {landmark_coord}, Radius: {radius}, Distance: {distance}")
-                plt.figure(figsize=(8, 8))
-                plt.imshow(slice_z, cmap='gray')
-                plt.scatter(roi_peak[1], roi_peak[0], color='red', label='Candidate (x, y)')
-                plt.gca().add_patch(plt.Rectangle((y-radius, x-radius), 2*radius, 2*radius, 
+                
+                fig, axes = plt.subplots(1, 2, figsize=(16, 8))
+                
+                # Output probability map
+                axes[0].imshow(slice_z_output, cmap='gray')
+                axes[0].scatter(roi_peak[1], roi_peak[0], color='orange', label='Candidate (x, y)')
+                axes[0].scatter(y, x, color='red', label='Landmark (x, y)')
+                axes[0].add_patch(plt.Rectangle((y-radius, x-radius), 2*radius, 2*radius, 
                                                 edgecolor='blue', facecolor='none', linewidth=2, label='Bounding Box'))
-                plt.title(f"Slice at Z={z} and bbox at {radius}")
-                plt.legend()
-                # plt.close()
-
-                # Visualize the target 3D volume on the z-axis
-                slice_z = target[:, :, z].cpu().numpy()
-                plt.figure(figsize=(8, 8))
-                plt.imshow(slice_z, cmap='gray')
-                plt.scatter(y, x, color='red', label='Landmark (x, y)')
-                plt.gca().add_patch(plt.Rectangle((y-radius, x-radius), 2*radius, 2*radius, 
+                axes[0].set_title(f"Output Probability Map")
+                axes[0].legend()
+                
+                # Target probability map
+                axes[1].imshow(slice_z_target, cmap='gray')
+                axes[1].scatter(roi_peak[1], roi_peak[0], color='orange', label='Candidate (x, y)')
+                axes[1].scatter(y, x, color='red', label='Landmark (x, y)')
+                axes[1].add_patch(plt.Rectangle((y-radius, x-radius), 2*radius, 2*radius, 
                                                 edgecolor='blue', facecolor='none', linewidth=2, label='Bounding Box'))
-                plt.title(f"Slice at Z={z}")
-                plt.legend()
+                axes[1].set_title(f"Target Probability Map")
+                axes[1].legend()
+                
+                plt.suptitle(f"Visualization at Z={z} with Radius={radius}")
+                plt.tight_layout()
                 # plt.close()
                 plt.show()
 

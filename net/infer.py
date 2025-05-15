@@ -84,7 +84,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save
         print("Scores: ", scores)
     # If eval=True, save outputs and generate visualizations
     if eval:
-        scores['aela'] = average_expected_local_accuracy(ep_outputs, ep_targets, ep_spacings, torch.linspace(0, 100, 40), save_dir=os.path.join(save_dir, f"aela.png"))
+        scores['aela'] = average_expected_local_accuracy(ep_outputs, ep_targets, ep_spacings, torch.linspace(0, 100, 200), save_dir=os.path.join(save_dir, f"aela.png"))
         # Load template header for saving NRRD files
         template_header = extract_image('templates/template.nrrd')[1]
 
