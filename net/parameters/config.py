@@ -39,6 +39,8 @@ parameters_default = {
     'iter_folds': None,
     'resume': False,
     'exp_dir': '',
+    'radii_eval': 40,
+    'radii_num': 100,
 }
 
 parameters_help = {
@@ -96,6 +98,8 @@ parameters_help = {
     'iter_folds': 'Cross-validation folds selected (optional).',
     'resume': 'Resume training from a checkpoint.',
     'exp_dir': 'Directory for saving experiment results.',
+    'radii_eval': 'Radius evaluation mode.',
+    'radii_num': 'Number of radii to evaluate.',
 }
 
 parameters_choices = {

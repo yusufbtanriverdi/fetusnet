@@ -115,6 +115,10 @@ def parameters_parsing() -> argparse.Namespace:
         subparser.add_argument('--idx', type=int, default=parameters_default['idx'], help=parameters_help['idx'])
         subparser.add_argument('--model_dir', type=str, default=parameters_default['model_dir'], help=parameters_help['model_dir'])
 
+        # Evaluation parameters
+        subparser.add_argument('--radii_eval', type=int , default=parameters_default['radii_eval'], help=parameters_help['radii_eval'])
+        subparser.add_argument('--radii_num', type=int, default=parameters_default['radii_num'], help=parameters_help['radii_num'])
+
     # Parse arguments
     parser = parser.parse_args()
 

@@ -211,7 +211,7 @@ if params.mode in ['test', 'eval']:
             # Final evaluation on test set
             val_loss, ep_scores, global_wandb_steps = infer_one_ep(
                 model, test_dl, criterion, params.device, 
-                wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory, use_wandb=params.use_wandb
+                wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory, use_wandb=params.use_wandb, radii_eval=params.radii_eval, radii_num=params.radii_num
             )
             # Append AELA scores
             print(ep_scores['aela'].shape)
@@ -222,5 +222,5 @@ if params.mode in ['test', 'eval']:
         pd.DataFrame(aela.numpy(), columns=['AELA']).to_csv(aela_csv_path, index=False)
         print(f"AELA scores saved to {aela_csv_path}")
         print(aela.shape)
-        plot_aela_figure(torch.linspace(0, 100, 40), aela.tolist(), save_dir=os.path.join(experiment_directory, f'aela_{lmk}.png'))
+        plot_aela_figure(torch.linspace(0, params.radii_eval, params.radii_num), aela.tolist(), save_dir=os.path.join(experiment_directory, f'aela_{lmk}.png'))
 

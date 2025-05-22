@@ -10,8 +10,8 @@ def plot_aela_figure(radii, edr, save_dir='average_expected_local_accuracy.png')
     upper_limit = [3 / 4 * r for r in radii]
     # Plotting the results
     plt.figure(figsize=(10, 6))
-    plt.plot(radii, edr, marker='o', label='Detector')
-    plt.plot(radii, upper_limit, marker='o', linestyle='--', color='blue', label='Upper Limit')
+    plt.plot(radii, edr, label='Detector')
+    plt.plot(radii, upper_limit,  linestyle='--', color='blue', label='Upper Limit')
     plt.legend(loc = 'best')
     plt.xlabel('Radius (mm)')   
     plt.ylabel('Average Expected Local Accuracy (AELA)')
@@ -72,35 +72,35 @@ def average_expected_local_accuracy(outputs, targets, spacings, radii, save_dir=
             # Visualize the output 3D volume on the z-axis
             
             ct += 1
-            if landmark_coord[0] == 64 and landmark_coord[1] == 75 and landmark_coord[2] == 44:
-                slice_z_output = output[:, :, z].cpu().numpy()
-                slice_z_target = target[:, :, z].cpu().numpy()
-                print(f"ROI Peak: {roi_peak}, Landmark Coord: {landmark_coord}, Radius: {radius}, Distance: {distance}")
+            # if landmark_coord[0] == 64 and landmark_coord[1] == 75 and landmark_coord[2] == 44:
+            #     slice_z_output = output[:, :, z].cpu().numpy()
+            #     slice_z_target = target[:, :, z].cpu().numpy()
+            #     print(f"ROI Peak: {roi_peak}, Landmark Coord: {landmark_coord}, Radius: {radius}, Distance: {distance}")
                 
-                fig, axes = plt.subplots(1, 2, figsize=(16, 8))
+            #     fig, axes = plt.subplots(1, 2, figsize=(16, 8))
                 
-                # Output probability map
-                axes[0].imshow(slice_z_output, cmap='gray')
-                axes[0].scatter(roi_peak[1], roi_peak[0], color='orange', label='Candidate (x, y)')
-                axes[0].scatter(y, x, color='red', label='Landmark (x, y)')
-                axes[0].add_patch(plt.Rectangle((y-radius, x-radius), 2*radius, 2*radius, 
-                                                edgecolor='blue', facecolor='none', linewidth=2, label='Bounding Box'))
-                axes[0].set_title(f"Output Probability Map")
-                axes[0].legend()
+            #     # Output probability map
+            #     axes[0].imshow(slice_z_output, cmap='gray')
+            #     axes[0].scatter(roi_peak[1], roi_peak[0], color='orange', label='Candidate (x, y)')
+            #     axes[0].scatter(y, x, color='red', label='Landmark (x, y)')
+            #     axes[0].add_patch(plt.Rectangle((y-radius, x-radius), 2*radius, 2*radius, 
+            #                                     edgecolor='blue', facecolor='none', linewidth=2, label='Bounding Box'))
+            #     axes[0].set_title(f"Output Probability Map")
+            #     axes[0].legend()
                 
-                # Target probability map
-                axes[1].imshow(slice_z_target, cmap='gray')
-                axes[1].scatter(roi_peak[1], roi_peak[0], color='orange', label='Candidate (x, y)')
-                axes[1].scatter(y, x, color='red', label='Landmark (x, y)')
-                axes[1].add_patch(plt.Rectangle((y-radius, x-radius), 2*radius, 2*radius, 
-                                                edgecolor='blue', facecolor='none', linewidth=2, label='Bounding Box'))
-                axes[1].set_title(f"Target Probability Map")
-                axes[1].legend()
+            #     # Target probability map
+            #     axes[1].imshow(slice_z_target, cmap='gray')
+            #     axes[1].scatter(roi_peak[1], roi_peak[0], color='orange', label='Candidate (x, y)')
+            #     axes[1].scatter(y, x, color='red', label='Landmark (x, y)')
+            #     axes[1].add_patch(plt.Rectangle((y-radius, x-radius), 2*radius, 2*radius, 
+            #                                     edgecolor='blue', facecolor='none', linewidth=2, label='Bounding Box'))
+            #     axes[1].set_title(f"Target Probability Map")
+            #     axes[1].legend()
                 
-                plt.suptitle(f"Visualization at Z={z} with Radius={radius}")
-                plt.tight_layout()
-                # plt.close()
-                plt.show()
+            #     plt.suptitle(f"Visualization at Z={z} with Radius={radius}")
+            #     plt.tight_layout()
+            #     # plt.close()
+            #     plt.show()
 
     edr = distances.mean(dim=0)
     # Plotting the results

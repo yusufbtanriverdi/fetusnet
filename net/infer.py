@@ -10,7 +10,7 @@ from net.dataset.MyDataset import extract_image
 from net.visual.detection.planes import overlay_heatmaps
 from net.plot.average_expected_local_accuracy import average_expected_local_accuracy
 
-def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save_dir=None, use_wandb=False):
+def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save_dir=None, use_wandb=False, radii_eval=40, radii_num=100):
     """
     Perform inference for one epoch.
 
@@ -84,7 +84,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save
         print("Scores: ", scores)
     # If eval=True, save outputs and generate visualizations
     if eval:
-        scores['aela'] = average_expected_local_accuracy(ep_outputs, ep_targets, ep_spacings, torch.linspace(0, 100, 200), save_dir=os.path.join(save_dir, f"aela.png"))
+        scores['aela'] = average_expected_local_accuracy(ep_outputs, ep_targets, ep_spacings, torch.linspace(0, radii_eval, radii_num), save_dir=os.path.join(save_dir, f"aela.png"))
         # Load template header for saving NRRD files
         template_header = extract_image('templates/template.nrrd')[1]
 
