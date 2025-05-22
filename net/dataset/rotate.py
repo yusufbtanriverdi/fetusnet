@@ -18,8 +18,8 @@ def main(dataframe, params):
         None. Saves processed images and landmarks in specified `out_dir`.
     """
 
-    image_folder = params.root + 'volumes'
-    landm_folder = params.root + 'landmarks'
+    image_folder = params.save_dir + 'volumes'
+    landm_folder = params.save_dir + 'landmarks'
     os.makedirs(image_folder, exist_ok=True)
     os.makedirs(landm_folder, exist_ok=True)
     os.makedirs(landm_folder + '/csv', exist_ok=True)
@@ -28,12 +28,13 @@ def main(dataframe, params):
     filenames = list(dataframe['path_to_nrrd'].values)
 
     # Load ground truth data for standard planes
-    dicto = json.loads(get_file_list('datasets/gt.txt')[0])
+    dicto = json.loads(get_file_list('doc/info//gt.txt')[0])
 
+    ct =0
     for i, filename in tqdm(enumerate(filenames), total=len(filenames)):
         
         # Prepare file paths and identifiers
-        image_path = filename
+        image_path = os.path.join(params.root, filename)
         name = dataframe.loc[i, 'full_id']
         week, pid = dataframe.loc[i, 'week'], dataframe.loc[i, 'pid']
 
@@ -46,19 +47,37 @@ def main(dataframe, params):
         V, header = extract_image(image_path)
         V = np.array(V)
 
-        # save_3d_image(V, header, V.shape, image_folder, name, prefix='init')
         
         if dataframe.loc[i, 'landmark_antonia_found']:
-            lmk_path = dataframe.loc[i, 'path_to_csv_antonia']
-            lmk = pd.read_csv(lmk_path)
-            print(f"Loaded {len(lmk)} landmarks from {lmk_path}")
+            try: 
+                lmk_path = dataframe.loc[i, 'path_to_csv_antonia']
+                lmk = pd.read_csv(os.path.join(params.root, lmk_path))
+                # print(f"Loaded {len(lmk)} landmarks from {lmk_path}")
+            except:
+                print(f"Could not load landmarks from {lmk_path}. Will work on the other version...")
+                if 'modified' in lmk_path:
+                    # Try to load the modified version
+                    lmk_path = lmk_path.replace('_modified', '')
+                    print(f"Trying to load landmarks from {lmk_path}...")
+                    try:
+                        lmk = pd.read_csv(os.path.join(params.root, lmk_path))
+                        print(f"Loaded {len(lmk)} landmarks from {lmk_path}")
+                    except:
+                        print(f"Could not load landmarks from {lmk_path}...")
+                        continue
+                else:
+                    continue
         else:
-            print(f"Could not found landmarks. skipping...")
+            print(f"Could not found landmarks from Antonia. skipping...")
             continue
+    
+        ct += 1
+        print(ct)
         # Prepare landmark matrix and pixel dimensions
         L_in_mm = get_matrix_of_lmks(lmk)
 
-        # save_transformed_landmarks(L_in_mm, lmk, output_path, name, prefix='init')
+        # save_3d_image(V, header, V.shape, image_folder, name, prefix='init')
+        # save_transformed_landmarks(L_in_mm, lmk, landm_folder, name, prefix='init')
         
         # Determine pixel dimensions
         try:
@@ -71,13 +90,14 @@ def main(dataframe, params):
         img_size = np.array(V.shape)
 
         # --------- #
-        # LP FILTER #
+        # STEP 1. LP FILTER #
         # --------- #
         V = filter_3d_image(V) # type: ignore
-        save_3d_image(V, header, V.shape, image_folder, name, prefix='f')
+        # save_3d_image(V, header, V.shape, image_folder, name, prefix='f')
+        # save_transformed_landmarks(L_in_mm, lmk, landm_folder, name, prefix='f')
 
         # ----------  #
-        # INTERPOLATE #
+        # STEP 2. INTERPOLATE #
         # ----------  #
 
         image = sitk.GetImageFromArray(V)
@@ -85,7 +105,8 @@ def main(dataframe, params):
 
         new_spacing = params.desired_spacings
         original_size = image.GetSize()
-        new_size = [int(round(os * ospc / nspc)) for os, ospc, nspc in zip(original_size, p, new_spacing)]
+        # new_size = [int(round(os * ospc / nspc)) for os, ospc, nspc in zip(original_size, p, new_spacing)]
+        new_size = params.desired_size
 
         resampler = sitk.ResampleImageFilter()
         resampler.SetOutputSpacing(new_spacing)
@@ -98,29 +119,32 @@ def main(dataframe, params):
         V = sitk.GetArrayFromImage(resampled_image)
 
         header['spacings'] = params.desired_spacings
-        save_3d_image(V, header, np.array(V.shape), image_folder, name, prefix=F'inp_f{filter}')
-        save_transformed_landmarks(L_in_mm, lmk, landm_folder, name, prefix='mm')
-        p = params.desired_spacings
         
+        # save_3d_image(V, header, np.array(V.shape), image_folder, name, prefix=F'inp')
+        # save_transformed_landmarks(L_in_mm, lmk, landm_folder, name, prefix='inp')
+        
+        p = params.desired_spacings
         img_size = np.array(V.shape)
 
         # ----------  #
-        # DOWNSAMPLE #
+        # STEP 3. DOWNSAMPLE #
         # ----------  #
         
-        if params.drate:
-            downsample_rates = np.array([
-                                        params.drate, 
-                                        params.drate, 
-                                        params.drate]
-                                        )
-        else:
-            downsample_rates = np.ceil(img_size / params.desired_size).astype(int)
+        # if params.drate:
+        #     downsample_rates = np.array([
+        #                                 params.drate, 
+        #                                 params.drate, 
+        #                                 params.drate]
+        #                                 )
+        # else:
+        #     downsample_rates = np.ceil(img_size / params.desired_size).astype(int)
 
-        p *= downsample_rates
-        V = V[::downsample_rates[0], ::downsample_rates[1], ::downsample_rates[2]]
-        header['spacings'] = p
-        # save_3d_image(V, header, np.array(V.shape), image_folder, name, prefix=F'ds_f{filter}')
+        # p *= downsample_rates
+        # V = V[::downsample_rates[0], ::downsample_rates[1], ::downsample_rates[2]]
+        # header['spacings'] = p
+        
+        # save_3d_image(V, header, np.array(V.shape), image_folder, name, prefix=F'ds{downsample_rates}')
+        # save_transformed_landmarks(L_in_mm, lmk, landm_folder, name, prefix=F'ds{downsample_rates}')
 
         # Retrieve plane data from dictionary
         plane = dicto.get(name)
@@ -132,27 +156,27 @@ def main(dataframe, params):
         
         V = np.transpose(V, (2, 1, 0))
         L_in_pix = swap_xz_coordinates(L_in_pix)
-        
+        # ------- #
         # Assumption 3: Centers are in RAS.
         center_gt_in_pix = np.array([-1*plane["center"][0], -1*plane["center"][1], plane["center"][2]]) / p
 
         # ------- #
-        # PADDING #
+        # STEP 4. PADDING #
         # ------- #
         
-        for dim in V.shape:
-            if dim > params.desired_size[0]:                 # assuming iso
-                # TODO: what should I do?
-                print(f"dim exceeded: ", V.shape)
-                pass
-        V, L_in_pix, center_gt_in_pix = pad_3d_image(V, L_in_pix, center_gt_in_pix, params.desired_size)
-        L_in_pix = L_in_pix.astype(np.float32)
-        center_gt_in_pix = center_gt_in_pix.astype(np.float32)
-        # save_3d_image(V, header, params.desired_size, image_folder, name, prefix='pd')
-        # save_transformed_landmarks(L_in_pix * p, lmk, landm_folder, name, prefix='pdmm')
+        # for dim in V.shape:
+        #     if dim > params.desired_size[0]:                 # assuming iso
+        #         # TODO: what should I do?
+        #         print(f"dim exceeded: ", V.shape)
+        #         pass
+        # V, L_in_pix, center_gt_in_pix = pad_3d_image(V, L_in_pix, center_gt_in_pix, params.desired_size)
+        # L_in_pix = L_in_pix.astype(np.float32)
+        # center_gt_in_pix = center_gt_in_pix.astype(np.float32)
+        # save_3d_image(V, header, params.desired_size, image_folder, name, prefix='pad')
+        # save_transformed_landmarks(L_in_pix * p, lmk, landm_folder, name, prefix='pad')
 
         # ------ -------------- #
-        # AFFINE TRANSFORMATION #
+        # STEP 5. AFFINE TRANSFORMATION #
         # ------ -------------- #
 
         # Update image size
@@ -169,7 +193,6 @@ def main(dataframe, params):
         Vhat = grid_transform_3d(V.astype(np.float32), transform_matrix.astype(np.float32))
         Vhat = np.transpose(Vhat, (2, 1, 0))
 
-        save_3d_image(Vhat, header, img_size, image_folder, name, prefix=f'')
 
         L_in_pix = swap_xz_coordinates(L_in_pix)
         L_in_pix_norm = (L_in_pix - img_size/ 2.0) * ( 2.0 / img_size).astype(np.float32)
@@ -177,5 +200,37 @@ def main(dataframe, params):
         Lhat_in_pix_norm = affine_transform(L_in_pix_norm, np.linalg.inv(rotation_3x3), inv_translation_vector)
         Lhat_in_pix = (Lhat_in_pix_norm / (2.0 / img_size).astype(np.float32)) + img_size / 2.0
 
+        save_3d_image(Vhat, header, img_size, image_folder, name, prefix='')
         save_transformed_landmarks(Lhat_in_pix * p, lmk, landm_folder, name, prefix='')
 
+
+def test_main():
+    # Set default arguments
+    class Params:
+        root = "/media/yusuf/HDD 4TB/Casos Mar"
+        save_dir = "/tmp/test_data/good/"
+        desired_spacings = [1.0, 1.0, 1.0]
+        desired_size = [128, 128, 128]
+        drate = 2
+
+    # Create a temporary directory for testing
+    test_root = Params.root
+    os.makedirs(test_root, exist_ok=True)
+
+    # Mock parameters
+    params = Params()
+
+    dataframe = pd.read_csv("/media/yusuf/HDD 4TB/Rotated/Processed/sinfo.csv")
+    dataframe = dataframe[dataframe['landmark_antonia_found'] == True].reset_index(drop=True)
+    # dataframe = dataframe[:50]  # Limit to 10 rows for testing
+    print(len(dataframe))
+
+    # Run the main function
+    try:
+        main(dataframe, params)
+        print("Test passed: main function executed without errors.")
+    except Exception as e:
+        print(f"Test failed: {str(e)}")
+
+if __name__ == "__main__":
+    test_main()
