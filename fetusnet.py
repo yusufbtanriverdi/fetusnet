@@ -11,7 +11,6 @@ from net.dataset import generate_targets
 from net.dataset.utility.loaders import get_train_val_dl, get_test_dl
 from net.config.create_experiment_id import create_experiment_id
 from net.dataset.statistics import create_info_frames, split_patient_fold
-from net.dataset import rotate
 from net.parameters.parameters import parameters_parsing
 from net.train import train_one_ep
 from net.infer import infer_one_ep

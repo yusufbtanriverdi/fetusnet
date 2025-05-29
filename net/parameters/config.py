@@ -40,7 +40,7 @@ parameters_default = {
     'resume': False,
     'exp_dir': '',
     'radii_eval': 40,
-    'radii_num': 100,
+    'radii_num': 40,
 }
 
 parameters_help = {

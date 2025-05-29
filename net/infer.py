@@ -86,7 +86,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save
     if eval:
         scores['aela'] = average_expected_local_accuracy(ep_outputs, ep_targets, ep_spacings, torch.linspace(0, radii_eval, radii_num), save_dir=os.path.join(save_dir, f"aela.png"))
         # Load template header for saving NRRD files
-        template_header = extract_image('templates/template.nrrd')[1]
+        template_header = extract_image('templates/1.nrrd')[1]
 
         for ind, batch in tqdm(enumerate(loader), desc="Saving outputs", total=len(loader)):
             output = ep_outputs[ind]
@@ -113,7 +113,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, eval=False, save
                 print(f"Error during visualization: {e}")
                 print(f"Visualization is not implemented for this loss fn!")
                 raise e
-                                # Visualize the target distance matrix
+                # Visualize the target distance matrix
                 loss = criterion(outputs, targets, flag_visualize=False)
 
             # # Generate and save detection plane visualizations

@@ -106,11 +106,14 @@ def get_test_dl(params, num, lmk, transformations):
     )
 
     # Create DataLoader for the test dataset
+    # Create DataLoader for the test dataset
     test_dl = tio.SubjectsLoader(
         dataset=test_ds,
         batch_size=params.batch_size_test,  # Batch size for testing
         shuffle=False,                      # Do not shuffle test data
-        num_workers=params.num_workers      # Number of worker threads
+        num_workers=params.num_workers,      # Number of worker threads
+        # multiprocessing_context is not set here; add if needed, e.g., 
+        multiprocessing_context='spawn'
     )
 
     return test_dl
