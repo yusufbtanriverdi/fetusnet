@@ -32,7 +32,7 @@ class MyDataset(Dataset):
     Custom dataset class for handling 3D NIfTI images and their ground truth (GT) heatmaps.
     """
 
-    def __init__(self, dataframe, root, target_mode, target_params, lmk, transformations=None, return_dist_m = False):
+    def __init__(self, dataframe, root, target_mode, target_params, lmk, transformations=None):
         """
         Initializes the MyDataset class for loading and processing 3D medical imaging data.
 
@@ -65,8 +65,6 @@ class MyDataset(Dataset):
             raise TypeError("lmk must be a string.")
         if transformations is not None and not callable(transformations):
             raise TypeError("transformations must be callable or None.")
-        if not isinstance(return_dist_m, bool):
-            raise TypeError("return_dist_m must be a boolean.")
         
         self.dataframe = dataframe
         self.root = root
@@ -74,7 +72,6 @@ class MyDataset(Dataset):
         self.alpha, self.eps = target_params
         self.lmk = lmk
         self.transformations = transformations
-        self.return_dist_m = return_dist_m
 
     def __len__(self): 
         """Returns the number of 3D volumes in the dataset."""
@@ -117,6 +114,7 @@ class MyDataset(Dataset):
         coord = landmark_row[['x', 'y', 'z']].iloc[0].tolist()
         coord = coord / header['spacings'][:3]  # Normalize by pixel spacings
         coord_tensor = torch.tensor(coord, dtype=torch.float32)
+        # Coords are in voxel coordinates, now. 
 
         # Generate the target output based on the specified mode (gaussian or distance)
         if self.target_mode == 'gaussian':
@@ -134,16 +132,6 @@ class MyDataset(Dataset):
         else:
             raise ValueError(f"Unsupported target mode: {self.target_mode}")
 
-        # Optionally generate the distance map if return_dist_m is True
-        if self.return_dist_m:
-            dist_m = torch.tensor(
-                distance_matrix.create_distance_matrix(
-                    coord_tensor, volume, alpha=self.alpha, eps=self.eps
-                )
-            ).unsqueeze(0)  # Add channel dimension
-        else:
-            dist_m = None
-
         # Ensure transformations are provided
         if self.transformations is None:
             raise ValueError("Transformations are required but not provided.")
@@ -152,7 +140,6 @@ class MyDataset(Dataset):
         subject = tio.Subject(
             image=self.transformations(tio.ScalarImage(tensor=image_tensor)),  # Apply transformations to the image
             target=tio.ScalarImage(tensor=target),  # Target heatmap or distance map
-            dist_m=tio.ScalarImage(tensor=dist_m) if dist_m is not None else None,  # Optional distance map
             name=self.dataframe.loc[idx, 'full_id'],  # Metadata: full ID of the subject
             pid=self.dataframe.loc[idx, 'pid'],  # Metadata: patient ID
             spacings=header['spacings'][:3],  # Pixel spacings

@@ -108,6 +108,9 @@ class ResUNet3D(nn.Module):
         # Output layer
         self.output_layer = Out(base_features, output_channels)
 
+    def __str__(self):
+        return f"ResUNet3D(input_channels={self.input_channels}, output_channels={self.output_channels}, base_features={self.base_features})"
+
     def forward(self, x):
         # Initial block with skip connection
         x_initial = self.initial_block(x) + self.initial_skip(x)

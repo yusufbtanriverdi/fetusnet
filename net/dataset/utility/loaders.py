@@ -35,7 +35,6 @@ def get_train_val_dl(lmk, num, params, transformations):
         (params.alpha, params.eps),                   # Additional parameters
         lmk,                                          # Landmark information
         transformations,                              # Preprocessing transformations
-        params.dist_matrix,                           # Distance matrix flag
 
     )
     val_ds = MyDataset(
@@ -45,7 +44,6 @@ def get_train_val_dl(lmk, num, params, transformations):
         (params.alpha, params.eps),                   # Additional parameters
         lmk,                                          # Landmark information
         transformations,                              # Preprocessing transformations
-        params.dist_matrix,                           # Distance matrix flag
     )
 
     # Create DataLoaders for training and validation datasets
@@ -101,7 +99,6 @@ def get_test_dl(params, num, lmk, transformations):
         (params.alpha, params.eps),                  # Additional parameters
         lmk,                                         # Landmark information
         transformations,                             # Preprocessing transformations
-        params.dist_matrix,                          # Distance matrix flag
 
     )
 
@@ -113,7 +110,6 @@ def get_test_dl(params, num, lmk, transformations):
         shuffle=False,                      # Do not shuffle test data
         num_workers=params.num_workers,      # Number of worker threads
         # multiprocessing_context is not set here; add if needed, e.g., 
-        multiprocessing_context='spawn'
     )
 
     return test_dl

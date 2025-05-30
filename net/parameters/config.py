@@ -11,7 +11,7 @@ parameters_default = {
     'target_idx': [0, 1, 2],
     'alpha': 3,
     'eps': 1e-6,
-    'run_name': 'experiment_1',
+    'prefix': 'experiment_1',
     'use_wandb': False,
     'device': 'cuda',
     'seed': 42,
@@ -39,8 +39,9 @@ parameters_default = {
     'iter_folds': None,
     'resume': False,
     'exp_dir': '',
-    'radii_eval': 40,
-    'radii_num': 40,
+    'radius_eval': 40,
+    'radius_num': 40,
+    'extract_via': 'argmax',
 }
 
 parameters_help = {
@@ -69,7 +70,7 @@ parameters_help = {
     'target_idx': 'Indices of target landmarks.',
     'alpha': 'Alpha parameter for Gaussian heatmaps.',
     'eps': 'Gaussian threshold for peak detection.',
-    'run_name': 'Name of the current experiment run.',
+    'prefix': 'Name of the current experiment run.',
     'use_wandb': 'Flag to enable logging with Weights & Biases.',
     'device': 'Device to run the model on (e.g., cuda, cpu).',
     'seed': 'Random seed for reproducibility.',
@@ -98,8 +99,9 @@ parameters_help = {
     'iter_folds': 'Cross-validation folds selected (optional).',
     'resume': 'Resume training from a checkpoint.',
     'exp_dir': 'Directory for saving experiment results.',
-    'radii_eval': 'Radius evaluation mode.',
-    'radii_num': 'Number of radii to evaluate.',
+    'radius_eval': 'Radius evaluation mode.',
+    'radius_num': 'Number of radii to evaluate.',
+    'extract_via': 'Method to extract peak location from heatmaps.',
 }
 
 parameters_choices = {
