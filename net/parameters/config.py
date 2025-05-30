@@ -30,9 +30,6 @@ parameters_default = {
     'reduction': 'mean',
     'loss': ['mse'],
     'criticise': 'default',
-    'type_draw': 'heatmap',
-    'num_images': 10,
-    'idx': 0,
     'wandbpro': 'heatmap3d',
     'model_dir': '',
     'num_fts': 64,
@@ -89,9 +86,6 @@ parameters_help = {
     'reduction': 'Reduction method for loss computation.',
     'loss': 'Loss function to use. Accepts a list of loss functions.',
     'criticise': 'Evaluation mode.',
-    'type_draw': 'Type of visualization output.',
-    'num_images': 'Number of images to visualize.',
-    'idx': 'Index of the sample to visualize.',
     'mode': 'Script mode',
     'wandbpro': 'Project name to log in wandb.',
     'model_dir': 'Model directory for test.',
@@ -108,7 +102,6 @@ parameters_choices = {
     'execution': ['train', 'test', 'script_generate_targets'],
     'optimizer': ['adam', 'sgd'],
     'reduction': ['mean', 'sum', 'none'],
-    'type_draw': ['heatmap', 'overlay'],
     'generate': ['gaussian', 'distance'],
 }
 

@@ -110,9 +110,6 @@ def parameters_parsing() -> argparse.Namespace:
         subparser.add_argument('--loss', '-l', nargs='+', type=str, default=parameters_default['loss'], help=parameters_help['loss'])
 
         # Output parameters
-        subparser.add_argument('--type_draw', type=str, choices=parameters_choices['type_draw'], default=parameters_default['type_draw'], help=parameters_help['type_draw'])
-        subparser.add_argument('--num_images', type=int, default=parameters_default['num_images'], help=parameters_help['num_images'])
-        subparser.add_argument('--idx', type=int, default=parameters_default['idx'], help=parameters_help['idx'])
         subparser.add_argument('--model_dir', type=str, default=parameters_default['model_dir'], help=parameters_help['model_dir'])
 
         # Evaluation parameters

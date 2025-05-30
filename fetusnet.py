@@ -36,6 +36,7 @@ import torchio as tio
 import warnings
 import wandb
 import torch
+import numpy as np
 
 # Import project modules
 from net.config.wandb import initialize_wandb
@@ -45,16 +46,17 @@ from net.config.create_experiment_id import create_experiment_id
 from net.dataset.statistics import create_info_frames, split_patient_fold
 from net.parameters.parameters import parameters_parsing
 from net.train import train_one_ep
-from net.infer import infer_one_ep, infer_one_ep_v2
+from net.infer import infer_one_ep
 from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.model.utility.get_fresh_model import get_fresh_model
 from net.plot.average_expected_local_accuracy import plot_aela_figure
 
 def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_directory, global_wandb_steps):
+
     print(f"\n--- Training Fold {fold + 1}/{params.n_split} ---")
 
     if params.use_wandb:
-        initialize_wandb(params, experiment_directory, lmk, fold)
+        initialize_wandb(params, fold)
         
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
@@ -65,12 +67,11 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
     else:
         in_epoch = 0
         best_criteria = float('inf')
+    
     print(params)
     # Load training and validation data
     train_dl, val_dl = get_train_val_dl(lmk, fold, params, transformations=transformations)
-    ep_train_losses = []
-    ep_val_losses = []
-    ep_dmean_scores = []
+
     # Epoch training loop
     for epoch in range(in_epoch, params.epochs):
         print(f"\n[Epoch {epoch + 1}/{params.epochs}]")
@@ -81,20 +82,16 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
             wandb_steps=global_wandb_steps,
             use_wandb=params.use_wandb
         )
-        ep_train_losses.append(train_loss)
         # Validate for one epoch
-        val_loss, ep_scores, global_wandb_steps = infer_one_ep(
-            model, val_dl, criterion, params.device, 
-            wandb_steps=global_wandb_steps,
-            use_wandb=params.use_wandb
-        )
-        ep_val_losses.append(val_loss)
-        ep_dmean_scores.append(ep_scores['dmean'].item())
+        val_loss, ep_scores, _, global_wandb_steps = infer_one_ep(
+            model, val_dl, criterion, params.device, global_wandb_steps, use_wandb=params.use_wandb, extract_via=params.extract_via)
 
         if params.use_wandb:
             # Log metrics to WandB
             wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': global_wandb_steps['epoch']})
             wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': global_wandb_steps['epoch']})
+            wandb.log({'epoc/dmean': ep_scores['dmean'].mean(), 'epoc/epoch': global_wandb_steps['epoch']})
+            global_wandb_steps['epoch'] += 1
 
         # Save best model
         if val_loss < best_criteria:
@@ -106,35 +103,44 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
         save_checkpoint(model, optimizer, epoch, val_loss, 
                         os.path.join(experiment_directory, f'last.pt'))
 
-        print("Last Ep d-mean Score: ", ep_scores['dmean'].item())
 
-    # Save training and validation losses to CSV   
-    losses_df = pd.DataFrame({
-        'epoch': range(in_epoch, params.epochs),
-        'train_loss': ep_train_losses,
-        'val_loss': ep_val_losses,
-        'dmean_score': ep_dmean_scores
-    })
-
-    losses_csv_path = os.path.join(experiment_directory, f'losses.csv')
-    losses_df.to_csv(losses_csv_path, index=False)  
-    print(f"Losses saved to {losses_csv_path}")
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
     # Load the best model checkpoint
-    model_dir = f'{experiment_directory}/best.pt'
+    model_dir = f'runs/{params.model_dir}/best_fold{fold}.pt'
     model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
-    print(f"Best validation loss: {best_val_loss}") 
+    print(f"Best validation loss was {best_val_loss}") 
+    # Load test data
+    test_dl = get_test_dl(params, fold, lmk, transformations=transformations)
+    # Final evaluation on test set
+    test_loss, ep_scores, ep_scores_curve, global_wandb_steps = infer_one_ep(
+        model, test_dl, criterion, params.device, global_wandb_steps, 
+        use_wandb=False, 
+        extract_via=params.extract_via, 
+        eval=True, 
+        save_dir=fold_experiment_dir,
+        radius_eval=params.radius_eval, 
+        radius_num=params.radius_num,  
+        lmk=lmk,
+        )
+    
+    print("Test d-mean Score: ", ep_scores['dmean'].mean(), " +/-", ep_scores['dmean'].std())
+    with open(log_file, "a") as log:
+        log.write(f"Test d-mean Score:  {ep_scores['dmean'].mean()} +/- {ep_scores['dmean'].std()} \n")
 
-    # Final evaluation on validation set
-    val_loss, ep_scores, global_wandb_steps = infer_one_ep(
-        model, val_dl, criterion, params.device, 
-        wandb_steps=global_wandb_steps, eval=True, save_dir=experiment_directory
+    ep_scores.to_csv(os.path.join(fold_experiment_dir, f'scores.csv'), index=False)
+    plot_aela_figure(
+            torch.linspace(0, params.radius_eval, params.radius_num), ep_scores_curve.tolist(), 
+            save_dir=os.path.join(fold_experiment_dir, f'curve.png')
     )
-    print("Best Ep d-mean Score: ", ep_scores['dmean'].item())
+    # Save the ep_scores_curve as CSV, including lmk info in the filename
+    curve_csv_path = os.path.join(fold_experiment_dir, f'curve_{lmk}_{fold}.csv') 
+    np.savetxt(curve_csv_path, np.array(ep_scores_curve.tolist()), delimiter=",")
+
     if params.use_wandb:
         # Finish WandB logging
         wandb.finish()
+
 
     return global_wandb_steps, best_val_loss
 
@@ -255,14 +261,19 @@ if params.mode in ['test', 'eval']:
             # Load the best model checkpoint
             model_dir = f'runs/{params.model_dir}/best_fold{fold}.pt'
             model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
-            print(f"Best validation loss: {best_val_loss}") 
+            print(f"Best validation loss was {best_val_loss}") 
             # Load test data
             test_dl = get_test_dl(params, fold, lmk, transformations=transformations)
             # Final evaluation on test set
-            val_loss, ep_scores, ep_scores_curve, global_wandb_steps = infer_one_ep_v2(
-                model, test_dl, criterion, params.device, global_wandb_steps, eval=True, save_dir=fold_experiment_dir, use_wandb=False, 
-                radius_eval=params.radius_eval, radius_num=params.radius_num, 
-                extract_via=params.extract_via, lmk=lmk,
+            test_loss, ep_scores, ep_scores_curve, global_wandb_steps = infer_one_ep(
+                model, test_dl, criterion, params.device, global_wandb_steps, 
+                use_wandb=False, 
+                extract_via=params.extract_via, 
+                eval=True, 
+                save_dir=fold_experiment_dir,
+                radius_eval=params.radius_eval, 
+                radius_num=params.radius_num,  
+                lmk=lmk,
                 )
             
             print("Test d-mean Score: ", ep_scores['dmean'].mean(), " +/-", ep_scores['dmean'].std())
@@ -274,6 +285,8 @@ if params.mode in ['test', 'eval']:
                     torch.linspace(0, params.radius_eval, params.radius_num), ep_scores_curve.tolist(), 
                     save_dir=os.path.join(fold_experiment_dir, f'curve.png')
             )
-
+            # Save the ep_scores_curve as CSV, including lmk info in the filename
+            curve_csv_path = os.path.join(fold_experiment_dir, f'curve_{lmk}_{fold}.csv') 
+            np.savetxt(curve_csv_path, np.array(ep_scores_curve.tolist()), delimiter=",")
 
 # python fetusnet.py test --lmks enR --num_fts 32 --loss emd --optim adam --lr 0.0001 --iter_folds 1 --model_dir archive/emd4enr_rn --prefix deneme 

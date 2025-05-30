@@ -19,7 +19,7 @@ gb_row = {
 }
 
 # Mapping of landmark names to their IDs
-landmark_to_id_table = {'unknown': 0, 'enR': 1}  # Example mapping, can be extended+
+landmark_to_id_table = {'unknown': 0, 'enR': 1, 'prn': 7, 'enL': 2}  # Example mapping, can be extended+
 
 
 def create_df(coords, selected_lmk, spacing=1.0):
