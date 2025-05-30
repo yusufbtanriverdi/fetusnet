@@ -265,8 +265,15 @@ if params.mode in ['test', 'eval']:
                 extract_via=params.extract_via, lmk=lmk,
                 )
             
-            print("Test d-mean Score: ", ep_scores['dmean'].mean())
+            print("Test d-mean Score: ", ep_scores['dmean'].mean(), " +/-", ep_scores['dmean'].std())
+            with open(log_file, "a") as log:
+                log.write(f"Test d-mean Score:  {ep_scores['dmean'].mean()} +/- {ep_scores['dmean'].std()} \n")
+
+            ep_scores.to_csv(os.path.join(fold_experiment_dir, f'scores.csv'), index=False)
             plot_aela_figure(
                     torch.linspace(0, params.radius_eval, params.radius_num), ep_scores_curve.tolist(), 
                     save_dir=os.path.join(fold_experiment_dir, f'curve.png')
             )
+
+
+# python fetusnet.py test --lmks enR --num_fts 32 --loss emd --optim adam --lr 0.0001 --iter_folds 1 --model_dir archive/emd4enr_rn --prefix deneme 

@@ -192,6 +192,8 @@ def infer_one_ep_v2(model, loader, criterion, device, wandb_steps, eval=False, s
                                                  spacing)
 
             scores = {**scores_v1, **scores_v2}
+            name = batch['name'][0]  # Extract the name of the current sample
+            scores['fname'] = name  # Add the name to the scores dictionary
             ep_scores.append(scores)
 
             scores_v3_distances = average_expected_local_accuracy(output_heatmap, target_coord_tensor, spacing=spacing, 
@@ -201,12 +203,12 @@ def infer_one_ep_v2(model, loader, criterion, device, wandb_steps, eval=False, s
             
             # print(scores_v3_distances)
             ep_scores_curve.append(scores_v3_distances)
+            
 
             if eval:
                 # print(f"Scores for batch {ind}: {scores}")
                 # Save outputs and generate visualizations
                 template_header = extract_image('templates/1.nrrd')[1]
-                name = batch['name'][0]  # Extract the name of the current sample
                 # Create a subdirectory within save_dir for saving outputs
                 output_dir = os.path.join(save_dir, "predictions")
                 os.makedirs(output_dir, exist_ok=True)
@@ -249,6 +251,4 @@ def infer_one_ep_v2(model, loader, criterion, device, wandb_steps, eval=False, s
     # Stack the list of tensors before taking the mean to avoid ValueError
     ep_scores_curve = torch.stack(ep_scores_curve, dim=0).mean(dim=0)
     ep_scores = pd.DataFrame.from_records(ep_scores)
-
-    print(ep_scores)
     return avg_loss, ep_scores, ep_scores_curve, wandb_steps
