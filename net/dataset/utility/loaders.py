@@ -113,7 +113,6 @@ def get_test_dl(params, num, lmk, transformations):
         shuffle=False,                      # Do not shuffle test data
         num_workers=params.num_workers,      # Number of worker threads
         # multiprocessing_context is not set here; add if needed, e.g., 
-        multiprocessing_context='spawn'
     )
 
     return test_dl
