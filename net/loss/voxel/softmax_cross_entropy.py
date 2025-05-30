@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from net.loss.utils import plot_histograms_and_stats
+from net.plot.histogram_flattened import plot_histograms_and_stats
       
 class SoftmaxCrossEntropyLoss(nn.Module):
     def __init__(self, reduction: str = 'mean', eps: float = 1e-20):

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from net.loss.utils import plot_histograms_and_stats, imshow_target_distance_matrices_to_gif
+from net.loss.utils import imshow_target_distance_matrices_to_gif
+from net.plot.histogram_flattened import plot_histograms_and_stats
 
 class DistanceMatrixLoss(nn.Module):
     """

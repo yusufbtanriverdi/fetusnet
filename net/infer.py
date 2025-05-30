@@ -11,7 +11,7 @@ from net.dataset.MyDataset import extract_image
 from net.plot.average_expected_local_accuracy import average_expected_local_accuracy
 from net.postprocess.utility.save_fscv_csv import save_fscv_csv
 from net.postprocess.utility.where_is_landmark import get_peak_location
-
+from net.plot.histogram_flattened import plot_histograms_and_stats
 
 def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False, extract_via='argmax', eval=False, save_dir=None, radius_eval=40, radius_num=100, lmk='unknown'):
     """
@@ -141,6 +141,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                     spacing=spacing
                 )
 
+                plot_histograms_and_stats(output_heatmap, target_heatmap, save_path = None)
 
     # Return the average loss, computed metrics, and updated wandb_steps
     avg_loss = running_loss / len(loader)        

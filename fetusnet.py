@@ -107,7 +107,7 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
     # Load the best model checkpoint
-    model_dir = f'runs/{params.model_dir}/best_fold{fold}.pt'
+    model_dir = f'{experiment_directory}/best.pt'
     model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
     print(f"Best validation loss was {best_val_loss}") 
     # Load test data
@@ -118,7 +118,7 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
         use_wandb=False, 
         extract_via=params.extract_via, 
         eval=True, 
-        save_dir=fold_experiment_dir,
+        save_dir=experiment_directory,
         radius_eval=params.radius_eval, 
         radius_num=params.radius_num,  
         lmk=lmk,
