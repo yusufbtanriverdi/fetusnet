@@ -141,7 +141,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                     spacing=spacing
                 )
 
-                plot_histograms_and_stats(output_heatmap, target_heatmap, save_path = None)
+                plot_histograms_and_stats(output_heatmap, target_heatmap, save_path = os.path.join(output_dir, f"{name}.png"))
 
     # Return the average loss, computed metrics, and updated wandb_steps
     avg_loss = running_loss / len(loader)        

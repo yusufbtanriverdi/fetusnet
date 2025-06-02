@@ -34,7 +34,7 @@ def plot_histograms_and_stats(outputs: torch.Tensor, targets: torch.Tensor, save
     plt.legend()
 
     plt.tight_layout()
-    plt.show()
+    # plt.show()
 
     if save_path:
         plt.savefig(save_path + 'histograms_outputs_targets.png' )
