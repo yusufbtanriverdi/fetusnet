@@ -8,5 +8,6 @@ def initialize_wandb(params, fold=0):
             # track hyperparameters and run metadata
             config=params,
             # name for run
-            name=f'{params.prefix}_{params.lmks[0]}_fold{fold}',)
+            name=f"{params.prefix}_{'_'.join(params.lmks)}_fold{fold}",
+)
     

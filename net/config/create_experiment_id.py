@@ -25,7 +25,8 @@ def create_experiment_id(params, create_directory=True):
 
     # Generate a directory name for the current day and a unique experiment ID using the run name
     date_str = current_time.strftime("%Y-%m-%d")
-    experiment_id = f"{date_str}/{params.prefix}_{params.lmks[0]}"
+    lmks_str = "_".join(str(lmk) for lmk in params.lmks)
+    experiment_id = f"{date_str}/{params.prefix}_{lmks_str}"
 
     # Initialize the experiment directory variable
     experiment_directory = None

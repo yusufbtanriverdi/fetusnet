@@ -32,7 +32,7 @@ class MyDataset(Dataset):
     Custom dataset class for handling 3D NIfTI images and their ground truth (GT) heatmaps.
     """
 
-    def __init__(self, dataframe, root, target_mode, target_params, lmk, transformations=None):
+    def __init__(self, dataframe, root, target_mode, target_params, lmks, transformations=None):
         """
         Initializes the MyDataset class for loading and processing 3D medical imaging data.
 
@@ -61,8 +61,8 @@ class MyDataset(Dataset):
             raise ValueError("target_mode must be either 'gaussian' or 'distance'.")
         if not isinstance(target_params, tuple) or len(target_params) != 2:
             raise ValueError("target_params must be a tuple of length 2 (alpha, eps).")
-        if not isinstance(lmk, str):
-            raise TypeError("lmk must be a string.")
+        if not isinstance(lmks, list) or not all(isinstance(lmk, str) for lmk in lmks):
+            raise TypeError("lmk must be a list of strings.")
         if transformations is not None and not callable(transformations):
             raise TypeError("transformations must be callable or None.")
         
@@ -70,7 +70,7 @@ class MyDataset(Dataset):
         self.root = root
         self.target_mode = target_mode
         self.alpha, self.eps = target_params
-        self.lmk = lmk
+        self.lmks = lmks
         self.transformations = transformations
 
     def __len__(self): 
@@ -105,32 +105,42 @@ class MyDataset(Dataset):
         landmark_path = os.path.join(self.root, self.dataframe.loc[idx, 'processed__csv_path'])
         landmark_df = pd.read_csv(landmark_path)
 
+        target = torch.zeros((len(self.lmks), *volume.shape), dtype=torch.float32)  # Initialize target tensor
+        coord_tensor = torch.zeros((len(self.lmks), 3), dtype=torch.float32)  # Initialize coordinates tensor
         # Extract the coordinates for the specified landmark
-        landmark_row = landmark_df[landmark_df['label'] == self.lmk]
-        if landmark_row.empty:
-            raise ValueError(f"Landmark '{self.lmk}' not found in {landmark_path}")
+        for i, lmk in enumerate(self.lmks):
+            if lmk not in landmark_df['label'].values:
+                raise ValueError(f"Landmark '{lmk}' not found in {landmark_path}")
 
-        # Convert landmark coordinates to a tensor and adjust for pixel spacing
-        coord = landmark_row[['x', 'y', 'z']].iloc[0].tolist()
-        coord = coord / header['spacings'][:3]  # Normalize by pixel spacings
-        coord_tensor = torch.tensor(coord, dtype=torch.float32)
-        # Coords are in voxel coordinates, now. 
+            landmark_row = landmark_df[landmark_df['label'] == lmk]
+            if landmark_row.empty:
+                raise ValueError(f"Landmark '{lmk}' not found in {landmark_path}")
 
-        # Generate the target output based on the specified mode (gaussian or distance)
-        if self.target_mode == 'gaussian':
-            target = torch.tensor(
-                gaussian_heatmap.create_gaussian_heatmap(
-                    coord_tensor, volume, alpha=self.alpha, eps=self.eps
-                )
-            ).unsqueeze(0)  # Add channel dimension
-        elif self.target_mode == 'distance':
-            target = torch.tensor(
-                distance_matrix.create_distance_matrix(
-                    coord_tensor, volume, alpha=self.alpha, eps=self.eps
-                )
-            ).unsqueeze(0)  # Add channel dimension
-        else:
-            raise ValueError(f"Unsupported target mode: {self.target_mode}")
+            # Convert landmark coordinates to a tensor and adjust for pixel spacing
+            coord = landmark_row[['x', 'y', 'z']].iloc[0].tolist()
+            coord = coord / header['spacings'][:3]  # Normalize by pixel spacings
+            coord = torch.tensor(coord, dtype=torch.float32)
+            coord_tensor[i] = coord  # Store the coordinates in the tensor
+            # Coords are in voxel coordinates, now. 
+
+            # Generate the target output based on the specified mode (gaussian or distance)
+            if self.target_mode == 'gaussian':
+                target_ = torch.tensor(
+                    gaussian_heatmap.create_gaussian_heatmap(
+                        coord, volume, alpha=self.alpha, eps=self.eps
+                    )
+                ).unsqueeze(0)  # Add channel dimension
+            elif self.target_mode == 'distance':
+                target_ = torch.tensor(
+                    distance_matrix.create_distance_matrix(
+                        coord, volume, alpha=self.alpha, eps=self.eps
+                    )
+                ).unsqueeze(0)  # Add channel dimension
+            else:
+                raise ValueError(f"Unsupported target mode: {self.target_mode}")
+
+            target[i] = target_  # Assign the generated target to the corresponding landmark index
+
 
         # Ensure transformations are provided
         if self.transformations is None:
@@ -143,9 +153,8 @@ class MyDataset(Dataset):
             name=self.dataframe.loc[idx, 'full_id'],  # Metadata: full ID of the subject
             pid=self.dataframe.loc[idx, 'pid'],  # Metadata: patient ID
             spacings=header['spacings'][:3],  # Pixel spacings
-            coord_x=coord_tensor[0],  # X-coordinate of the landmark
-            coord_y=coord_tensor[1],  # Y-coordinate of the landmark
-            coord_z=coord_tensor[2]   # Z-coordinate of the landmark
+            coords = coord_tensor,  # Coordinates of landmarks
+            lmk=self.lmks  # List of landmarks
         )
 
         return subject

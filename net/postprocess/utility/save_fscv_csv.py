@@ -22,7 +22,7 @@ gb_row = {
 landmark_to_id_table = {'unknown': 0, 'enR': 1, 'prn': 7, 'enL': 2}  # Example mapping, can be extended+
 
 
-def create_df(coords, selected_lmk, spacing=1.0):
+def create_df(coords, selected_lmks, spacing=1.0):
     """    
     Create a DataFrame containing information about a single landmark.
 
@@ -42,17 +42,21 @@ def create_df(coords, selected_lmk, spacing=1.0):
     # Create a copy of the global row template
     row = gb_row.copy()
 
-    # Convert coordinates to physical units using spacings
-    row['x'], row['y'], row['z'] = coords * spacing
+    for i, coord in enumerate(coords):
+        # Convert coordinates to physical units using spacings
+        row['x'], row['y'], row['z'] = coord * spacing
 
-    # Set the label for the landmark
-    row['label'] = selected_lmk
+        # Set the label for the landmark
+        row['label'] = selected_lmks[i]
 
-    # Set the ID for the landmark (optional)
-    row['0'] = landmark_to_id_table[selected_lmk]
+        # Set the ID for the landmark (optional)
+        row['0'] = landmark_to_id_table[selected_lmks[i]]
 
-    # Use pd.concat instead of append
-    landmarks_as_df = pd.DataFrame([row], columns=columns, index=[0])
+        # Use pd.concat instead of append
+        if i == 0:
+            landmarks_as_df = pd.DataFrame([row], columns=columns, index=[0])
+        else:
+            landmarks_as_df = pd.concat([landmarks_as_df, pd.DataFrame([row], columns=columns, index=[i])])
 
     return landmarks_as_df
 
@@ -99,7 +103,7 @@ def write_fcsv_file(out, landmarks_as_df):
 
 
 
-def save_fscv_csv(out, coords, selected_lmk, spacing=1.0):  
+def save_fscv_csv(out, coords, selected_lmks, spacing=1.0):  
 
     """
     Save landmark coordinates to both CSV and FCSV files.
@@ -111,7 +115,7 @@ def save_fscv_csv(out, coords, selected_lmk, spacing=1.0):
         spacing (float or array-like, optional): Spacing values for converting voxel coordinates to physical units. Default is 1.0.
     """
     # Create a DataFrame with the landmark data
-    landmarks_as_df = create_df(coords, selected_lmk, spacing)
+    landmarks_as_df = create_df(coords, selected_lmks, spacing)
 
     # Write the DataFrame to a CSV file
     write_csv_file(out, landmarks_as_df)

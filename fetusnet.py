@@ -51,7 +51,7 @@ from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.model.utility.get_fresh_model import get_fresh_model
 from net.plot.average_expected_local_accuracy import plot_aela_figure
 
-def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_directory, global_wandb_steps):
+def train_and_validate_one_fold(fold, params, transformations, experiment_directory, global_wandb_steps):
 
     print(f"\n--- Training Fold {fold + 1}/{params.n_split} ---")
 
@@ -60,6 +60,7 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
         
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
+
     if params.resume:
         experiment_directory = params.exp_dir
         model_dir = f'{experiment_directory}/last.pt'
@@ -70,7 +71,7 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
     
     print(params)
     # Load training and validation data
-    train_dl, val_dl = get_train_val_dl(lmk, fold, params, transformations=transformations)
+    train_dl, val_dl = get_train_val_dl(fold, params, transformations=transformations)
 
     # Epoch training loop
     for epoch in range(in_epoch, params.epochs):
@@ -83,7 +84,7 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
             use_wandb=params.use_wandb
         )
         # Validate for one epoch
-        val_loss, ep_scores, _, global_wandb_steps = infer_one_ep(
+        val_loss, ep_scores, global_wandb_steps = infer_one_ep(
             model, val_dl, criterion, params.device, global_wandb_steps, use_wandb=params.use_wandb, extract_via=params.extract_via)
 
         if params.use_wandb:
@@ -103,7 +104,7 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
         save_checkpoint(model, optimizer, epoch, val_loss, 
                         os.path.join(experiment_directory, f'last.pt'))
 
-
+    # EVALUATE # 
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
     # Load the best model checkpoint
@@ -111,9 +112,9 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
     model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
     print(f"Best validation loss was {best_val_loss}") 
     # Load test data
-    test_dl = get_test_dl(params, fold, lmk, transformations=transformations)
+    test_dl = get_test_dl(params, fold, transformations=transformations)
     # Final evaluation on test set
-    test_loss, ep_scores, ep_scores_curve, global_wandb_steps = infer_one_ep(
+    _, ep_scores, global_wandb_steps = infer_one_ep(
         model, test_dl, criterion, params.device, global_wandb_steps, 
         use_wandb=False, 
         extract_via=params.extract_via, 
@@ -121,21 +122,12 @@ def train_and_validate_one_fold(lmk, fold, params, transformations, experiment_d
         save_dir=experiment_directory,
         radius_eval=params.radius_eval, 
         radius_num=params.radius_num,  
-        lmk=lmk,
+        lmks=params.lmks,
         )
     
     print("Test d-mean Score: ", ep_scores['dmean'].mean(), " +/-", ep_scores['dmean'].std())
     with open(log_file, "a") as log:
         log.write(f"Test d-mean Score:  {ep_scores['dmean'].mean()} +/- {ep_scores['dmean'].std()} \n")
-
-    ep_scores.to_csv(os.path.join(fold_experiment_dir, f'scores.csv'), index=False)
-    plot_aela_figure(
-            torch.linspace(0, params.radius_eval, params.radius_num), ep_scores_curve.tolist(), 
-            save_dir=os.path.join(fold_experiment_dir, f'curve.png')
-    )
-    # Save the ep_scores_curve as CSV, including lmk info in the filename
-    curve_csv_path = os.path.join(fold_experiment_dir, f'curve_{lmk}_{fold}.csv') 
-    np.savetxt(curve_csv_path, np.array(ep_scores_curve.tolist()), delimiter=",")
 
     if params.use_wandb:
         # Finish WandB logging
@@ -209,84 +201,80 @@ transformations = tio.Compose(transforms)
 
 # Training phase
 if params.mode in ['train', 'train_val']:
-    # Ensure supported training mode
-    if params.training_mode != 'one-by-one':
-        raise ValueError(f"Unsupported execution mode: {params.training_mode}. "
-                         "Multiple landmarks cause high computation costs.")
 
-    # Loop through landmarks
-    for lmk in params.lmks:
-        # Training across folds
-        if not params.iter_folds:
-            iter_folds = range(params.n_split)
-        else:
-            iter_folds = params.iter_folds
+    # Training across folds
+    if not params.iter_folds:
+        iter_folds = range(params.n_split)
+    else:
+        iter_folds = params.iter_folds
 
-        for fold in iter_folds:
-                # Create a subdirectory for this fold within the experiment directory
-            fold_experiment_dir = os.path.join(experiment_directory, f'fold_{fold}')
-            os.makedirs(fold_experiment_dir, exist_ok=True)
-            # Initialize global tracking dictionary for WandB
-            global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
-            global_wandb_steps, best_val_loss = train_and_validate_one_fold(lmk, fold, params, transformations, fold_experiment_dir, global_wandb_steps)
+    for fold in iter_folds:
+            # Create a subdirectory for this fold within the experiment directory
+        fold_experiment_dir = os.path.join(experiment_directory, f'fold_{fold}')
+        os.makedirs(fold_experiment_dir, exist_ok=True)
+        # Initialize global tracking dictionary for WandB
+        global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
+        global_wandb_steps, best_val_loss = train_and_validate_one_fold(fold, params, transformations, fold_experiment_dir, global_wandb_steps)
+
+        with open(log_file, "w") as log:
+            log.write(f"Experiment ID: {experiment_id}\n")
+            log.write(f"Parameters: {vars(params)}\n")
+            log.write(f"Fold {fold} completed for selected landmarks {'_'.join(params.lmks)}.\n")
+            log.write(f"Best validation loss: {best_val_loss}\n")   
 
     with open(log_file, "w") as log:
-        log.write(f"Experiment ID: {experiment_id}\n")
-        log.write(f"Parameters: {vars(params)}\n")
         log.write(f"Training completed for all folds.\n")
-        log.write(f"Best validation loss: {best_val_loss}\n")   
 
+# # Testing or evaluation phase
+# if params.mode in ['test', 'eval']:
+#     # Ensure supported execution mode
+#     if params.training_mode != 'one-by-one':
+#         raise ValueError(f"Unsupported execution mode: {params.execution}. "
+#                          "Multiple landmarks cause high computation costs.")
 
-# Testing or evaluation phase
-if params.mode in ['test', 'eval']:
-    # Ensure supported execution mode
-    if params.training_mode != 'one-by-one':
-        raise ValueError(f"Unsupported execution mode: {params.execution}. "
-                         "Multiple landmarks cause high computation costs.")
+#     # Loop through landmarks
+#     for lmk in params.lmks:
+#         if not params.iter_folds:
+#             iter_folds = range(params.n_split)
+#         else:
+#             iter_folds = params.iter_folds
 
-    # Loop through landmarks
-    for lmk in params.lmks:
-        if not params.iter_folds:
-            iter_folds = range(params.n_split)
-        else:
-            iter_folds = params.iter_folds
-
-        aela = []
-        for fold in iter_folds:
-            # Create a subdirectory for this fold within the experiment directory
-            fold_experiment_dir = os.path.join(experiment_directory, f'fold_{fold}')
-            os.makedirs(fold_experiment_dir, exist_ok=True)
-            # Initialize model, loss, optimizer
-            model, criterion, optimizer, best_criteria = get_fresh_model(params)
-            # Load the best model checkpoint
-            model_dir = f'runs/{params.model_dir}/best_fold{fold}.pt'
-            model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
-            print(f"Best validation loss was {best_val_loss}") 
-            # Load test data
-            test_dl = get_test_dl(params, fold, lmk, transformations=transformations)
-            # Final evaluation on test set
-            test_loss, ep_scores, ep_scores_curve, global_wandb_steps = infer_one_ep(
-                model, test_dl, criterion, params.device, global_wandb_steps, 
-                use_wandb=False, 
-                extract_via=params.extract_via, 
-                eval=True, 
-                save_dir=fold_experiment_dir,
-                radius_eval=params.radius_eval, 
-                radius_num=params.radius_num,  
-                lmk=lmk,
-                )
+#         aela = []
+#         for fold in iter_folds:
+#             # Create a subdirectory for this fold within the experiment directory
+#             fold_experiment_dir = os.path.join(experiment_directory, f'fold_{fold}')
+#             os.makedirs(fold_experiment_dir, exist_ok=True)
+#             # Initialize model, loss, optimizer
+#             model, criterion, optimizer, best_criteria = get_fresh_model(params)
+#             # Load the best model checkpoint
+#             model_dir = f'runs/{params.model_dir}/best_fold{fold}.pt'
+#             model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
+#             print(f"Best validation loss was {best_val_loss}") 
+#             # Load test data
+#             test_dl = get_test_dl(params, fold, transformations=transformations)
+#             # Final evaluation on test set
+#             test_loss, ep_scores, ep_scores_curve, global_wandb_steps = infer_one_ep(
+#                 model, test_dl, criterion, params.device, global_wandb_steps, 
+#                 use_wandb=False, 
+#                 extract_via=params.extract_via, 
+#                 eval=True, 
+#                 save_dir=fold_experiment_dir,
+#                 radius_eval=params.radius_eval, 
+#                 radius_num=params.radius_num,  
+#                 lmk=lmk,
+#                 )
             
-            print("Test d-mean Score: ", ep_scores['dmean'].mean(), " +/-", ep_scores['dmean'].std())
-            with open(log_file, "a") as log:
-                log.write(f"Test d-mean Score:  {ep_scores['dmean'].mean()} +/- {ep_scores['dmean'].std()} \n")
+#             print("Test d-mean Score: ", ep_scores['dmean'].mean(), " +/-", ep_scores['dmean'].std())
+#             with open(log_file, "a") as log:
+#                 log.write(f"Test d-mean Score:  {ep_scores['dmean'].mean()} +/- {ep_scores['dmean'].std()} \n")
 
-            ep_scores.to_csv(os.path.join(fold_experiment_dir, f'scores.csv'), index=False)
-            plot_aela_figure(
-                    torch.linspace(0, params.radius_eval, params.radius_num), ep_scores_curve.tolist(), 
-                    save_dir=os.path.join(fold_experiment_dir, f'curve.png')
-            )
-            # Save the ep_scores_curve as CSV, including lmk info in the filename
-            curve_csv_path = os.path.join(fold_experiment_dir, f'curve_{lmk}_{fold}.csv') 
-            np.savetxt(curve_csv_path, np.array(ep_scores_curve.tolist()), delimiter=",")
+#             ep_scores.to_csv(os.path.join(fold_experiment_dir, f'scores.csv'), index=False)
+#             plot_aela_figure(
+#                     torch.linspace(0, params.radius_eval, params.radius_num), ep_scores_curve.tolist(), 
+#                     save_dir=os.path.join(fold_experiment_dir, f'curve.png')
+#             )
+#             # Save the ep_scores_curve as CSV, including lmk info in the filename
+#             curve_csv_path = os.path.join(fold_experiment_dir, f'curve_{lmk}_{fold}.csv') 
+#             np.savetxt(curve_csv_path, np.array(ep_scores_curve.tolist()), delimiter=",")
 
 # python fetusnet.py test --lmks enR --num_fts 32 --loss emd --optim adam --lr 0.0001 --iter_folds 1 --model_dir archive/emd4enr_rn --prefix deneme 

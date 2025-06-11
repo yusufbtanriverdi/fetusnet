@@ -18,7 +18,9 @@ def plot_aela_figure(radii, edr, save_dir='average_expected_local_accuracy.png')
     plt.ylabel('Average Expected Local Accuracy (AELA)')
     plt.yscale('log')
     plt.grid()
-    plt.savefig(save_dir)
+
+    if save_dir:
+        plt.savefig(save_dir)
     # plt.show()
     # Save the plot as a PNG file
     plt.close()  # Close the plot to free up memory
@@ -44,7 +46,7 @@ def average_expected_local_accuracy(output, target_coord, spacing, radius_eval, 
     
     # Iterate over each radius
     distances = torch.zeros((len(radii)), dtype=torch.float32)
-    D, H, W = output.shape  # Assuming one landmark per image
+    C, D, H, W = output.shape  # Assuming one landmark per image
     for ind, radius in enumerate(radii):
         distances[ind] = 0
         # Select neighbourhood
@@ -53,8 +55,9 @@ def average_expected_local_accuracy(output, target_coord, spacing, radius_eval, 
             y_min, y_max = max(0, target_coord[1]-radius).round().int().item(), min(H, target_coord[1]+radius).round().int().item()
             z_min, z_max = max(0, target_coord[2]-radius).round().int().item(), min(W, target_coord[2]+radius).round().int().item()
             mask = torch.zeros_like(output, dtype=torch.float32)
-            mask[x_min:x_max, y_min:y_max, z_min:z_max] = 1
+            mask[:, x_min:x_max, y_min:y_max, z_min:z_max] = 1
             roi = mask * output
+            # Extract the peak location from the region of interest
             output_coord = get_peak_location(roi, method=extract_via)
             # Calculate distance
             distances[ind]= torch.norm((output_coord - target_coord).to(float))

@@ -3,7 +3,7 @@ import torchio as tio
 import pandas as pd
 from net.dataset.statistics.create_info_frames import update
 
-def get_train_val_dl(lmk, num, params, transformations):
+def get_train_val_dl(num, params, transformations):
     """
     Create DataLoaders for training and validation sets.
 
@@ -33,7 +33,7 @@ def get_train_val_dl(lmk, num, params, transformations):
         params.sys + params.root,                     # Root directory
         params.generate,                              # Data generation flag
         (params.alpha, params.eps),                   # Additional parameters
-        lmk,                                          # Landmark information
+        params.lmks,                                          # Landmark information
         transformations,                              # Preprocessing transformations
 
     )
@@ -42,7 +42,7 @@ def get_train_val_dl(lmk, num, params, transformations):
         params.sys + params.root,                     # Root directory
         params.generate,                              # Data generation flag
         (params.alpha, params.eps),                   # Additional parameters
-        lmk,                                          # Landmark information
+        params.lmks,                                          # Landmark information
         transformations,                              # Preprocessing transformations
     )
 
@@ -63,7 +63,7 @@ def get_train_val_dl(lmk, num, params, transformations):
     return train_dl, val_dl
 
 
-def get_test_dl(params, num, lmk, transformations):
+def get_test_dl(params, num, transformations):
     """
     Create a DataLoader for the test set.
 
@@ -97,7 +97,7 @@ def get_test_dl(params, num, lmk, transformations):
         params.sys + params.root,                    # Root directory
         params.generate,                             # Data generation flag
         (params.alpha, params.eps),                  # Additional parameters
-        lmk,                                         # Landmark information
+        params.lmks,                                         # Landmark information
         transformations,                             # Preprocessing transformations
 
     )
