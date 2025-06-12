@@ -19,7 +19,7 @@ Key Functions:
 
 Usage:
 ------
-Run this script as the main entry point to execute the desired workflow, as specified by the parameters (e.g., mode, training_mode, etc.).
+Run this script as the main entry point to execute the desired workflow, as specified by the parameters (e.g., mode, etc.).
 
 
 Note:
@@ -85,13 +85,15 @@ def train_and_validate_one_fold(fold, params, transformations, experiment_direct
         )
         # Validate for one epoch
         val_loss, ep_scores, global_wandb_steps = infer_one_ep(
-            model, val_dl, criterion, params.device, global_wandb_steps, use_wandb=params.use_wandb, extract_via=params.extract_via)
+            model, val_dl, criterion, params.device, global_wandb_steps, use_wandb=params.use_wandb, extract_via=params.extract_via, lmks=params.lmks, save_dir=experiment_directory)
 
         if params.use_wandb:
             # Log metrics to WandB
             wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': global_wandb_steps['epoch']})
             wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': global_wandb_steps['epoch']})
-            wandb.log({'epoc/dmean': ep_scores['dmean'].mean(), 'epoc/epoch': global_wandb_steps['epoch']})
+            
+            for lmk in params.lmks:
+                wandb.log({f'epoc/dmean_{lmk}': ep_scores[f'dmean_{lmk}'].mean(), 'epoc/epoch': global_wandb_steps['epoch']})
             global_wandb_steps['epoch'] += 1
 
         # Save best model
@@ -125,10 +127,8 @@ def train_and_validate_one_fold(fold, params, transformations, experiment_direct
         lmks=params.lmks,
         )
     
-    print("Test d-mean Score: ", ep_scores['dmean'].mean(), " +/-", ep_scores['dmean'].std())
-    with open(log_file, "a") as log:
-        log.write(f"Test d-mean Score:  {ep_scores['dmean'].mean()} +/- {ep_scores['dmean'].std()} \n")
-
+    for lmk in params.lmks:
+        print(f"Test d-mean Score for {lmk}: ", ep_scores[f"dmean_{lmk}"].mean(), " +/-", ep_scores[f"dmean_{lmk}"].std())
     if params.use_wandb:
         # Finish WandB logging
         wandb.finish()
@@ -216,16 +216,54 @@ if params.mode in ['train', 'train_val']:
         global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
         global_wandb_steps, best_val_loss = train_and_validate_one_fold(fold, params, transformations, fold_experiment_dir, global_wandb_steps)
 
-        with open(log_file, "w") as log:
+        with open(log_file, "a") as log:
             log.write(f"Experiment ID: {experiment_id}\n")
             log.write(f"Parameters: {vars(params)}\n")
             log.write(f"Fold {fold} completed for selected landmarks {'_'.join(params.lmks)}.\n")
             log.write(f"Best validation loss: {best_val_loss}\n")   
 
-    with open(log_file, "w") as log:
+    with open(log_file, "a") as log:
         log.write(f"Training completed for all folds.\n")
 
 # # Testing or evaluation phase
+if params.mode in ['test', 'eval']:
+
+    # Training across folds
+    if not params.iter_folds:
+        iter_folds = range(params.n_split)
+    else:
+        iter_folds = params.iter_folds
+
+    for fold in iter_folds:
+        # Create a subdirectory for this fold within the experiment directory
+        # EVALUATE # 
+        # Initialize model, loss, optimizer
+            # Create a subdirectory for this fold within the experiment directory
+        fold_experiment_dir = os.path.join(experiment_directory, f'fold_{fold}')
+        os.makedirs(fold_experiment_dir, exist_ok=True)
+        model, criterion, optimizer, best_criteria = get_fresh_model(params)
+        # Load the best model checkpoint
+        model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, params.model_dir)
+        print(f"Best validation loss was {best_val_loss}") 
+        # Load test data
+        test_dl = get_test_dl(params, fold, transformations=transformations)
+        
+        global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
+        # Final evaluation on test set
+        _, ep_scores, global_wandb_steps = infer_one_ep(
+            model, test_dl, criterion, params.device, global_wandb_steps, 
+            use_wandb=False, 
+            extract_via=params.extract_via, 
+            eval=True, 
+            save_dir=fold_experiment_dir,
+            radius_eval=params.radius_eval, 
+            radius_num=params.radius_num,  
+            lmks=params.lmks,
+            )
+        
+        for lmk in params.lmks:
+            print(f"Test d-mean Score for {lmk}: ", ep_scores[f"dmean_{lmk}"].mean(), " +/-", ep_scores[f"dmean_{lmk}"].std())
+
 # if params.mode in ['test', 'eval']:
 #     # Ensure supported execution mode
 #     if params.training_mode != 'one-by-one':

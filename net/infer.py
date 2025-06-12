@@ -42,7 +42,10 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
     # Progress bar for validation
     t = tqdm(loader, desc="Validating...", total=len(loader))
     ep_scores = []
-    distance_curves = []
+    
+    if eval: 
+        distance_curves = torch.zeros((len(lmks), len(t), radius_num), dtype=torch.float32)  # Initialize distance curves tensor
+    
     # Disable gradient computation for validation
     with torch.no_grad():
         print("Starting validation loop...")
@@ -81,21 +84,25 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
 
             output_heatmap = sigmoid(output_heatmap[0])  # Apply sigmoid to the output heatmap from batch size 1
             target_heatmap = target_heatmap[0]  # Extract the target heatmap from batch size 1
-            scores_v1 = compute_heatmap_metrics(output_heatmap, target_heatmap)
-
+            
+            scores_by_name = {}
+            scores_by_name['heatmap'] = compute_heatmap_metrics(output_heatmap, target_heatmap)
             # Compute the peak locations of the output heatmap
             output_coord_tensor = get_peak_location(output_heatmap, extract_via).to(device)  # Ensure peak locations are computed
             # Get the voxel coordinates of the target landmark
             target_coord_tensor = batch['coords'][0].to(device)  # Assuming batch size of 1
 
-            scores_v2 = compute_landmark_metrics(output_coord_tensor,
-                                                 target_coord_tensor, 
-                                                 spacing)
-
-            scores = {**scores_v1, **scores_v2}
+            for i, lmk in enumerate(lmks):
+                score_per_lmk = compute_landmark_metrics(output_coord_tensor[i],
+                                            target_coord_tensor[i], 
+                                            spacing)
+                
+                scores_by_name[f"dmean_{lmk}"] = score_per_lmk['dmean']
+            # Store the scores for the current sample
             name = batch['name'][0]  # Extract the name of the current sample from batch size 1
-            scores['fname'] = name  # Add the name to the scores dictionary
-            ep_scores.append(scores)
+            scores_by_name['fname'] = name  # Add the name to the scores dictionary
+            ep_scores.append(scores_by_name)
+
             if eval:
                 output_dir = os.path.join(save_dir, "predictions")
                 os.makedirs(output_dir, exist_ok=True)
@@ -115,15 +122,15 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                         spacing=spacing
                     )                
                 
-                for i, lmk in enumerate(lmks):
 
+                for i, lmk in enumerate(lmks):
                     # Extract the landmark coordinates for the current landmark
                     scores_v3_distances = average_expected_local_accuracy(output_heatmap[i].unsqueeze(0), target_coord_tensor[i].cpu(), 
                                                                           spacing=spacing, 
                                                                           radius_eval=radius_eval, radius_num=radius_num, 
                                                                           save_dir=None,
                                                                           extract_via=extract_via)
-                    distance_curves.append(scores_v3_distances)
+                    distance_curves[i, ind, :] = scores_v3_distances  # Store the distance curves for each landmark and batch index
                     # Save outputs and generate visualizations
                     template_header = extract_image('templates/1.nrrd')[1]
                     # Save the predicted output as an NRRD file in the subdirectory
@@ -138,21 +145,21 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                         target_heatmap[i].cpu().numpy(),
                         header=template_header
                     )
-
-
                 plot_histograms_and_stats(output_heatmap, target_heatmap, save_path = os.path.join(output_dir, f"{name}_"))
         
         if eval:
             curves_dir = os.path.join(save_dir, "curves")
             os.makedirs(curves_dir, exist_ok=True)
-            # Save the ep_scores_curve as CSV, including lmk info in the filename
-            distance_curves = torch.stack(distance_curves, dim=0).mean(dim=0).tolist()
-            curve_csv_path = os.path.join(curves_dir, f"{lmk}_curve_mean.csv") 
-            np.savetxt(curve_csv_path, distance_curves, delimiter=",")
-            plot_aela_figure(torch.linspace(0, radius_eval, radius_num), distance_curves, save_dir=os.path.join(curves_dir, f"{lmk}_curve_mean.png") )
+            for i, lmk in enumerate(lmks):
+                # Save the ep_scores_curve as CSV, including lmk info in the filename
+                curve_csv_path = os.path.join(curves_dir, f"{lmk}_curve_mean.csv") 
+                np.savetxt(curve_csv_path, distance_curves[i].mean(dim=0), delimiter=",")
+                plot_aela_figure(torch.linspace(0, radius_eval, radius_num), distance_curves[i].mean(dim=0), save_dir=os.path.join(curves_dir, f"{lmk}_curve_mean.png") )
         
     # Return the average loss, computed metrics, and updated wandb_steps
     avg_loss = running_loss / len(loader)        
     
     ep_scores = pd.DataFrame.from_records(ep_scores)
+    ep_scores.to_csv(os.path.join(save_dir, "test_scores.csv"), index=False)
+    ep_scores.drop(['fname', 'heatmap'], axis=1).mean().to_csv(os.path.join(save_dir, "test_scores_mean.csv"))
     return avg_loss, ep_scores, wandb_steps

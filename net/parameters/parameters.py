@@ -60,7 +60,6 @@ def parameters_parsing() -> argparse.Namespace:
         # Rotation parameters
         # subparser.add_argument('--desired_size', type=int, default=parameters_default['desired_size'], help=parameters_help['desired_size'])
         # subparser.add_argument('--desired_spacings', type=int, default=parameters_default['desired_spacings'], help=parameters_help['desired_spacings'])
-        # subparser.add_argument('--drate', type=int, default=parameters_default['drate'], help=parameters_help['drate'])
 
         # Dataset parameters
         subparser.add_argument('--dataset', nargs='+', type=str, default=parameters_default['dataset'], help=parameters_help['dataset'])
@@ -96,7 +95,6 @@ def parameters_parsing() -> argparse.Namespace:
 
         # Network parameters
         subparser.add_argument('--backbone', type=str, default=parameters_default['backbone'], help=parameters_help['backbone'])
-        subparser.add_argument('--training_mode', type=str, default=parameters_default['training_mode'], help=parameters_help['training_mode'])
 
         # Hyperparameters
         subparser.add_argument('--epochs', '--ep', type=int, default=parameters_default['epochs'], help=parameters_help['epochs'])
