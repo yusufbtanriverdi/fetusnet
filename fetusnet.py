@@ -84,7 +84,19 @@ def train_and_validate_one_fold(fold, params, transformations, experiment_direct
             use_wandb=params.use_wandb
         )
         # Validate for one epoch
-        val_loss, ep_scores, global_wandb_steps = infer_one_ep(
+        if epoch % 5 == 0:
+            val_loss, ep_scores, global_wandb_steps = infer_one_ep(
+                model, val_dl, criterion, params.device, global_wandb_steps, 
+                use_wandb=False, 
+                extract_via=params.extract_via, 
+                eval=True, 
+                save_dir=experiment_directory,
+                radius_eval=params.radius_eval, 
+                radius_num=params.radius_num,  
+                lmks=params.lmks,
+                )
+        else: 
+            val_loss, ep_scores, global_wandb_steps = infer_one_ep(
             model, val_dl, criterion, params.device, global_wandb_steps, use_wandb=params.use_wandb, extract_via=params.extract_via, lmks=params.lmks, save_dir=experiment_directory)
 
         if params.use_wandb:
@@ -196,7 +208,10 @@ if params.mode == 'script_generate_targets':
     generate_targets.main(sinfo_df, experiment_directory, params)
 
 # Define transformations for 3D images
-transforms = [tio.RescaleIntensity((0, 1))] if params.rescale else []
+transforms = [
+                tio.RescaleIntensity((0, 1)), 
+                # tio.Flip(axes=('L',)),
+              ] if params.rescale else []
 transformations = tio.Compose(transforms)
 
 # Training phase

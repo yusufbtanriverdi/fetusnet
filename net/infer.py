@@ -6,6 +6,7 @@ import os
 from torch.nn.functional import sigmoid
 import pandas as pd
 import numpy as np
+import gc 
 
 from net.metrics.metrics_eval import compute_heatmap_metrics, compute_landmark_metrics
 from net.dataset.MyDataset import extract_image
@@ -130,6 +131,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                                                                           radius_eval=radius_eval, radius_num=radius_num, 
                                                                           save_dir=None,
                                                                           extract_via=extract_via)
+                    gc.collect()
                     distance_curves[i, ind, :] = scores_v3_distances  # Store the distance curves for each landmark and batch index
                     # Save outputs and generate visualizations
                     template_header = extract_image('templates/1.nrrd')[1]
@@ -146,7 +148,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                         header=template_header
                     )
                 plot_histograms_and_stats(output_heatmap, target_heatmap, save_path = os.path.join(output_dir, f"{name}_"))
-        
+                gc.collect()
         if eval:
             curves_dir = os.path.join(save_dir, "curves")
             os.makedirs(curves_dir, exist_ok=True)
@@ -155,7 +157,8 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                 curve_csv_path = os.path.join(curves_dir, f"{lmk}_curve_mean.csv") 
                 np.savetxt(curve_csv_path, distance_curves[i].mean(dim=0), delimiter=",")
                 plot_aela_figure(torch.linspace(0, radius_eval, radius_num), distance_curves[i].mean(dim=0), save_dir=os.path.join(curves_dir, f"{lmk}_curve_mean.png") )
-        
+                gc.collect()
+                    
     # Return the average loss, computed metrics, and updated wandb_steps
     avg_loss = running_loss / len(loader)        
     

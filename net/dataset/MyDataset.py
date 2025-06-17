@@ -112,7 +112,14 @@ class MyDataset(Dataset):
             if lmk not in landmark_df['label'].values:
                 raise ValueError(f"Landmark '{lmk}' not found in {landmark_path}")
 
+            # Surprise the model
+            # if lmk in ['enL']:
+            #     landmark_row = landmark_df[landmark_df['label'] == 'enR']
+            # elif lmk in ['enR']:
+            #     landmark_row = landmark_df[landmark_df['label'] == 'enL']       
+            # else: 
             landmark_row = landmark_df[landmark_df['label'] == lmk]
+           
             if landmark_row.empty:
                 raise ValueError(f"Landmark '{lmk}' not found in {landmark_path}")
 
