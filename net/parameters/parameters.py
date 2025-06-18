@@ -58,9 +58,8 @@ def parameters_parsing() -> argparse.Namespace:
         # Device parameter
         subparser.add_argument('--device', type=str, default=parameters_default['device'], help=parameters_help['device'])
         # Rotation parameters
-        subparser.add_argument('--desired_size', type=int, default=parameters_default['desired_size'], help=parameters_help['desired_size'])
-        subparser.add_argument('--desired_spacings', type=int, default=parameters_default['desired_spacings'], help=parameters_help['desired_spacings'])
-        subparser.add_argument('--drate', type=int, default=parameters_default['drate'], help=parameters_help['drate'])
+        # subparser.add_argument('--desired_size', type=int, default=parameters_default['desired_size'], help=parameters_help['desired_size'])
+        # subparser.add_argument('--desired_spacings', type=int, default=parameters_default['desired_spacings'], help=parameters_help['desired_spacings'])
 
         # Dataset parameters
         subparser.add_argument('--dataset', nargs='+', type=str, default=parameters_default['dataset'], help=parameters_help['dataset'])
@@ -74,7 +73,7 @@ def parameters_parsing() -> argparse.Namespace:
         subparser.add_argument('--eps', type=int, default=parameters_default['eps'], help=parameters_help['eps'])
 
         # Experiment parameters
-        subparser.add_argument('--run_name', type=str, default=parameters_default['run_name'], help=parameters_help['run_name'])
+        subparser.add_argument('--prefix', type=str, default=parameters_default['prefix'], help=parameters_help['prefix'])
         subparser.add_argument('--use_wandb', action='store_true', default=parameters_default['use_wandb'], help=parameters_help['use_wandb'])
         # Iterative folds parameter
         subparser.add_argument('--iter_folds', nargs='+', type=int, default=parameters_default['iter_folds'], help=parameters_help['iter_folds'])
@@ -96,7 +95,6 @@ def parameters_parsing() -> argparse.Namespace:
 
         # Network parameters
         subparser.add_argument('--backbone', type=str, default=parameters_default['backbone'], help=parameters_help['backbone'])
-        subparser.add_argument('--training_mode', type=str, default=parameters_default['training_mode'], help=parameters_help['training_mode'])
 
         # Hyperparameters
         subparser.add_argument('--epochs', '--ep', type=int, default=parameters_default['epochs'], help=parameters_help['epochs'])
@@ -110,15 +108,12 @@ def parameters_parsing() -> argparse.Namespace:
         subparser.add_argument('--loss', '-l', nargs='+', type=str, default=parameters_default['loss'], help=parameters_help['loss'])
 
         # Output parameters
-        subparser.add_argument('--type_draw', type=str, choices=parameters_choices['type_draw'], default=parameters_default['type_draw'], help=parameters_help['type_draw'])
-        subparser.add_argument('--num_images', type=int, default=parameters_default['num_images'], help=parameters_help['num_images'])
-        subparser.add_argument('--idx', type=int, default=parameters_default['idx'], help=parameters_help['idx'])
         subparser.add_argument('--model_dir', type=str, default=parameters_default['model_dir'], help=parameters_help['model_dir'])
 
         # Evaluation parameters
-        subparser.add_argument('--radii_eval', type=int , default=parameters_default['radii_eval'], help=parameters_help['radii_eval'])
-        subparser.add_argument('--radii_num', type=int, default=parameters_default['radii_num'], help=parameters_help['radii_num'])
-
+        subparser.add_argument('--radius_eval', type=int , default=parameters_default['radius_eval'], help=parameters_help['radius_eval'])
+        subparser.add_argument('--radius_num', type=int, default=parameters_default['radius_num'], help=parameters_help['radius_num'])
+        subparser.add_argument('--extract_via', type=str, default=parameters_default['extract_via'], help=parameters_help['extract_via'])
     # Parse arguments
     parser = parser.parse_args()
 

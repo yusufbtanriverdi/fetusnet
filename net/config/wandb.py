@@ -1,6 +1,6 @@
 import wandb
 
-def initialize_wandb(params, fold=3):
+def initialize_wandb(params, fold=0):
     """ Initializes wandb for selected parameters. """
     wandb.init(
             # set the wandb project where this run will be logged
@@ -8,7 +8,6 @@ def initialize_wandb(params, fold=3):
             # track hyperparameters and run metadata
             config=params,
             # name for run
-            # TODO: take this as argument and test.
-            name=params.run_name + '_fold' + str(fold)
-        )
+            name=f"{params.prefix}_{'_'.join(params.lmks)}_fold{fold}",
+)
     

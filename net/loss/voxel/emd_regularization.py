@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from net.loss.utils import plot_histograms_and_stats, imshow_target_distance_matrices_to_gif
+from net.loss.utils import imshow_target_distance_matrices_to_gif
+from net.plot.histogram_flattened import plot_histograms_and_stats
 
 class DistanceMatrixLoss(nn.Module):
     """
@@ -109,20 +110,24 @@ class EMDRegularizedLoss(nn.Module):
         Returns:
             torch.Tensor: Computed loss based on the specified reduction method.
         """
+
+        # >> Output heatmap shape: torch.Size([1, 2, 128, 128, 128]), Target heatmap shape: torch.Size([1, 2, 128, 128, 128])
+        # where 2 is the number of landmarks, and 128x128x128 is the spatial dimension.
+
         # Normalize the targets to ensure they sum to 1 (softmax-like behavior)
         # targets = targets / (targets.view(targets.size(0), -1).sum(dim=-1, keepdim=True))
         dist_ms = 1 - targets
-        targets = targets / (targets.view(targets.size(0), -1).sum(dim=-1, keepdim=True))
+        # Normalize each landmark (channel) so that its sum over spatial dims is 1
+        per_landmark_sum = targets.view(targets.size(0), targets.size(1), -1).sum(dim=-1, keepdim=True)
+        targets = targets / (per_landmark_sum.view(targets.size(0), targets.size(1), 1, 1, 1) + self.eps)
         # dist_ms = dist_ms / (dist_ms.view(dist_ms.size(0), -1).sum(dim=-1, keepdim=True))
 
-        # Apply softmax to the flattened outputs
-        outputs = torch.nn.functional.softmax(outputs.view(outputs.size(0), -1), dim=-1).view_as(outputs)
+        # Apply softmax to the outputs
+        outputs = outputs.view(outputs.size(0), outputs.size(1), -1)
+        outputs = torch.nn.functional.softmax(outputs, dim=-1)
+        outputs = outputs.view_as(targets)
 
         loss1 = - targets * torch.log(outputs + self.eps)
-        
-        # Call the function to visualize
-        # plot_histograms_and_stats(outputs, targets)
-
         # Compute the loss using the formula: lambda_ * (outputs^2 * targets^w + mu)
         loss2 = self.lambda_ * (outputs * dist_ms ** self.w + self.mu)
 
