@@ -83,7 +83,8 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
             # print(target_coord_tensor)
             # print(output_coord_tensor)
 
-            output_heatmap = sigmoid(output_heatmap[0])  # Apply sigmoid to the output heatmap from batch size 1
+            # output_heatmap = sigmoid(output_heatmap[0])  # Apply sigmoid to the output heatmap from batch size 1
+            output_heatmap = output_heatmap[0]
             target_heatmap = target_heatmap[0]  # Extract the target heatmap from batch size 1
             
             scores_by_name = {}
@@ -103,7 +104,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
             name = batch['name'][0]  # Extract the name of the current sample from batch size 1
             scores_by_name['fname'] = name  # Add the name to the scores dictionary
             ep_scores.append(scores_by_name)
-
+        
             if eval:
                 output_dir = os.path.join(save_dir, "predictions")
                 os.makedirs(output_dir, exist_ok=True)
