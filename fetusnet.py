@@ -29,14 +29,12 @@ Note:
 - Logging and checkpointing are handled per fold and landmark.
 """
 
-
 import os
 import pandas as pd
 import torchio as tio
 import warnings
 import wandb
-import torch
-import numpy as np
+import json
 
 # Import project modules
 from net.config.wandb import initialize_wandb
@@ -49,7 +47,6 @@ from net.train import train_one_ep
 from net.infer import infer_one_ep
 from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.model.utility.get_fresh_model import get_fresh_model
-from net.plot.average_expected_local_accuracy import plot_aela_figure
 
 def train_and_validate_one_fold(fold, params, transformations, experiment_directory, global_wandb_steps):
 
@@ -156,16 +153,21 @@ params = parameters_parsing()
 
 # Create experiment directory and log
 experiment_directory, experiment_id = create_experiment_id(params)
-
 # Initialize global tracking dictionary for WandB
 global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
 
-# Create local experiment log
-log_file = os.path.join(experiment_directory, "experiment_log.txt")
+
+# Assuming experiment_directory, experiment_id, and params are defined
+log_file = os.path.join(experiment_directory, "parameters.json")
+# Convert params (probably a Namespace or object) to dictionary
+params_dict = vars(params) if hasattr(params, '__dict__') else dict(params)
+# Add experiment ID as well
+log_data = {
+    "Experiment ID": experiment_id,
+    "Parameters": params_dict
+}
 with open(log_file, "w") as log:
-    log.write(f"Experiment ID: {experiment_id}\n")
-    for k, v in vars(params).items():
-        log.write(f"{k}: {v}\n")
+    json.dump(log_data, log, indent=4)
 
 # Set system paths based on OS
 if params.os in ['linux', 'l']:
@@ -231,14 +233,12 @@ if params.mode in ['train', 'train_val']:
         global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
         global_wandb_steps, best_val_loss = train_and_validate_one_fold(fold, params, transformations, fold_experiment_dir, global_wandb_steps)
 
-        with open(log_file, "a") as log:
-            log.write(f"Experiment ID: {experiment_id}\n")
-            log.write(f"Parameters: {vars(params)}\n")
-            log.write(f"Fold {fold} completed for selected landmarks {'_'.join(params.lmks)}.\n")
-            log.write(f"Best validation loss: {best_val_loss}\n")   
+        print(f"Experiment ID: {experiment_id}\n")
+        print(f"Parameters: {vars(params)}\n")
+        print(f"Fold {fold} completed for selected landmarks {'_'.join(params.lmks)}.\n")
+        print(f"Best validation loss: {best_val_loss}\n")   
 
-    with open(log_file, "a") as log:
-        log.write(f"Training completed for all folds.\n")
+    print(f"Training completed for all folds.\n")
 
 # # Testing or evaluation phase
 if params.mode in ['test', 'eval']:
