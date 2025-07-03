@@ -39,16 +39,15 @@ def print_help(*args, **kwargs):
 
 def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     """Adds all common arguments to a subparser"""
-    subparser.add_argument('--dataset_path', type=str, default=defaults.get('dataset_path'), help=parameters_help['dataset_path'])
-    subparser.add_argument('--config', type=str, help=parameters_help['config'], required=False)
-    subparser.add_argument('--system_path', type=str, default=defaults.get('system_path'), help=parameters_help['system_path'])
+    subparser.add_argument('--root', type=str, default=defaults.get('root'), help=parameters_help['root'])
+    subparser.add_argument('--sys', type=str, default=defaults.get('sys'), help=parameters_help['sys'])
     subparser.add_argument('--raw_dir', type=str, default=defaults.get('raw_dir'), help=parameters_help['raw_dir'])
     subparser.add_argument('--os', type=str, default=defaults.get('os'), help=parameters_help['os'])
     subparser.add_argument('--wandbpro', type=str, default=defaults.get('wandbpro'), help=parameters_help['wandbpro'])
     subparser.add_argument('--device', type=str, default=defaults.get('device'), help=parameters_help['device'])
 
     subparser.add_argument('--split', type=str, default=defaults.get('split'), help=parameters_help['split'])
-    subparser.add_argument('--alien_test_path', type=str, help=parameters_help['system_path'], required=False)
+    subparser.add_argument('--alien_test_path', type=str, help=parameters_help['alien_test_path'], required=False)
     # Rotation related
     subparser.add_argument('--desired_size', type=int, default=defaults.get('desired_size'), help=parameters_help['desired_size'])
     subparser.add_argument('--desired_spacings', type=int, default=defaults.get('desired_spacings'), help=parameters_help['desired_spacings'])
@@ -59,8 +58,8 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
 
     subparser.add_argument('--generate', type=str, default=defaults.get('generate'), choices=parameters_choices['generate'], help=parameters_help['generate'])
     subparser.add_argument('--target_idx', nargs='+', type=int, default=defaults.get('target_idx'), help=parameters_help['target_idx'])
-    subparser.add_argument('--g-alpha', type=float, default=defaults.get('g-alpha'), help=parameters_help['g-alpha'])
-    subparser.add_argument('--g-eps', type=int, default=defaults.get('g-eps'), help=parameters_help['g-eps'])
+    subparser.add_argument('--g_alpha', type=float, default=defaults.get('g_alpha'), help=parameters_help['g_alpha'])
+    subparser.add_argument('--g_eps', type=int, default=defaults.get('g_eps'), help=parameters_help['g_eps'])
 
     subparser.add_argument('--prefix', type=str, default=defaults.get('prefix'), help=parameters_help['prefix'])
     subparser.add_argument('--use_wandb', action='store_true', default=defaults.get('use_wandb'), help=parameters_help['use_wandb'])
@@ -95,16 +94,21 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
 
 
 def parameters_parsing() -> argparse.Namespace:
-    """Unified entry point for parameter parsing"""
-    parser = argparse.ArgumentParser(description='FetusNet CLI')
+    """Unified entry point for parameter parsing with JSON config override."""
 
-    # Global argument: path to config file
-    parser.add_argument('--config', type=str, help='Path to JSON config to override defaults')
+    # Step 1: Early parse to get --config
+    early_parser = argparse.ArgumentParser(add_help=False)
+    early_parser.add_argument('--config', type=str, help='Path to JSON config to override defaults')
+    early_args, remaining_argv = early_parser.parse_known_args()
 
-    # Subcommands
+    # Step 2: Load config if provided
+    defaults = load_config(user_path=early_args.config if early_args.config else None)
+
+    # Step 3: Full parser
+    parser = argparse.ArgumentParser(description='FetusNet CLI', parents=[early_parser])
+
+    # Step 4: Subcommands
     subparsers = parser.add_subparsers(dest='mode', metavar='mode', title=parameters_help['mode'])
-
-    defaults = load_config()
 
     train_parser = subparsers.add_parser('train', help=parameters_help['train'])
     test_parser = subparsers.add_parser('test', help=parameters_help['test'])
@@ -114,23 +118,18 @@ def parameters_parsing() -> argparse.Namespace:
     help_parser = subparsers.add_parser('help', help=parameters_help['help'])
     help_parser.set_defaults(func=print_help)
 
-    # Add common args to all subcommands except help
+    # Step 5: Add arguments with JSON-loaded defaults
     for sub in [train_parser, test_parser, prep_parser, presplit_parser, rotate_parser]:
         add_common_args(sub, defaults)
 
-    args = parser.parse_args()
+    # Step 6: Final parse using updated parser and remaining args
+    args = parser.parse_args(remaining_argv)
 
-    # Reload defaults with user config if specified
-    merged_config = load_config(user_path=args.config if hasattr(args, 'config') else None)
-
-    # Overwrite default argparse values with JSON-loaded ones if they are None
-    for k, v in merged_config.items():
-        if not hasattr(args, k) or getattr(args, k) is None:
-            setattr(args, k, v)
-
-    # If mode is 'help', call print_help and exit
+    # Step 7: Handle 'help' mode
     if args.mode == 'help':
         print_help()
         exit(0)
 
     return args
+
+

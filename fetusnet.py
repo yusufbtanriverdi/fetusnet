@@ -157,6 +157,13 @@ warnings.filterwarnings("ignore", category=UserWarning)
 # Initialize parameters
 params = parameters_parsing()
 experiment_dir, experiment_name = create_experiment_id(params, create_directory=True)
+# Convert to dictionary (if Namespace or similar)
+params_dict = vars(params)  # or: params.__dict__ if vars() doesn't work
+
+# Write to JSON
+with open(os.path.join(experiment_dir, 'params.json'), 'w') as f:
+    json.dump(params_dict, f, indent=6)
+    
 global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
 # Initialize logger
 logger = setup_logger(experiment_dir)

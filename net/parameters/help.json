@@ -7,9 +7,8 @@
   "presplit": "Presplit",
   "help": "Display this help message",
 
-  "dataset_path": "Path to the dataset directory",
-  "config": "Path to config file",
-  "system_path": "System root path based on the operating system",
+  "root": "Path to the dataset directory",
+  "sys": "System root path based on the operating system",
   "raw_dir": "Directory containing raw input images",
   "os": "Operating system type (e.g., 'linux', 'windows')",
   "wandbpro": "Weights & Biases project name for logging",
@@ -21,11 +20,11 @@
   "split": "Choose training strategy in terms of splitting.",
   "n_split": "Number of splits for cross-validation",
   "test_patients": "List of patient IDs reserved for testing",
-
+  "alien_test_path": "Path to external test patient list",
   "generate": "Mode for data generation",
   "target_idx": "Indices of target landmarks to detect",
-  "g-alpha": "Alpha parameter controlling Gaussian heatmap spread",
-  "g-eps": "Threshold for Gaussian peak detection",
+  "g_alpha": "Alpha parameter controlling Gaussian heatmap spread",
+  "g_eps": "Threshold for Gaussian peak detection",
 
   "prefix": "Experiment run identifier",
   "use_wandb": "Enable logging with Weights & Biases",

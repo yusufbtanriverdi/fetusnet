@@ -47,9 +47,9 @@ def main(sinfo, exp_dir, params):
 
             # Generate the target (heatmap or distance matrix)
             if params.generate == 'gaussian':
-                target = create_gaussian_heatmap(coord_tensor, volume, alpha=params.alpha, eps=params.eps)
+                target = create_gaussian_heatmap(coord_tensor, volume, alpha=params.g_alpha, eps=params.g_eps)
             else:
-                target = create_distance_matrix(coord_tensor, volume, alpha=params.alpha, eps=params.eps)
+                target = create_distance_matrix(coord_tensor, volume, alpha=params.g_alpha, eps=params.g_eps)
 
             end_time = time.time()  # End timing
             elapsed_time = end_time - start_time  # Compute elapsed time

@@ -13,7 +13,7 @@ def perform_split(master_dataframe, params):
     split_mode = params.split
     test_patients = set(params.test_patients) if hasattr(params, 'test_patients') else set()
     n_splits = getattr(params, 'n_split', 5)
-    random_state = getattr(params, 'random_state', 42)
+    random_state = getattr(params, 'seed', 42)
     datasets = getattr(params, 'dataset', [])
 
     if split_mode == 'crossfold':
