@@ -1,0 +1,66 @@
+{
+      "config": null,
+      "mode": "train",
+      "root": "Rotated/Processed/",
+      "sys": "/media/yusuf/HDD 4TB/",
+      "raw_dir": "",
+      "os": "linux",
+      "wandbpro": "fetusnetv1",
+      "device": "cuda",
+      "split": "splitthecake",
+      "alien_test_path": null,
+      "desired_size": [
+            128,
+            128,
+            128
+      ],
+      "desired_spacings": [
+            1.0,
+            1.0,
+            1.0
+      ],
+      "dataset": [
+            "Casos Mar",
+            "Casos Maternitat"
+      ],
+      "n_split": 4,
+      "test_patients": null,
+      "generate": "gaussian",
+      "target_idx": [
+            0,
+            1,
+            2
+      ],
+      "g_alpha": 3,
+      "g_eps": 1e-06,
+      "prefix": "experiment",
+      "use_wandb": false,
+      "iter_folds": [
+            1
+      ],
+      "resume": false,
+      "resume_dir": "",
+      "seed": 42,
+      "rescale": true,
+      "lmks": [
+            "prn"
+      ],
+      "batch_size_train": 1,
+      "batch_size_val": 1,
+      "batch_size_test": 1,
+      "num_workers": 1,
+      "architecture": "resunet3d",
+      "epochs": 100,
+      "num_fts": 32,
+      "optimizer": "adam",
+      "learning_rate": 0.0005,
+      "lr_momentum": 0.9,
+      "reduction": "mean",
+      "loss": [
+            "emd"
+      ],
+      "model_dir": "",
+      "radius_eval": 40,
+      "radius_num": 40,
+      "landmark_extractor": "argmax"
+}
