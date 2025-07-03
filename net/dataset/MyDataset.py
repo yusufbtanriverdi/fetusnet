@@ -107,6 +107,13 @@ class MyDataset(Dataset):
 
         target = torch.zeros((len(self.lmks), *volume.shape), dtype=torch.float32)  # Initialize target tensor
         coord_tensor = torch.zeros((len(self.lmks), 3), dtype=torch.float32)  # Initialize coordinates tensor
+        try:
+            spacings = header.get('spacings')[:3]
+        except:
+            spacings = np.array([header['space directions'][0, 0], 
+                          header['space directions'][1, 1], 
+                          header['space directions'][2, 2]])
+            
         # Extract the coordinates for the specified landmark
         for i, lmk in enumerate(self.lmks):
             if lmk not in landmark_df['label'].values:
@@ -125,7 +132,7 @@ class MyDataset(Dataset):
 
             # Convert landmark coordinates to a tensor and adjust for pixel spacing
             coord = landmark_row[['x', 'y', 'z']].iloc[0].tolist()
-            coord = coord / header['spacings'][:3]  # Normalize by pixel spacings
+            coord = coord / spacings  # Normalize by pixel spacings
             coord = torch.tensor(coord, dtype=torch.float32)
             coord_tensor[i] = coord  # Store the coordinates in the tensor
             # Coords are in voxel coordinates, now. 
@@ -159,7 +166,7 @@ class MyDataset(Dataset):
             target=tio.ScalarImage(tensor=target),  # Target heatmap or distance map
             name=self.dataframe.loc[idx, 'full_id'],  # Metadata: full ID of the subject
             pid=self.dataframe.loc[idx, 'pid'],  # Metadata: patient ID
-            spacings=header['spacings'][:3],  # Pixel spacings
+            spacings=spacings,  # Pixel spacings
             coords = coord_tensor,  # Coordinates of landmarks
             lmk=self.lmks  # List of landmarks
         )

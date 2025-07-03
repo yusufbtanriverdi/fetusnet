@@ -42,13 +42,14 @@ from net.dataset import generate_targets
 from net.dataset.utility.loaders import get_train_val_dl, get_test_dl
 from net.config.create_experiment_id import create_experiment_id
 from net.dataset.statistics import create_info_frames, split_patient_fold
+from net.dataset import rotate
 from net.parameters.parameters import parameters_parsing
 from net.train import train_one_ep
 from net.infer import infer_one_ep
 from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.model.utility.get_fresh_model import get_fresh_model
 
-def train_and_validate_one_fold(fold, params, transformations, experiment_directory, global_wandb_steps):
+def train_and_validate_one_fold(sinfo_df, fold, params, transformations, experiment_directory, global_wandb_steps):
 
     print(f"\n--- Training Fold {fold + 1}/{params.n_split} ---")
 
@@ -68,7 +69,7 @@ def train_and_validate_one_fold(fold, params, transformations, experiment_direct
     
     print(params)
     # Load training and validation data
-    train_dl, val_dl = get_train_val_dl(fold, params, transformations=transformations)
+    train_dl, val_dl = get_train_val_dl(sinfo_df, fold, params, transformations=transformations)
 
     # Epoch training loop
     for epoch in range(in_epoch, params.epochs):
@@ -152,7 +153,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 params = parameters_parsing()
 
 # Create experiment directory and log
-experiment_directory, experiment_id = create_experiment_id(params)
+experiment_directory, date = create_experiment_id(params)
 # Initialize global tracking dictionary for WandB
 global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
 
@@ -163,7 +164,7 @@ log_file = os.path.join(experiment_directory, "parameters.json")
 params_dict = vars(params) if hasattr(params, '__dict__') else dict(params)
 # Add experiment ID as well
 log_data = {
-    "Experiment ID": experiment_id,
+    "Date": date,
     "Parameters": params_dict
 }
 with open(log_file, "w") as log:
@@ -179,13 +180,9 @@ print(f"System path set to: {params.sys}")
 print('Device: ', params.device)
 
 # Handle specific modes for data preparation
-if params.mode in ['script_prepare', 'script_split']:
+if params.mode in ['script_prepare']:
     print(f" WELCOME TO {params.mode} MODE. \nCreating info frames...")
     sinfo_df = create_info_frames.main(params)
-
-if params.mode == 'script_split':
-    print(f" WELCOME TO {params.mode} MODE. \nSplitting patients into train-test sets...")
-    sinfo_df = split_patient_fold.main(sinfo_df, params)
 
 # Load or create sinfo dataframe
 sinfo_path = params.sys + params.root + 'sinfo.csv'
@@ -194,20 +191,13 @@ if os.path.exists(sinfo_path):
     sinfo_df = pd.read_csv(sinfo_path)
 else:
     raise FileNotFoundError("sinfo.csv not found.")
-
-# Filter and update sinfo dataframe
-sinfo_df = sinfo_df[sinfo_df['landmark_antonia_found']].reset_index(drop=True)
-sinfo_df = create_info_frames.update(sinfo_df, params)
+print("Number of images: ", len(sinfo_df))
 
 # Rotate/alignment step (commented out by default)
-# if params.mode == 'script_rotate':
-#     rotate.main(sinfo_df, params)
+if params.mode == 'script_rotate':
+    rotate.main(sinfo_df, params)
 
-# Generate target datasets
-if params.mode == 'script_generate_targets':
-    print(f" WELCOME TO {params.mode} MODE. \n Generating targets...")
-    print(params.sys)
-    generate_targets.main(sinfo_df, experiment_directory, params)
+sinfo_df = create_info_frames.update(sinfo_df, params)
 
 # Define transformations for 3D images
 transforms = [
@@ -215,6 +205,9 @@ transforms = [
                 # tio.Flip(axes=('L',)),
               ] if params.rescale else []
 transformations = tio.Compose(transforms)
+
+sinfo_df = sinfo_df[sinfo_df['source'].isin(params.dataset)]
+print("Number of images: ", len(sinfo_df))
 
 # Training phase
 if params.mode in ['train', 'train_val']:
@@ -231,9 +224,9 @@ if params.mode in ['train', 'train_val']:
         os.makedirs(fold_experiment_dir, exist_ok=True)
         # Initialize global tracking dictionary for WandB
         global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
-        global_wandb_steps, best_val_loss = train_and_validate_one_fold(fold, params, transformations, fold_experiment_dir, global_wandb_steps)
+        global_wandb_steps, best_val_loss = train_and_validate_one_fold(sinfo_df, fold, params, transformations, fold_experiment_dir, global_wandb_steps)
 
-        print(f"Experiment ID: {experiment_id}\n")
+        print(f"Experiment ID: {experiment_directory}\n")
         print(f"Parameters: {vars(params)}\n")
         print(f"Fold {fold} completed for selected landmarks {'_'.join(params.lmks)}.\n")
         print(f"Best validation loss: {best_val_loss}\n")   
@@ -261,7 +254,7 @@ if params.mode in ['test', 'eval']:
         model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, params.model_dir)
         print(f"Best validation loss was {best_val_loss}") 
         # Load test data
-        test_dl = get_test_dl(params, fold, transformations=transformations)
+        test_dl = get_test_dl(sinfo_df, fold, params, transformations=transformations)
         
         global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
         # Final evaluation on test set
@@ -279,55 +272,5 @@ if params.mode in ['test', 'eval']:
         for lmk in params.lmks:
             print(f"Test d-mean Score for {lmk}: ", ep_scores[f"dmean_{lmk}"].mean(), " +/-", ep_scores[f"dmean_{lmk}"].std())
 
-# if params.mode in ['test', 'eval']:
-#     # Ensure supported execution mode
-#     if params.training_mode != 'one-by-one':
-#         raise ValueError(f"Unsupported execution mode: {params.execution}. "
-#                          "Multiple landmarks cause high computation costs.")
-
-#     # Loop through landmarks
-#     for lmk in params.lmks:
-#         if not params.iter_folds:
-#             iter_folds = range(params.n_split)
-#         else:
-#             iter_folds = params.iter_folds
-
-#         aela = []
-#         for fold in iter_folds:
-#             # Create a subdirectory for this fold within the experiment directory
-#             fold_experiment_dir = os.path.join(experiment_directory, f'fold_{fold}')
-#             os.makedirs(fold_experiment_dir, exist_ok=True)
-#             # Initialize model, loss, optimizer
-#             model, criterion, optimizer, best_criteria = get_fresh_model(params)
-#             # Load the best model checkpoint
-#             model_dir = f'runs/{params.model_dir}/best_fold{fold}.pt'
-#             model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
-#             print(f"Best validation loss was {best_val_loss}") 
-#             # Load test data
-#             test_dl = get_test_dl(params, fold, transformations=transformations)
-#             # Final evaluation on test set
-#             test_loss, ep_scores, ep_scores_curve, global_wandb_steps = infer_one_ep(
-#                 model, test_dl, criterion, params.device, global_wandb_steps, 
-#                 use_wandb=False, 
-#                 extract_via=params.extract_via, 
-#                 eval=True, 
-#                 save_dir=fold_experiment_dir,
-#                 radius_eval=params.radius_eval, 
-#                 radius_num=params.radius_num,  
-#                 lmk=lmk,
-#                 )
-            
-#             print("Test d-mean Score: ", ep_scores['dmean'].mean(), " +/-", ep_scores['dmean'].std())
-#             with open(log_file, "a") as log:
-#                 log.write(f"Test d-mean Score:  {ep_scores['dmean'].mean()} +/- {ep_scores['dmean'].std()} \n")
-
-#             ep_scores.to_csv(os.path.join(fold_experiment_dir, f'scores.csv'), index=False)
-#             plot_aela_figure(
-#                     torch.linspace(0, params.radius_eval, params.radius_num), ep_scores_curve.tolist(), 
-#                     save_dir=os.path.join(fold_experiment_dir, f'curve.png')
-#             )
-#             # Save the ep_scores_curve as CSV, including lmk info in the filename
-#             curve_csv_path = os.path.join(fold_experiment_dir, f'curve_{lmk}_{fold}.csv') 
-#             np.savetxt(curve_csv_path, np.array(ep_scores_curve.tolist()), delimiter=",")
-
+    
 # python fetusnet.py test --lmks enR --num_fts 32 --loss emd --optim adam --lr 0.0001 --iter_folds 1 --model_dir archive/emd4enr_rn --prefix deneme 

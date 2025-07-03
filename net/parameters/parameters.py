@@ -20,14 +20,10 @@ def parameters_parsing() -> argparse.Namespace:
     # Define subparsers for different execution modes
     parser_train = parser_mode.add_parser('train', help=parameters_help['train'])
     parser_test = parser_mode.add_parser('test', help=parameters_help['test'])
-    parser_train_test = parser_mode.add_parser('train_test', help=parameters_help['train_test'])
-    parser_explainability = parser_mode.add_parser('explainability', help=parameters_help['explainability'])
 
     # Define subparsers for utility scripts
     parser_script_prepare = parser_mode.add_parser('script_prepare', help=parameters_help['script_prepare'])
-    parser_script_split = parser_mode.add_parser('script_split', help=parameters_help['script_split'])
     parser_script_rotate = parser_mode.add_parser('script_rotate', help=parameters_help['script_rotate'])
-    parser_script_generate_targets = parser_mode.add_parser('script_generate_targets', help=parameters_help['script_generate_targets'])
 
     # Help subparser
     parser_script_help = parser_mode.add_parser('help', help=parameters_help['help'])
@@ -37,12 +33,8 @@ def parameters_parsing() -> argparse.Namespace:
     execution_mode = [
         parser_train,
         parser_test,
-        parser_train_test,
-        parser_explainability,
-        parser_script_split,
         parser_script_prepare,
         parser_script_rotate,
-        parser_script_generate_targets,
         parser_script_help
     ]
 
@@ -58,8 +50,8 @@ def parameters_parsing() -> argparse.Namespace:
         # Device parameter
         subparser.add_argument('--device', type=str, default=parameters_default['device'], help=parameters_help['device'])
         # Rotation parameters
-        # subparser.add_argument('--desired_size', type=int, default=parameters_default['desired_size'], help=parameters_help['desired_size'])
-        # subparser.add_argument('--desired_spacings', type=int, default=parameters_default['desired_spacings'], help=parameters_help['desired_spacings'])
+        subparser.add_argument('--desired_size', type=int, default=parameters_default['desired_size'], help=parameters_help['desired_size'])
+        subparser.add_argument('--desired_spacings', type=int, default=parameters_default['desired_spacings'], help=parameters_help['desired_spacings'])
 
         # Dataset parameters
         subparser.add_argument('--dataset', nargs='+', type=str, default=parameters_default['dataset'], help=parameters_help['dataset'])
@@ -114,6 +106,7 @@ def parameters_parsing() -> argparse.Namespace:
         subparser.add_argument('--radius_eval', type=int , default=parameters_default['radius_eval'], help=parameters_help['radius_eval'])
         subparser.add_argument('--radius_num', type=int, default=parameters_default['radius_num'], help=parameters_help['radius_num'])
         subparser.add_argument('--extract_via', type=str, default=parameters_default['extract_via'], help=parameters_help['extract_via'])
+        
     # Parse arguments
     parser = parser.parse_args()
 

@@ -2,8 +2,9 @@ from net.dataset.MyDataset import MyDataset
 import torchio as tio
 import pandas as pd
 from net.dataset.statistics.create_info_frames import update
+from net.dataset.statistics.split_patient_fold import split
 
-def get_train_val_dl(num, params, transformations):
+def get_train_val_dl(sinfo, num, params, transformations):
     """
     Create DataLoaders for training and validation sets.
 
@@ -16,16 +17,14 @@ def get_train_val_dl(num, params, transformations):
     Returns:
         tuple: (train_dl, val_dl) - DataLoaders for training and validation sets.
     """
-    # Load dataset information from a CSV file
-    sinfo_path = f"{params.sys}{params.root}sinfo__fold{num}__.csv"
-    sinfo = pd.read_csv(sinfo_path)
 
+    sinfo = split(sinfo, params)
     # Update dataset information (e.g., preprocessing or additional metadata)
     sinfo = update(sinfo, params)
 
     # Split dataset into training and validation sets based on the 'set' column
-    train_idx = sinfo.index[sinfo['set'] == 0].tolist()  # Indices for training set
-    val_idx = sinfo.index[sinfo['set'] == 1].tolist()    # Indices for validation set
+    train_idx = sinfo.index[sinfo['fold'] != num].tolist()  # Indices for training set
+    val_idx = sinfo.index[sinfo['fold'] == num].tolist()    # Indices for validation set
 
     # Create training and validation datasets
     train_ds = MyDataset(
@@ -63,7 +62,7 @@ def get_train_val_dl(num, params, transformations):
     return train_dl, val_dl
 
 
-def get_test_dl(params, num, transformations):
+def get_test_dl(sinfo, num, params, transformations):
     """
     Create a DataLoader for the test set.
 
@@ -75,16 +74,13 @@ def get_test_dl(params, num, transformations):
     Returns:
         DataLoader: Test DataLoader.
     """
-    # Load dataset information from a CSV file for the test set
-    sinfo_path = f"{params.sys}{params.root}sinfo__fold{num}__.csv"
-    sinfo = pd.read_csv(sinfo_path)
-
+    sinfo = split(sinfo, params)
     # Update dataset information (e.g., preprocessing or additional metadata)
     sinfo = update(sinfo, params)
     
     if params.test_patients is None:
         print("Test patients list is empty. I will iterate all validation patients in current fold.")
-        test_idx = sinfo.index[sinfo['set'] == 1].tolist()    # Indices for validation set
+        test_idx = sinfo.index[sinfo['fold'] == num].tolist()    # Indices for validation set
 
     else: 
         print(f"Test patients: {params.test_patients}")

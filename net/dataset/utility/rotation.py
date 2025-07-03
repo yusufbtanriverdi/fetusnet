@@ -216,7 +216,7 @@ def pad_3d_image(image, lmks, centers_gt, desired_size):
     return padded_image, adjusted_lmks, adjusted_centers_gt
 
 
-def save_transformed_landmarks(Lhat, lmk, output_path, name, prefix='tr'):
+def save_transformed_landmarks_arc(Lhat, lmk, output_path, name, prefix='tr'):
     """
     Save transformed landmarks to CSV and FCSV files with predefined header lines.
 
@@ -253,9 +253,51 @@ def save_transformed_landmarks(Lhat, lmk, output_path, name, prefix='tr'):
             f.write(','.join(map(str, row.values)) + '\n')
 
 
-def save_3d_image(Vhat, header, desired_size, output_path, name, prefix=''):
+def save_3d_image_arc(Vhat, header, desired_size, output_path, name, prefix=''):
     # Save padded 3D image as .nrrd
     header_ = header.copy()
     header_['sizes'] = desired_size  # Update to the desired size
 
     nrrd.write(join(output_path, f"{prefix}{name}.nrrd"), Vhat, header=header_)
+
+def save_3d_image(Vhat, header, desired_size, output_path):
+    # Save padded 3D image as .nrrd
+    header_ = header.copy()
+    header_['sizes'] = desired_size  # Update to the desired size
+
+    nrrd.write(output_path, Vhat, header=header_)
+
+def save_transformed_landmarks(Lhat, lmk, output_csv_path, output_fscv_path):
+    """
+    Save transformed landmarks to CSV and FCSV files with predefined header lines.
+
+    Parameters:
+    - Lhat (np.ndarray): Array containing transformed landmark coordinates.
+    - lmk (pd.DataFrame): DataFrame to copy structure from.
+    - output_path (str): Directory path to save the files.
+    - name (str): Base name for the output files.
+    """
+    # Copy structure of landmarks and update with transformed coordinates
+    Lhat_df = lmk.copy()
+    for idx in range(Lhat.shape[0]):
+        Lhat_df.loc[idx, ['x', 'y', 'z']] = Lhat[idx, :]
+
+    # Save CSV file
+    Lhat_df.to_csv(output_csv_path, index=False)
+
+    # Define the predefined lines for FCSV format
+    predefined_lines = [
+        "# Markups fiducial file version = 5.2\n",
+        "# CoordinateSystem = LPS\n",
+        "# columns = id,x,y,z,ow,ox,oy,oz,vis,sel,lock,label,desc,associatedNodeID\n"
+    ]
+
+    # Save FCSV file with predefined lines
+    fcsv_path = output_fscv_path
+    with open(fcsv_path, 'w') as f:
+        # Write predefined lines
+        f.writelines(predefined_lines)
+        
+        # Write each row as a comma-separated string
+        for index, row in Lhat_df.iterrows():
+            f.write(','.join(map(str, row.values)) + '\n')

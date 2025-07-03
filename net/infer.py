@@ -73,6 +73,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
             # Compute running average loss
             avg_loss = running_loss / (ind + 1)
             t.set_description(f"Running Average Loss: {avg_loss:.4f}")
+            
             if use_wandb:
                 # Log loss to Weights & Biases
                 wandb.log({'val/step_loss': loss.item(), 'val/step': wandb_steps['val_loss']})
@@ -115,14 +116,14 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                         spacing=spacing
                     )
                 
-                target_dir = os.path.join(save_dir, "generations")
-                os.makedirs(target_dir, exist_ok=True)
-                save_fscv_csv(
-                        out=os.path.join(target_dir, f"{name}"),
-                        coords=output_coord_tensor.cpu().numpy(),
-                        selected_lmks=lmks,  # Replace with actual landmark name if available
-                        spacing=spacing
-                    )                
+                # target_dir = os.path.join(save_dir, "generations")
+                # os.makedirs(target_dir, exist_ok=True)
+                # save_fscv_csv(
+                #         out=os.path.join(target_dir, f"{name}"),
+                #         coords=target_coord_tensor.cpu().numpy(),
+                #         selected_lmks=lmks,  # Replace with actual landmark name if available
+                #         spacing=spacing
+                #     )                
                 
 
                 for i, lmk in enumerate(lmks):
@@ -143,12 +144,12 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                         header=template_header
                     )
                     # Save the predicted output as an NRRD file in the subdirectory
-                    nrrd.write(
-                        os.path.join(target_dir, f"{name}_{lmk}.nrrd"),
-                        target_heatmap[i].cpu().numpy(),
-                        header=template_header
-                    )
-                plot_histograms_and_stats(output_heatmap, target_heatmap, save_path = os.path.join(output_dir, f"{name}_"))
+                    # nrrd.write(
+                    #     os.path.join(target_dir, f"{name}_{lmk}.nrrd"),
+                    #     target_heatmap[i].cpu().numpy(),
+                    #     header=template_header
+                    # )
+                # plot_histograms_and_stats(output_heatmap, target_heatmap, save_path = os.path.join(output_dir, f"{name}_"))
                 gc.collect()
         if eval:
             curves_dir = os.path.join(save_dir, "curves")
