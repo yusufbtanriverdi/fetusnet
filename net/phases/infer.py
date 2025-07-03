@@ -15,7 +15,7 @@ from net.postprocess.utility.save_fscv_csv import save_fscv_csv
 from net.postprocess.utility.where_is_landmark import get_peak_location
 from net.plot.histogram_flattened import plot_histograms_and_stats
 
-def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False, extract_via='argmax', eval=False, save_dir=None, radius_eval=40, radius_num=100, lmks=None):
+def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False, landmark_extractor='argmax', eval=False, save_dir=None, radius_eval=40, radius_num=100, lmks=None):
     """
     Perform inference for one epoch with additional functionality.
 
@@ -62,8 +62,8 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
             # target_coord_x = batch['coord_x'][0].to(device)
             # target_coord_y = batch['coord_y'][0].to(device)
             # target_coord_z = batch['coord_z'][0].to(device)   
-
             # assert (target_coord_x, target_coord_x, target_coord_z ) == get_peak_location(target_heatmap, 'argmax')  # Ensure peak locations are computed
+
             # Forward pass through the model
             output_heatmap = model(image)
 
@@ -79,10 +79,6 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                 wandb.log({'val/step_loss': loss.item(), 'val/step': wandb_steps['val_loss']})
                 wandb.log({'val/mean_loss': avg_loss, 'val/step': wandb_steps['val_loss']})
                 wandb_steps['val_loss'] += 1  # Increment step
-            # Print the quantization error.
-            # print(get_peak_location(target_heatmap, 'argmax'))
-            # print(target_coord_tensor)
-            # print(output_coord_tensor)
 
             # output_heatmap = sigmoid(output_heatmap[0])  # Apply sigmoid to the output heatmap from batch size 1
             output_heatmap = output_heatmap[0]
@@ -91,7 +87,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
             scores_by_name = {}
             scores_by_name['heatmap'] = compute_heatmap_metrics(output_heatmap, target_heatmap)
             # Compute the peak locations of the output heatmap
-            output_coord_tensor = get_peak_location(output_heatmap, extract_via).to(device)  # Ensure peak locations are computed
+            output_coord_tensor = get_peak_location(output_heatmap, landmark_extractor).to(device)  # Ensure peak locations are computed
             # Get the voxel coordinates of the target landmark
             target_coord_tensor = batch['coords'][0].to(device)  # Assuming batch size of 1
 
@@ -115,16 +111,6 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                         selected_lmks=lmks,  # Replace with actual landmark name if available
                         spacing=spacing
                     )
-                
-                # target_dir = os.path.join(save_dir, "generations")
-                # os.makedirs(target_dir, exist_ok=True)
-                # save_fscv_csv(
-                #         out=os.path.join(target_dir, f"{name}"),
-                #         coords=target_coord_tensor.cpu().numpy(),
-                #         selected_lmks=lmks,  # Replace with actual landmark name if available
-                #         spacing=spacing
-                #     )                
-                
 
                 for i, lmk in enumerate(lmks):
                     # Extract the landmark coordinates for the current landmark
@@ -132,7 +118,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                                                                           spacing=spacing, 
                                                                           radius_eval=radius_eval, radius_num=radius_num, 
                                                                           save_dir=None,
-                                                                          extract_via=extract_via)
+                                                                          landmark_extractor=landmark_extractor)
                     gc.collect()
                     distance_curves[i, ind, :] = scores_v3_distances  # Store the distance curves for each landmark and batch index
                     # Save outputs and generate visualizations
@@ -143,14 +129,10 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                         output_heatmap[i].cpu().numpy(),
                         header=template_header
                     )
-                    # Save the predicted output as an NRRD file in the subdirectory
-                    # nrrd.write(
-                    #     os.path.join(target_dir, f"{name}_{lmk}.nrrd"),
-                    #     target_heatmap[i].cpu().numpy(),
-                    #     header=template_header
-                    # )
+
                 # plot_histograms_and_stats(output_heatmap, target_heatmap, save_path = os.path.join(output_dir, f"{name}_"))
                 gc.collect()
+                
         if eval:
             curves_dir = os.path.join(save_dir, "curves")
             os.makedirs(curves_dir, exist_ok=True)
@@ -163,7 +145,6 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                     
     # Return the average loss, computed metrics, and updated wandb_steps
     avg_loss = running_loss / len(loader)        
-    
     ep_scores = pd.DataFrame.from_records(ep_scores)
     ep_scores.to_csv(os.path.join(save_dir, "test_scores.csv"), index=False)
     ep_scores.drop(['fname', 'heatmap'], axis=1).mean().to_csv(os.path.join(save_dir, "test_scores_mean.csv"))

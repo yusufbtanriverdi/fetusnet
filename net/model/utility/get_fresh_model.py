@@ -14,86 +14,74 @@ def get_fresh_model(params):
     """
     Initialize a fresh model, loss function, and optimizer based on the provided parameters.
 
+    This function sets up:
+      - A 3D ResUNet model for medical image processing or landmark detection tasks.
+      - A loss function chosen from several custom or standard options.
+      - An optimizer configured with the desired learning rate and settings.
+
     Args:
-        params: An object containing configuration parameters such as:
-            - lmks: List of landmarks (used to determine output channels).
-            - num_fts: Number of base features for the model (default: 64).
-            - device: Device to use ('cuda' or 'cpu').
-            - reduction: Reduction method for loss functions (default: 'mean').
-            - loss: Name of the loss function to use (default: 'mse').
-            - optimizer: Name of the optimizer to use (default: 'adam').
-            - learning_rate: Learning rate for the optimizer (default: 1e-3).
+        params (Namespace or dict-like): Configuration object with attributes:
+            - lmks (list): List of target landmarks, used to set output channels.
+            - num_fts (int, optional): Number of base features in the UNet (default: 64).
+            - device (str, optional): Device for model training ('cuda' or 'cpu').
+            - reduction (str, optional): Reduction type for the loss (e.g., 'mean', 'sum').
+            - loss (list[str], optional): List with one string indicating the loss function name.
+            - optimizer (str, optional): Optimizer name ('adam' or 'sgd').
+            - learning_rate (float, optional): Learning rate for the optimizer (default: 1e-3).
 
     Returns:
-        model: The initialized model.
-        criterion: The selected loss function.
-        optimizer: The selected optimizer.
-        torch.inf: A placeholder value (can be replaced with a more meaningful return if needed).
+        tuple:
+            - model (torch.nn.Module): Initialized ResUNet3D model.
+            - criterion (nn.Module): Selected loss function instance.
+            - optimizer (torch.optim.Optimizer): Configured optimizer.
+            - float: Placeholder value (currently set to `torch.inf`).
     """
-    
-    # Initialize the model with default or user-specified parameters
+    # === Model Initialization ===
     model = ResUNet3D.ResUNet3D(
-        input_channels=1,  # Assuming single-channel input
-        output_channels=len(params.lmks),  # Number of output channels based on landmarks
-        base_features=getattr(params, "num_fts", 64)  # Default base features: 64
+        input_channels=1,  # Assuming single-channel input (e.g., grayscale or single-modality volumes)
+        output_channels=len(params.lmks),  # Output channels match the number of landmarks
+        base_features=getattr(params, "num_fts", 64)  # Base feature count (default: 64)
     )
-    # Move the model to the specified device (default: 'cuda' if available, else 'cpu')
-    model.to(getattr(params, "device", "cuda" if torch.cuda.is_available() else "cpu"))
 
+    # Move model to the specified device (default to CUDA if available)
+    device = getattr(params, "device", "cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+
+    # === Loss Function Selection ===
     loss_dict = {
-        # Version 1 loss functions
-        'kld': partial(KullbackLeiblerDivLoss, reduction=getattr(params, "reduction", 'mean')),  
+        # Version 1 losses
+        'kld': partial(KullbackLeiblerDivLoss, reduction=getattr(params, "reduction", 'mean')),
         'kldv2': partial(KullbackLeiblerDivLossV2, reduction=getattr(params, "reduction", 'mean')),
-        'mse': partial(MeanSquaredErrorLoss, reduction=getattr(params, "reduction", 'mean')),   
-        # Version 2 loss functions
-        'sce': partial(SoftmaxCrossEntropyLoss, reduction=getattr(params, "reduction", 'mean')), 
-        'dis': partial(DistanceMatrixLoss, reduction=getattr(params, "reduction", 'mean')), 
-        'emd': partial(EMDRegularizedLoss, reduction=getattr(params, "reduction", 'mean')),  # EMD loss
+        'mse': partial(MeanSquaredErrorLoss, reduction=getattr(params, "reduction", 'mean')),
+
+        # Version 2 losses
+        'sce': partial(SoftmaxCrossEntropyLoss, reduction=getattr(params, "reduction", 'mean')),
+        'dis': partial(DistanceMatrixLoss, reduction=getattr(params, "reduction", 'mean')),
+        'emd': partial(EMDRegularizedLoss, reduction=getattr(params, "reduction", 'mean')),
     }
-   
-    # Select the loss function based on user input or default to 'mse'
-    loss_name = getattr(params, 'loss', ['mse'])  # Default: 'mse'
-    if loss_name[0] in loss_dict:
-        criterion = loss_dict[loss_name[0]]()  # Instantiate the loss function
-    else:
-        raise ValueError(f"Unsupported loss function '{loss_name[0]}'. Choose from {list(loss_dict.keys())}.")
+
+    loss_name = getattr(params, 'loss', ['mse'])  # Default to 'mse' if not specified
+    loss_key = loss_name[0]
+
+    if loss_key not in loss_dict:
+        raise ValueError(f"Unsupported loss function '{loss_key}'. Choose from: {list(loss_dict.keys())}.")
     
-    # # If params.loss is a list, handle multiple losses
-    # if isinstance(loss_name, list):
-    #     if len(loss_name) == 0:
-    #         raise ValueError("The loss list is empty. Please provide at least one loss function.")
-    #     elif len(loss_name) == 1:
-    #             # Handle single loss case
+    criterion = loss_dict[loss_key]()  # Instantiate the selected loss function
 
-    #     else:
-    #         try:
-    #             # If multiple losses are provided, combine them into a single loss function
-    #             criterion = CombinedLoss(
-    #                 [loss_dict[loss]() for loss in loss_name], 
-    #                 weights=[1.0 for _ in loss_name],  # Equal weights for each loss 
-    #                 reduction=getattr(params, "reduction", 'mean')
-    #             )
-    #             print(criterion)
-    #         except KeyError as e:
-    #             raise ValueError(f"Unsupported loss function '{e.args[0]}'. Choose from {list(loss_dict.keys())}.")
-
-    # Define a dictionary of available optimizers
+    # === Optimizer Selection ===
     optim_dict = {
-        'adam': optim.Adam,  # Adam optimizer
-        'sgd': partial(optim.SGD, momentum=0.9)  # SGD optimizer with momentum
+        'adam': optim.Adam,
+        'sgd': partial(optim.SGD, momentum=0.9)
     }
-    
-    # Select the optimizer based on user input or default to 'adam'
-    optim_name = getattr(params, 'optimizer', 'adam')  # Default: 'adam'
-    optimizer_cls = optim_dict.get(optim_name)  # Get the optimizer class
+
+    optim_name = getattr(params, 'optimizer', 'adam')
+    optimizer_cls = optim_dict.get(optim_name)
 
     if optimizer_cls is None:
-        raise ValueError(f"Unsupported optimizer '{optim_name}'. Choose from {list(optim_dict.keys())}.")
-    
-    # Instantiate the optimizer with model parameters and learning rate
-    optimizer = optimizer_cls(model.parameters(), lr=getattr(params, 'learning_rate', 1e-3))
-    
-    # Print the model, loss function, and optimizer for debugging purposes
-    print(model, criterion, optimizer)
+        raise ValueError(f"Unsupported optimizer '{optim_name}'. Choose from: {list(optim_dict.keys())}.")
 
+    learning_rate = getattr(params, 'learning_rate', 1e-3)
+    optimizer = optimizer_cls(model.parameters(), lr=learning_rate)
+
+    # === Return ===
     return model, criterion, optimizer, torch.inf

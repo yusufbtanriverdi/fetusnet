@@ -42,11 +42,9 @@ def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps, use_w
         # Compute the loss
         if ind % 50 == 0:
             try:
-                # Visualize the target distance matrix
                 loss = criterion(outputs, targets, flag_visualize=False)
             except Exception as e:
-                print(f"Error during visualization: {e}")
-                print(f"Visualization is not implemented for this loss fn!")
+                loss = criterion(outputs, targets)
         else:
             loss = criterion(outputs, targets)
         # Compute the mean loss

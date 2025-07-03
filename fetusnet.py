@@ -1,34 +1,3 @@
-
-"""
-fetusnet.py
-This module serves as the main entry point for the FetusNet project, orchestrating the workflow for training, validating, and testing deep learning models for fetal landmark detection in medical images. It provides functionality for experiment management, data preparation, model training, evaluation, and logging.
-
-Main Functionalities:
----------------------
-- Experiment Initialization: Sets up experiment directories, logging, and experiment IDs.
-- Data Preparation: Handles creation and updating of patient information frames, dataset splitting, and target generation.
-- Model Training & Validation: Trains models for each landmark and fold, supports checkpointing, and logs metrics using Weights & Biases (wandb).
-- Model Testing & Evaluation: Loads trained models, evaluates on test data, computes metrics such as Average Expected Local Accuracy (AELA), and saves results.
-- Transformations: Applies configurable intensity rescaling and other TorchIO transformations to 3D medical images.
-- Configuration: Parses and manages experiment parameters, including device selection, paths, and training modes.
-
-Key Functions:
---------------
-- train_and_validate_one_fold: Handles the training and validation loop for a single fold and landmark, including checkpointing and metric logging.
-- Main script logic: Manages the workflow based on the selected mode (e.g., data preparation, training, testing).
-
-Usage:
-------
-Run this script as the main entry point to execute the desired workflow, as specified by the parameters (e.g., mode, etc.).
-
-
-Note:
------
-- The script assumes the presence of a configuration file and required data files (e.g., sinfo.csv).
-- Only 'one-by-one' training mode is supported due to computational constraints.
-- Logging and checkpointing are handled per fold and landmark.
-"""
-
 import os
 import pandas as pd
 import torchio as tio
@@ -36,168 +5,199 @@ import warnings
 import wandb
 import json
 
-# Import project modules
-from net.config.wandb import initialize_wandb
-from net.dataset import generate_targets
-from net.dataset.utility.loaders import get_train_val_dl, get_test_dl
-from net.config.create_experiment_id import create_experiment_id
-from net.dataset.statistics import create_info_frames, split_patient_fold
-from net.dataset import rotate
 from net.parameters.parameters import parameters_parsing
-from net.train import train_one_ep
-from net.infer import infer_one_ep
-from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
+from net.config.create_experiment_id import create_experiment_id
+from net.dataset.statistics.split import perform_split
+from net.dataset.statistics.prepare import perform_prepare
+from net.dataset.rotate import perform_rotate
+from logger_setup import setup_logger
+from net.dataset.utility.loaders import get_train_val_dl, get_test_dl
 from net.model.utility.get_fresh_model import get_fresh_model
+from net.phases.train import train_one_ep
+from net.phases.infer import infer_one_ep
+from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
+from net.config.wandb import initialize_wandb
 
-def train_and_validate_one_fold(sinfo_df, fold, params, transformations, experiment_directory, global_wandb_steps):
+def save_experiment_parameters(experiment_directory, experiment_id, params, date):
+    """
+    Saves experiment parameters and metadata as a JSON file inside the experiment directory.
 
-    print(f"\n--- Training Fold {fold + 1}/{params.n_split} ---")
+    Args:
+        experiment_directory (str): Path to the experiment directory where the log will be saved.
+        experiment_id (str): Unique experiment identifier.
+        params (object or dict): Parameters to log. Can be a Namespace, object with __dict__, or dict.
+        date (str): Date string of the experiment (e.g., '2025-07-03').
+    """
 
-    if params.use_wandb:
-        initialize_wandb(params, fold)
-        
+    # Ensure the experiment directory exists
+    if not os.path.exists(experiment_directory):
+        os.makedirs(experiment_directory, exist_ok=True)
+
+    log_file = os.path.join(experiment_directory, "parameters.json")
+
+    # Convert params to dictionary safely
+    if hasattr(params, '__dict__'):
+        params_dict = vars(params)
+    elif isinstance(params, dict):
+        params_dict = params
+    else:
+        # Try to convert any other object with attributes
+        params_dict = {k: getattr(params, k) for k in dir(params) if not k.startswith('_') and not callable(getattr(params, k))}
+
+    # Add experiment ID and date into the log data
+    log_data = {
+        "Experiment_ID": experiment_id,
+        "Date": date,
+        "Parameters": params_dict
+    }
+
+    # Write to JSON file with indentation for readability
+    with open(log_file, "w") as log:
+        json.dump(log_data, log, indent=4)
+
+def log_epoch_to_wandb(train_loss, val_loss, ep_scores, params, global_wandb_steps):
+    """
+    Logs training and validation losses along with landmark-specific metrics to Weights & Biases (wandb).
+
+    Args:
+        train_loss (float): Training loss for the current epoch.
+        val_loss (float): Validation loss for the current epoch.
+        ep_scores (dict): Dictionary containing evaluation metrics (e.g., dmean per landmark).
+        params: Configuration object containing:
+            - use_wandb (bool): Flag to enable wandb logging.
+            - lmks (list): List of landmark identifiers.
+        global_wandb_steps (dict): Dictionary tracking global step counters (e.g., {'epoch': int}).
+    """
+    if not getattr(params, 'use_wandb', False):
+        return  # Do nothing if wandb is disabled
+
+    # Log generic losses
+    wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': global_wandb_steps['epoch']})
+    wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': global_wandb_steps['epoch']})
+
+    # Log per-landmark evaluation metrics
+    for lmk in params.lmks:
+        metric_name = f'dmean_{lmk}'
+        if metric_name in ep_scores:
+            wandb.log({f'epoc/{metric_name}': ep_scores[metric_name].mean(),
+                       'epoc/epoch': global_wandb_steps['epoch']})
+
+    # Increment epoch counter
+    global_wandb_steps['epoch'] += 1
+    return global_wandb_steps
+
+def train_and_validate(fold_dataframe, fold_experiment_dir, params, transformations, global_wandb_steps):
+    train_dl, val_dl = get_train_val_dl(fold_dataframe, params, transformations=transformations)
+
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
+    logger.info(optimizer)
+    logger.info(criterion)
 
-    if params.resume:
-        experiment_directory = params.exp_dir
-        model_dir = f'{experiment_directory}/last.pt'
-        model, optimizer, in_epoch, best_criteria = load_checkpoint(model, optimizer, model_dir)
-    else:
-        in_epoch = 0
-        best_criteria = float('inf')
-    
-    print(params)
-    # Load training and validation data
-    train_dl, val_dl = get_train_val_dl(sinfo_df, fold, params, transformations=transformations)
-
+    train_losses = []
+    val_losses = []
     # Epoch training loop
-    for epoch in range(in_epoch, params.epochs):
-        print(f"\n[Epoch {epoch + 1}/{params.epochs}]")
+    for epoch in range(0, params.epochs):
+        logger.info(f" \n[Epoch {epoch + 1}/{params.epochs}] \n ")
 
         # Train for one epoch
         train_loss, global_wandb_steps = train_one_ep(
-            model, train_dl, criterion, optimizer, params.device, 
-            wandb_steps=global_wandb_steps,
-            use_wandb=params.use_wandb
+            model, 
+            train_dl, 
+            criterion, 
+            optimizer, 
+            params.device, 
+            global_wandb_steps,
+            params.use_wandb
         )
-        # Validate for one epoch
-        if epoch % 5 == 0:
-            val_loss, ep_scores, global_wandb_steps = infer_one_ep(
-                model, val_dl, criterion, params.device, global_wandb_steps, 
-                use_wandb=False, 
-                extract_via=params.extract_via, 
-                eval=True, 
-                save_dir=experiment_directory,
-                radius_eval=params.radius_eval, 
-                radius_num=params.radius_num,  
-                lmks=params.lmks,
-                )
-        else: 
-            val_loss, ep_scores, global_wandb_steps = infer_one_ep(
-            model, val_dl, criterion, params.device, global_wandb_steps, use_wandb=params.use_wandb, extract_via=params.extract_via, lmks=params.lmks, save_dir=experiment_directory)
 
-        if params.use_wandb:
-            # Log metrics to WandB
-            wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': global_wandb_steps['epoch']})
-            wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': global_wandb_steps['epoch']})
-            
-            for lmk in params.lmks:
-                wandb.log({f'epoc/dmean_{lmk}': ep_scores[f'dmean_{lmk}'].mean(), 'epoc/epoch': global_wandb_steps['epoch']})
-            global_wandb_steps['epoch'] += 1
+        val_loss, ep_scores, global_wandb_steps = infer_one_ep(
+            model, 
+            val_dl, 
+            criterion, 
+            params.device, 
+            global_wandb_steps, 
+            params.use_wandb, 
+            params.landmark_extractor, 
+            eval=False,
+            lmks=params.lmks, 
+            save_dir=fold_experiment_dir)
 
-        # Save best model
+                # Save best model
         if val_loss < best_criteria:
             best_criteria = val_loss
             save_checkpoint(model, optimizer, epoch, val_loss, 
-                            os.path.join(experiment_directory, f'best.pt'))
+                            os.path.join(fold_experiment_dir, f'best.pt'))
 
         # Save last model
         save_checkpoint(model, optimizer, epoch, val_loss, 
-                        os.path.join(experiment_directory, f'last.pt'))
+                        os.path.join(fold_experiment_dir, f'last.pt'))
+        logger.info(f"Train loss: {train_loss}")
+        logger.info(f"Validation loss: {val_loss}")
+        train_losses.append(train_loss)
+        val_losses.append(val_loss)
+        global_wandb_steps = log_epoch_to_wandb(train_loss, val_loss, ep_scores, params, global_wandb_steps)
 
-    # EVALUATE # 
-    # Initialize model, loss, optimizer
-    model, criterion, optimizer, best_criteria = get_fresh_model(params)
-    # Load the best model checkpoint
-    model_dir = f'{experiment_directory}/best.pt'
-    model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
-    print(f"Best validation loss was {best_val_loss}") 
-    # Load test data
-    test_dl = get_test_dl(params, fold, transformations=transformations)
-    # Final evaluation on test set
-    _, ep_scores, global_wandb_steps = infer_one_ep(
-        model, test_dl, criterion, params.device, global_wandb_steps, 
-        use_wandb=False, 
-        extract_via=params.extract_via, 
-        eval=True, 
-        save_dir=experiment_directory,
-        radius_eval=params.radius_eval, 
-        radius_num=params.radius_num,  
-        lmks=params.lmks,
-        )
+    return train_losses, val_losses
+
+def update_dataframe(dataframe):
+    # Construct full file paths by joining base paths with relative paths
+    paths = dataframe['processed__vol_path'].apply(lambda x: os.path.join(params.sys + params.root, x))
+
+    # Create a boolean mask for existing files
+    mask = paths.apply(os.path.exists)
+
+    # Filter DataFrame by mask and reset index
+    dataframe = dataframe[mask].reset_index(drop=True)
+
+    return dataframe
     
-    for lmk in params.lmks:
-        print(f"Test d-mean Score for {lmk}: ", ep_scores[f"dmean_{lmk}"].mean(), " +/-", ep_scores[f"dmean_{lmk}"].std())
-    if params.use_wandb:
-        # Finish WandB logging
-        wandb.finish()
-
-
-    return global_wandb_steps, best_val_loss
-
 # Suppress UserWarnings
 warnings.filterwarnings("ignore", category=UserWarning)
-
 # Initialize parameters
 params = parameters_parsing()
-
-# Create experiment directory and log
-experiment_directory, date = create_experiment_id(params)
-# Initialize global tracking dictionary for WandB
+experiment_dir, experiment_name = create_experiment_id(params, create_directory=True)
 global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
+# Initialize logger
+logger = setup_logger(experiment_dir)
+logger.info("Experiment started and parameters are saved.")
+logger.info(f"System path set to: {params.sys}")
+logger.info(f"Device set to: {params.device}")
+logger.info("Searching for master dataframe in system+dataset_root... \n If you did not prepare such dataframe or you think it misses some samples, please re-run this script in prepare mode and specify datasets")
 
-
-# Assuming experiment_directory, experiment_id, and params are defined
-log_file = os.path.join(experiment_directory, "parameters.json")
-# Convert params (probably a Namespace or object) to dictionary
-params_dict = vars(params) if hasattr(params, '__dict__') else dict(params)
-# Add experiment ID as well
-log_data = {
-    "Date": date,
-    "Parameters": params_dict
-}
-with open(log_file, "w") as log:
-    json.dump(log_data, log, indent=4)
-
-# Set system paths based on OS
-if params.os in ['linux', 'l']:
-    params.sys = "/media/yusuf/HDD 4TB/"
-else:
-    params.sys = "D:/"
-
-print(f"System path set to: {params.sys}")
-print('Device: ', params.device)
-
-# Handle specific modes for data preparation
-if params.mode in ['script_prepare']:
-    print(f" WELCOME TO {params.mode} MODE. \nCreating info frames...")
-    sinfo_df = create_info_frames.main(params)
+# Create info frames
+if params.mode == 'prepare':
+    master_dataframe_path = perform_prepare(params)
 
 # Load or create sinfo dataframe
-sinfo_path = params.sys + params.root + 'sinfo.csv'
-print(f"Loading sinfo from {sinfo_path}...")
-if os.path.exists(sinfo_path):
-    sinfo_df = pd.read_csv(sinfo_path)
+master_dataframe_path = os.path.join(params.sys, params.root, 'sinfo.csv')
+if os.path.exists(master_dataframe_path):
+    master_dataframe = pd.read_csv(master_dataframe_path)
 else:
-    raise FileNotFoundError("sinfo.csv not found.")
-print("Number of images: ", len(sinfo_df))
+    logger.error(f"Master dataframe not found @ {master_dataframe_path}.")
+    raise FileNotFoundError("Master dataframe not found.")
 
-# Rotate/alignment step (commented out by default)
-if params.mode == 'script_rotate':
-    rotate.main(sinfo_df, params)
+# Rotate/alignment step
+if params.mode == 'rotate':
+    perform_rotate(master_dataframe, params, experiment_dir)
 
-sinfo_df = create_info_frames.update(sinfo_df, params)
+# Split into subsets
+split_dataframe_path = os.path.join(params.sys, params.root, params.split + '.csv')
+
+if params.mode == 'presplit':
+    splitted_dataframe = perform_split(master_dataframe, params)
+    splitted_dataframe.to_csv(split_dataframe_path)
+
+logger.info(f"Total number of input in master dataframe: {len(master_dataframe)}")
+logger.info(f"Moving into splitting... You selected {params.split}")
+logger.info("I am checking if there is already a split dataframe for this splitter...")
+if os.path.exists(split_dataframe_path):
+    splitted_dataframe = pd.read_csv(split_dataframe_path, index_col=0)
+else:
+    logger.warning("Split dataframe not found. Please re-run this script in presplit mode to store splitting information. Now, I will split for you. \n")
+    splitted_dataframe = perform_split(master_dataframe, params)
+
+logger.info(f"Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
 
 # Define transformations for 3D images
 transforms = [
@@ -205,72 +205,117 @@ transforms = [
                 # tio.Flip(axes=('L',)),
               ] if params.rescale else []
 transformations = tio.Compose(transforms)
+logger.info("Transformations are created.")
 
-sinfo_df = sinfo_df[sinfo_df['source'].isin(params.dataset)]
-print("Number of images: ", len(sinfo_df))
+splitted_dataframe = update_dataframe(splitted_dataframe)
 
-# Training phase
-if params.mode in ['train', 'train_val']:
+if params.mode == 'train':
+    logger.info("I am starting to train")
+    # This comes with validation.
+    if 'crossfold' in params.split:
+        for fold in params.iter_fold:
+            if params.use_wandb:
+                initialize_wandb(params, experiment_name+'_fold' + str(fold))
 
-    # Training across folds
-    if not params.iter_folds:
-        iter_folds = range(params.n_split)
+            fold_experiment_dir = os.path.join(experiment_dir, f'fold_{fold}')
+            fold_dataframe = splitted_dataframe[splitted_dataframe['fold'] == fold]
+            logger.info(f"\n--- Training Fold {fold}/{params.n_split-1} --- \n")
+            # Initialize model, loss, optimizer
+            model, criterion, optimizer, best_criteria = get_fresh_model(params)
+            train_losses, val_losses = train_and_validate(fold_dataframe, experiment_dir, params, transformations, global_wandb_steps)
+            # Combine losses into a DataFrame
+            loss_df = pd.DataFrame({
+                'epoch': list(range(len(train_losses))),
+                'train_loss': train_losses,
+                'val_loss': val_losses
+            })
+            # Save to CSV or any preferred format
+            loss_df.to_csv(os.path.join(fold_experiment_dir, f"fold_{fold}_losses.csv"), index=False)
+
+            model_dir = f'{fold_experiment_dir}/best.pt'
+            model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
+            test_dl = get_test_dl(fold_dataframe, params, transformations=transformations)
+            test_loss, test_scores, global_wandb_steps = infer_one_ep(
+                    model, 
+                    test_dl, 
+                    criterion, 
+                    params.device, 
+                    global_wandb_steps, 
+                    params.use_wandb, 
+                    params.landmark_extractor, 
+                    eval=True,
+                    radius_eval=params.radius_eval, 
+                    radius_num=params.radius_num,  
+                    lmks=params.lmks, 
+                    save_dir=fold_experiment_dir)
+            
+            for lmk in params.lmks:
+                mean = test_scores[f"dmean_{lmk}"].mean()
+                std = test_scores[f"dmean_{lmk}"].std()
+                logger.info(f"Test d-mean Score for {lmk} @ fold {fold}: {mean} +/- {std}")
+
+            if params.use_wandb: wandb.finish()
+
     else:
-        iter_folds = params.iter_folds
-
-    for fold in iter_folds:
-            # Create a subdirectory for this fold within the experiment directory
-        fold_experiment_dir = os.path.join(experiment_directory, f'fold_{fold}')
-        os.makedirs(fold_experiment_dir, exist_ok=True)
-        # Initialize global tracking dictionary for WandB
-        global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
-        global_wandb_steps, best_val_loss = train_and_validate_one_fold(sinfo_df, fold, params, transformations, fold_experiment_dir, global_wandb_steps)
-
-        print(f"Experiment ID: {experiment_directory}\n")
-        print(f"Parameters: {vars(params)}\n")
-        print(f"Fold {fold} completed for selected landmarks {'_'.join(params.lmks)}.\n")
-        print(f"Best validation loss: {best_val_loss}\n")   
-
-    print(f"Training completed for all folds.\n")
-
-# # Testing or evaluation phase
-if params.mode in ['test', 'eval']:
-
-    # Training across folds
-    if not params.iter_folds:
-        iter_folds = range(params.n_split)
-    else:
-        iter_folds = params.iter_folds
-
-    for fold in iter_folds:
-        # Create a subdirectory for this fold within the experiment directory
-        # EVALUATE # 
+        if params.use_wandb: initialize_wandb(params, experiment_name+'_'+params.split)
+        logger.info(f"\n--- Training {params.split} --- \n")
         # Initialize model, loss, optimizer
-            # Create a subdirectory for this fold within the experiment directory
-        fold_experiment_dir = os.path.join(experiment_directory, f'fold_{fold}')
-        os.makedirs(fold_experiment_dir, exist_ok=True)
         model, criterion, optimizer, best_criteria = get_fresh_model(params)
-        # Load the best model checkpoint
-        model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, params.model_dir)
-        print(f"Best validation loss was {best_val_loss}") 
-        # Load test data
-        test_dl = get_test_dl(sinfo_df, fold, params, transformations=transformations)
-        
-        global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
-        # Final evaluation on test set
-        _, ep_scores, global_wandb_steps = infer_one_ep(
-            model, test_dl, criterion, params.device, global_wandb_steps, 
-            use_wandb=False, 
-            extract_via=params.extract_via, 
-            eval=True, 
-            save_dir=fold_experiment_dir,
-            radius_eval=params.radius_eval, 
-            radius_num=params.radius_num,  
-            lmks=params.lmks,
-            )
+        train_losses, val_losses = train_and_validate(splitted_dataframe, experiment_dir, params, transformations, global_wandb_steps)
+        # Combine losses into a DataFrame
+        loss_df = pd.DataFrame({
+            'epoch': list(range(len(train_losses))),
+            'train_loss': train_losses,
+            'val_loss': val_losses
+        })
+        # Save to CSV or any preferred format
+        loss_df.to_csv(os.path.join(experiment_dir, f"losses.csv"), index=False)
+
+        model_dir = f'{experiment_dir}/best.pt'
+        test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
+        test_loss, test_scores, global_wandb_steps = infer_one_ep(
+                model, 
+                test_dl, 
+                criterion, 
+                params.device, 
+                global_wandb_steps, 
+                params.use_wandb, 
+                params.landmark_extractor, 
+                eval=True,
+                radius_eval=params.radius_eval, 
+                radius_num=params.radius_num,  
+                lmks=params.lmks, 
+                save_dir=experiment_dir)
         
         for lmk in params.lmks:
-            print(f"Test d-mean Score for {lmk}: ", ep_scores[f"dmean_{lmk}"].mean(), " +/-", ep_scores[f"dmean_{lmk}"].std())
+            mean = test_scores[f"dmean_{lmk}"].mean()
+            std = test_scores[f"dmean_{lmk}"].std()
+            logger.info(f"Test d-mean Score for {lmk}: {mean} +/- {std}")
 
-    
-# python fetusnet.py test --lmks enR --num_fts 32 --loss emd --optim adam --lr 0.0001 --iter_folds 1 --model_dir archive/emd4enr_rn --prefix deneme 
+        if params.use_wandb: wandb.finish()
+
+
+if params.mode == 'test':
+    test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
+    # Initialize model, loss, optimizer
+    model, criterion, optimizer, best_criteria = get_fresh_model(params)
+    model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, params.model_dir)
+
+    test_loss, test_scores, global_wandb_steps = infer_one_ep(
+            model, 
+            test_dl, 
+            criterion, 
+            params.device, 
+            global_wandb_steps, 
+            params.use_wandb, 
+            params.landmark_extractor, 
+            eval=True,
+            radius_eval=params.radius_eval, 
+            radius_num=params.radius_num,  
+            lmks=params.lmks, 
+            save_dir=experiment_dir)
+
+    for lmk in params.lmks:
+        mean = test_scores[f"dmean_{lmk}"].mean()
+        std = test_scores[f"dmean_{lmk}"].std()
+        logger.info(f"Test d-mean Score for {lmk}: {mean} +/- {std}")

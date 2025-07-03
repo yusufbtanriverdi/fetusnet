@@ -1,0 +1,60 @@
+{
+  "mode": "Execution mode for the script",
+  "train": "Train the model",
+  "test": "Test the model",
+  "prepare": "Prepare the dataset",
+  "rotate": "Rotate or align 3D images",
+  "presplit": "Presplit",
+  "help": "Display this help message",
+
+  "dataset_path": "Path to the dataset directory",
+  "config": "Path to config file",
+  "system_path": "System root path based on the operating system",
+  "raw_dir": "Directory containing raw input images",
+  "os": "Operating system type (e.g., 'linux', 'windows')",
+  "wandbpro": "Weights & Biases project name for logging",
+  "device": "Computation device (e.g., 'cuda', 'cpu')",
+  "desired_size": "Target size for input images (e.g., [128, 128, 128])",
+  "desired_spacings": "Target voxel spacing for image resampling",
+
+  "dataset": "List of clinics or data sources included",
+  "split": "Choose training strategy in terms of splitting.",
+  "n_split": "Number of splits for cross-validation",
+  "test_patients": "List of patient IDs reserved for testing",
+
+  "generate": "Mode for data generation",
+  "target_idx": "Indices of target landmarks to detect",
+  "g-alpha": "Alpha parameter controlling Gaussian heatmap spread",
+  "g-eps": "Threshold for Gaussian peak detection",
+
+  "prefix": "Experiment run identifier",
+  "use_wandb": "Enable logging with Weights & Biases",
+  "iter_folds": "Selected cross-validation folds (optional)",
+  "resume": "Resume training from a saved checkpoint",
+  "resume_dir": "Directory to resume training checkpoint from",
+  "seed": "Random seed for reproducibility",
+
+  "rescale": "Flag to enable image rescaling",
+  "lmks": "List of landmarks to detect",
+
+  "batch_size_train": "Batch size used during training",
+  "batch_size_val": "Batch size used during validation",
+  "batch_size_test": "Batch size used during testing",
+  "num_workers": "Number of worker threads for data loading",
+
+  "architecture": "Backbone neural network architecture",
+
+  "epochs": "Total number of training epochs",
+  "num_fts": "Number of feature channels for backbone network",
+  "optimizer": "Optimizer algorithm choice",
+  "learning_rate": "Learning rate for optimizer",
+  "lr_momentum": "Momentum parameter for SGD optimizer",
+
+  "reduction": "Method to reduce loss values (e.g., mean, sum)",
+  "loss": "Loss functions to be applied (accepts list)",
+
+  "model_dir": "Directory for loading/saving model checkpoints",
+  "radius_eval": "Radius used during evaluation",
+  "radius_num": "Number of radius values to evaluate",
+  "landmark_extractor": "Method used for landmark extraction from heatmaps"
+}

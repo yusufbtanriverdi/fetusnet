@@ -1,34 +1,39 @@
 from net.dataset.MyDataset import MyDataset
 import torchio as tio
-import pandas as pd
-from net.dataset.statistics.create_info_frames import update
-from net.dataset.statistics.split_patient_fold import split
 
-def get_train_val_dl(sinfo, num, params, transformations):
+def get_train_val_dl(splitted_dataframe, params, transformations):
     """
-    Create DataLoaders for training and validation sets.
+    Create training and validation DataLoaders from a pre-split dataframe.
+
+    This function uses the provided split dataframe to generate `MyDataset` instances
+    for training and validation. It then wraps them with `torchio.SubjectsLoader`
+    to return ready-to-use DataLoaders.
 
     Args:
-        lmk: Landmark information used for dataset creation.
-        num (int): Fold number for cross-validation.
-        params: Configuration object containing hyperparameters.
-        transformations: Preprocessing transformations to apply.
+        splitted_dataframe (pd.DataFrame): DataFrame containing the full dataset with 
+            a 'set' column:
+                - 0: training samples
+                - 1: validation samples
+        params (Namespace): Configuration object with the following attributes:
+            - sys (str): Base system path.
+            - root (str): Dataset root folder.
+            - generate (bool): Whether to generate additional features or labels.
+            - alpha (float): Parameter passed to dataset.
+            - eps (float): Parameter passed to dataset.
+            - lmks (Any): Landmark information used in data loading.
+            - batch_size_train (int): Batch size for training DataLoader.
+            - batch_size_val (int): Batch size for validation DataLoader.
+            - num_workers (int): Number of subprocesses used for data loading.
+        transformations (Callable): A set of data transformations to apply to each sample.
 
     Returns:
-        tuple: (train_dl, val_dl) - DataLoaders for training and validation sets.
+        tuple:
+            - train_dl (tio.SubjectsLoader): DataLoader for training data.
+            - val_dl (tio.SubjectsLoader): DataLoader for validation data.
     """
-
-    sinfo = split(sinfo, params)
-    # Update dataset information (e.g., preprocessing or additional metadata)
-    sinfo = update(sinfo, params)
-
-    # Split dataset into training and validation sets based on the 'set' column
-    train_idx = sinfo.index[sinfo['fold'] != num].tolist()  # Indices for training set
-    val_idx = sinfo.index[sinfo['fold'] == num].tolist()    # Indices for validation set
-
     # Create training and validation datasets
     train_ds = MyDataset(
-        sinfo.iloc[train_idx].reset_index(drop=True), # Subset for training
+        splitted_dataframe[splitted_dataframe['set'] == 0].reset_index(drop=True), # Subset for training
         params.sys + params.root,                     # Root directory
         params.generate,                              # Data generation flag
         (params.alpha, params.eps),                   # Additional parameters
@@ -37,7 +42,7 @@ def get_train_val_dl(sinfo, num, params, transformations):
 
     )
     val_ds = MyDataset(
-        sinfo.iloc[val_idx].reset_index(drop=True),   # Subset for validation
+        splitted_dataframe[splitted_dataframe['set'] == 1].reset_index(drop=True),   # Subset for validation
         params.sys + params.root,                     # Root directory
         params.generate,                              # Data generation flag
         (params.alpha, params.eps),                   # Additional parameters
@@ -62,34 +67,34 @@ def get_train_val_dl(sinfo, num, params, transformations):
     return train_dl, val_dl
 
 
-def get_test_dl(sinfo, num, params, transformations):
+def get_test_dl(splitted_dataframe, params, transformations):
     """
-    Create a DataLoader for the test set.
+    Create a DataLoader for the test set using the provided parameters and transformations.
+
+    This function filters the input dataframe for test entries (where 'set' == 2),
+    initializes a dataset, and wraps it in a PyTorch-Ignite DataLoader for batch inference.
 
     Args:
-        params: Configuration object containing hyperparameters.
-        lmk: Landmark information used for dataset creation.
-        transformations: Preprocessing transformations to apply.
+        splitted_dataframe (pd.DataFrame): The full dataframe with a 'set' column where:
+                                           0 = train, 1 = val, 2 = test.
+        params (Namespace or dict-like): Configuration object containing:
+            - sys (str): System root path prefix.
+            - root (str): Relative dataset root path.
+            - generate (bool): Whether to use synthetic/generated data.
+            - alpha (float): Hyperparameter passed to the dataset.
+            - eps (float): Another dataset hyperparameter.
+            - lmks (list): List of landmark names.
+            - batch_size_test (int): Batch size for the test DataLoader.
+            - num_workers (int): Number of worker threads for data loading.
+        transformations (Callable): Transformations to apply to each sample (e.g., augmentation, normalization).
 
     Returns:
-        DataLoader: Test DataLoader.
+        torch.utils.data.DataLoader: DataLoader instance for the test set, ready for evaluation/inference.
     """
-    sinfo = split(sinfo, params)
-    # Update dataset information (e.g., preprocessing or additional metadata)
-    sinfo = update(sinfo, params)
-    
-    if params.test_patients is None:
-        print("Test patients list is empty. I will iterate all validation patients in current fold.")
-        test_idx = sinfo.index[sinfo['fold'] == num].tolist()    # Indices for validation set
-
-    else: 
-        print(f"Test patients: {params.test_patients}")
-        # Identify indices for test set based on patient IDs
-        test_idx = sinfo.index[sinfo['pid'].isin(params.test_patients)].tolist()
 
     # Create test dataset
     test_ds = MyDataset(
-        sinfo.iloc[test_idx].reset_index(drop=True), # Subset for test
+        splitted_dataframe[splitted_dataframe['set'] == 2].reset_index(drop=True), # Subset for test
         params.sys + params.root,                    # Root directory
         params.generate,                             # Data generation flag
         (params.alpha, params.eps),                  # Additional parameters
@@ -99,13 +104,11 @@ def get_test_dl(sinfo, num, params, transformations):
     )
 
     # Create DataLoader for the test dataset
-    # Create DataLoader for the test dataset
     test_dl = tio.SubjectsLoader(
         dataset=test_ds,
         batch_size=params.batch_size_test,  # Batch size for testing
         shuffle=False,                      # Do not shuffle test data
         num_workers=params.num_workers,      # Number of worker threads
-        # multiprocessing_context is not set here; add if needed, e.g., 
     )
 
     return test_dl

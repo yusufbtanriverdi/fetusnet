@@ -1,0 +1,8 @@
+{
+  "mode": ["train", "test", "prepare", "rotate", "presplit", "help"],
+  "optimizer": ["adam", "sgd"],
+  "reduction": ["mean", "sum", "none"],
+  "generate": ["gaussian"],
+  "architecture": ["resunet3d"],
+  "split": ["crossfold", "splitthecake","splitthecakeacross","getalienshere", "custom"]
+}

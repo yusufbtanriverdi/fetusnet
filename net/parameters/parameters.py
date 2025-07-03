@@ -1,113 +1,136 @@
 import argparse
-from net.parameters.config import parameters_default, parameters_choices, parameters_help, print_help
+import json
+import os
+
+DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'defaults.json')
+HELP_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'help.json')
+CHOICES_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'choices.json')
+
+
+def load_json_config(path):
+    # Loads json config file
+    with open(path, 'r') as f:
+        return json.load(f)
+
+
+def load_config(default_path=DEFAULT_CONFIG_PATH, user_path=None):
+    # Load defaults first
+    with open(default_path, 'r') as f:
+        config = json.load(f)
+
+    # If user config provided and exists, update defaults with it
+    if user_path and os.path.exists(user_path):
+        with open(user_path, 'r') as f:
+            user_config = json.load(f)
+        config.update(user_config)
+
+    return config
+
+
+parameters_help = load_json_config(HELP_CONFIG_PATH)
+parameters_choices = load_json_config(CHOICES_CONFIG_PATH)
+
+
+def print_help(*args, **kwargs):
+    print("Available modes:")
+    for mode in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help']:
+        print(f"  {mode:16} {parameters_help.get(mode, '')}")
+
+
+def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
+    """Adds all common arguments to a subparser"""
+    subparser.add_argument('--dataset_path', type=str, default=defaults.get('dataset_path'), help=parameters_help['dataset_path'])
+    subparser.add_argument('--config', type=str, help=parameters_help['config'], required=False)
+    subparser.add_argument('--system_path', type=str, default=defaults.get('system_path'), help=parameters_help['system_path'])
+    subparser.add_argument('--raw_dir', type=str, default=defaults.get('raw_dir'), help=parameters_help['raw_dir'])
+    subparser.add_argument('--os', type=str, default=defaults.get('os'), help=parameters_help['os'])
+    subparser.add_argument('--wandbpro', type=str, default=defaults.get('wandbpro'), help=parameters_help['wandbpro'])
+    subparser.add_argument('--device', type=str, default=defaults.get('device'), help=parameters_help['device'])
+
+    subparser.add_argument('--split', type=str, default=defaults.get('split'), help=parameters_help['split'])
+    subparser.add_argument('--alien_test_path', type=str, help=parameters_help['system_path'], required=False)
+    # Rotation related
+    subparser.add_argument('--desired_size', type=int, default=defaults.get('desired_size'), help=parameters_help['desired_size'])
+    subparser.add_argument('--desired_spacings', type=int, default=defaults.get('desired_spacings'), help=parameters_help['desired_spacings'])
+
+    subparser.add_argument('--dataset', nargs='+', type=str, default=defaults.get('dataset'), help=parameters_help['dataset'])
+    subparser.add_argument('--n_split', '-n', type=int, default=defaults.get('n_split'), help=parameters_help['n_split'])
+    subparser.add_argument('--test_patients', nargs='+', type=int, help=parameters_help['test_patients'])
+
+    subparser.add_argument('--generate', type=str, default=defaults.get('generate'), choices=parameters_choices['generate'], help=parameters_help['generate'])
+    subparser.add_argument('--target_idx', nargs='+', type=int, default=defaults.get('target_idx'), help=parameters_help['target_idx'])
+    subparser.add_argument('--g-alpha', type=float, default=defaults.get('g-alpha'), help=parameters_help['g-alpha'])
+    subparser.add_argument('--g-eps', type=int, default=defaults.get('g-eps'), help=parameters_help['g-eps'])
+
+    subparser.add_argument('--prefix', type=str, default=defaults.get('prefix'), help=parameters_help['prefix'])
+    subparser.add_argument('--use_wandb', action='store_true', default=defaults.get('use_wandb'), help=parameters_help['use_wandb'])
+    subparser.add_argument('--iter_folds', '-ifs', nargs='+', type=int, default=defaults.get('iter_folds'), help=parameters_help['iter_folds'])
+    subparser.add_argument('--resume', action='store_true', default=defaults.get('resume'), help=parameters_help['resume'])
+    subparser.add_argument('--resume_dir', type=str, default=defaults.get('resume_dir'), help=parameters_help['resume_dir'])
+    subparser.add_argument('--seed', type=int, default=defaults.get('seed'), help=parameters_help['seed'])
+
+    subparser.add_argument('--rescale', action='store_true', default=defaults.get('rescale'), help=parameters_help['rescale'])
+    subparser.add_argument('--lmks', type=str, nargs='+', default=defaults.get('lmks'), help=parameters_help['lmks'])
+
+    subparser.add_argument('--batch_size_train', '-bs', type=int, default=defaults.get('batch_size_train'), help=parameters_help['batch_size_train'])
+    subparser.add_argument('--batch_size_val', type=int, default=defaults.get('batch_size_val'), help=parameters_help['batch_size_val'])
+    subparser.add_argument('--batch_size_test', type=int, default=defaults.get('batch_size_test'), help=parameters_help['batch_size_test'])
+    subparser.add_argument('--num_workers', type=int, default=defaults.get('num_workers'), help=parameters_help['num_workers'])
+
+    subparser.add_argument('--architecture', '-a', type=str, default=defaults.get('architecture'), help=parameters_help['architecture'])
+
+    subparser.add_argument('--epochs', '-ep', type=int, default=defaults.get('epochs'), help=parameters_help['epochs'])
+    subparser.add_argument('--num_fts', type=int, default=defaults.get('num_fts'), help=parameters_help['num_fts'])
+    subparser.add_argument('--optimizer', '-optim', type=str, default=defaults.get('optimizer'), choices=parameters_choices['optimizer'], help=parameters_help['optimizer'])
+    subparser.add_argument('--learning_rate', '-lr', type=float, default=defaults.get('learning_rate'), help=parameters_help['learning_rate'])
+    subparser.add_argument('--lr_momentum', '-m', type=int, default=defaults.get('lr_momentum'), help=parameters_help['lr_momentum'])
+
+    subparser.add_argument('--reduction', type=str, choices=parameters_choices['reduction'], default=defaults.get('reduction'), help=parameters_help['reduction'])
+    subparser.add_argument('--loss', '-l', nargs='+', type=str, default=defaults.get('loss'), help=parameters_help['loss'])
+
+    subparser.add_argument('--model_dir', type=str, default=defaults.get('model_dir'), help=parameters_help['model_dir'])
+    subparser.add_argument('--radius_eval', type=int , default=defaults.get('radius_eval'), help=parameters_help['radius_eval'])
+    subparser.add_argument('--radius_num', type=int, default=defaults.get('radius_num'), help=parameters_help['radius_num'])
+    subparser.add_argument('--landmark_extractor', type=str, default=defaults.get('landmark_extractor'), help=parameters_help['landmark_extractor'])
 
 
 def parameters_parsing() -> argparse.Namespace:
-    """
-    Definition of parameters-parsing for each execution mode
+    """Unified entry point for parameter parsing"""
+    parser = argparse.ArgumentParser(description='FetusNet CLI')
 
-    :return: parser of parameters parsing
-    """
+    # Global argument: path to config file
+    parser.add_argument('--config', type=str, help='Path to JSON config to override defaults')
 
-    # Initialize the main argument parser
-    parser = argparse.ArgumentParser(description='Argument Parser')
+    # Subcommands
+    subparsers = parser.add_subparsers(dest='mode', metavar='mode', title=parameters_help['mode'])
 
-    # ---------------- #
-    # EXECUTION MODES  #
-    # ---------------- #
-    parser_mode = parser.add_subparsers(title=parameters_help['mode'], dest='mode', metavar='mode')
+    defaults = load_config()
 
-    # Define subparsers for different execution modes
-    parser_train = parser_mode.add_parser('train', help=parameters_help['train'])
-    parser_test = parser_mode.add_parser('test', help=parameters_help['test'])
+    train_parser = subparsers.add_parser('train', help=parameters_help['train'])
+    test_parser = subparsers.add_parser('test', help=parameters_help['test'])
+    prep_parser = subparsers.add_parser('prepare', help=parameters_help['prepare'])
+    rotate_parser = subparsers.add_parser('rotate', help=parameters_help['rotate'])
+    presplit_parser = subparsers.add_parser('presplit', help=parameters_help['presplit'])
+    help_parser = subparsers.add_parser('help', help=parameters_help['help'])
+    help_parser.set_defaults(func=print_help)
 
-    # Define subparsers for utility scripts
-    parser_script_prepare = parser_mode.add_parser('script_prepare', help=parameters_help['script_prepare'])
-    parser_script_rotate = parser_mode.add_parser('script_rotate', help=parameters_help['script_rotate'])
+    # Add common args to all subcommands except help
+    for sub in [train_parser, test_parser, prep_parser, presplit_parser, rotate_parser]:
+        add_common_args(sub, defaults)
 
-    # Help subparser
-    parser_script_help = parser_mode.add_parser('help', help=parameters_help['help'])
-    parser_script_help.set_defaults(func=print_help)
+    args = parser.parse_args()
 
-    # List of all execution modes
-    execution_mode = [
-        parser_train,
-        parser_test,
-        parser_script_prepare,
-        parser_script_rotate,
-        parser_script_help
-    ]
+    # Reload defaults with user config if specified
+    merged_config = load_config(user_path=args.config if hasattr(args, 'config') else None)
 
-    # ----------------------- #
-    # COMMON PARAMETERS GROUP #
-    # ----------------------- #
-    for subparser in execution_mode:
-        # Initialization parameters
-        subparser.add_argument('--root', type=str, default=parameters_default['root'], help=parameters_help['root'])
-        subparser.add_argument('--raw_dir', type=str, default=parameters_default['raw_dir'], help=parameters_help['raw_dir'])
-        subparser.add_argument('--os', type=str, default=parameters_default['os'], help=parameters_help['os'])
-        subparser.add_argument('--wandbpro', type=str, default=parameters_default['wandbpro'], help=parameters_help['wandbpro'])
-        # Device parameter
-        subparser.add_argument('--device', type=str, default=parameters_default['device'], help=parameters_help['device'])
-        # Rotation parameters
-        subparser.add_argument('--desired_size', type=int, default=parameters_default['desired_size'], help=parameters_help['desired_size'])
-        subparser.add_argument('--desired_spacings', type=int, default=parameters_default['desired_spacings'], help=parameters_help['desired_spacings'])
+    # Overwrite default argparse values with JSON-loaded ones if they are None
+    for k, v in merged_config.items():
+        if not hasattr(args, k) or getattr(args, k) is None:
+            setattr(args, k, v)
 
-        # Dataset parameters
-        subparser.add_argument('--dataset', nargs='+', type=str, default=parameters_default['dataset'], help=parameters_help['dataset'])
-        subparser.add_argument('--n_split', type=int, default=parameters_default['n_split'], help=parameters_help['n_split'])
-        subparser.add_argument('--test_patients', nargs='+', type=int, help=parameters_help['test_patients'])
+    # If mode is 'help', call print_help and exit
+    if args.mode == 'help':
+        print_help()
+        exit(0)
 
-        # Target generation parameters
-        subparser.add_argument('--generate', type=str, default=parameters_default['generate'], help=parameters_help['generate'], choices=parameters_choices['generate'])
-        subparser.add_argument('--target_idx', nargs='+', type=int, default=parameters_default['target_idx'], help=parameters_help['target_idx'])
-        subparser.add_argument('--alpha', type=float, default=parameters_default['alpha'], help=parameters_help['alpha'])
-        subparser.add_argument('--eps', type=int, default=parameters_default['eps'], help=parameters_help['eps'])
-
-        # Experiment parameters
-        subparser.add_argument('--prefix', type=str, default=parameters_default['prefix'], help=parameters_help['prefix'])
-        subparser.add_argument('--use_wandb', action='store_true', default=parameters_default['use_wandb'], help=parameters_help['use_wandb'])
-        # Iterative folds parameter
-        subparser.add_argument('--iter_folds', nargs='+', type=int, default=parameters_default['iter_folds'], help=parameters_help['iter_folds'])
-        # Resume and experiment directory parameters
-        subparser.add_argument('--resume', action='store_true', default=parameters_default['resume'], help=parameters_help['resume'])
-        subparser.add_argument('--exp_dir', type=str, default=parameters_default['exp_dir'], help=parameters_help['exp_dir'])
-        # Reproducibility
-        subparser.add_argument('--seed', type=int, default=parameters_default['seed'], help=parameters_help['seed'])
-
-        # Dataset normalization and transforms
-        subparser.add_argument('--rescale', action='store_true', default=parameters_default['rescale'], help=parameters_help['rescale'])
-        subparser.add_argument('--lmks', type=str, nargs='+', default=parameters_default['lmks'], help=parameters_help['lmks'])
-
-        # Data loader parameters
-        subparser.add_argument('--batch_size_train', '--bs', type=int, default=parameters_default['batch_size_train'], help=parameters_help['batch_size_train'])
-        subparser.add_argument('--batch_size_val', type=int, default=parameters_default['batch_size_val'], help=parameters_help['batch_size_val'])
-        subparser.add_argument('--batch_size_test', type=int, default=parameters_default['batch_size_test'], help=parameters_help['batch_size_test'])
-        subparser.add_argument('--num_workers', type=int, default=parameters_default['num_workers'], help=parameters_help['num_workers'])
-
-        # Network parameters
-        subparser.add_argument('--backbone', type=str, default=parameters_default['backbone'], help=parameters_help['backbone'])
-
-        # Hyperparameters
-        subparser.add_argument('--epochs', '--ep', type=int, default=parameters_default['epochs'], help=parameters_help['epochs'])
-        subparser.add_argument('--num_fts', type=int, default=parameters_default['num_fts'], help=parameters_help['num_fts'])
-        subparser.add_argument('--optimizer', '--optim', type=str, default=parameters_default['optimizer'], choices=parameters_choices['optimizer'], help=parameters_help['optimizer'])
-        subparser.add_argument('--learning_rate', '--lr', type=float, default=parameters_default['learning_rate'], help=parameters_help['learning_rate'])
-        subparser.add_argument('--lr_momentum', '-m', type=int, default=parameters_default['lr_momentum'], help=parameters_help['lr_momentum'])
-
-        # Loss parameters
-        subparser.add_argument('--reduction', type=str, choices=parameters_choices['reduction'], default=parameters_default['reduction'], help=parameters_help['reduction'])
-        subparser.add_argument('--loss', '-l', nargs='+', type=str, default=parameters_default['loss'], help=parameters_help['loss'])
-
-        # Output parameters
-        subparser.add_argument('--model_dir', type=str, default=parameters_default['model_dir'], help=parameters_help['model_dir'])
-
-        # Evaluation parameters
-        subparser.add_argument('--radius_eval', type=int , default=parameters_default['radius_eval'], help=parameters_help['radius_eval'])
-        subparser.add_argument('--radius_num', type=int, default=parameters_default['radius_num'], help=parameters_help['radius_num'])
-        subparser.add_argument('--extract_via', type=str, default=parameters_default['extract_via'], help=parameters_help['extract_via'])
-        
-    # Parse arguments
-    parser = parser.parse_args()
-
-    return parser
+    return args
