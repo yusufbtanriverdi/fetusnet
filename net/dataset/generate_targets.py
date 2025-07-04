@@ -22,7 +22,7 @@ def main(sinfo, exp_dir, params):
         if params.test_patients:
             target_idx = sinfo.index[sinfo['pid'].isin(params.test_patients)].tolist()
         else:
-            target_idx = params.target_idx
+            target_idx = params.g_target_idx
 
         for i in target_idx:  # Iterate over the target indices
             start_time = time.time()  # Start timing

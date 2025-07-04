@@ -15,7 +15,7 @@ from net.postprocess.utility.save_fscv_csv import save_fscv_csv
 from net.postprocess.utility.where_is_landmark import get_peak_location
 from net.plot.histogram_flattened import plot_histograms_and_stats
 
-def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False, landmark_extractor='argmax', eval=False, save_dir=None, radius_eval=40, radius_num=100, lmks=None):
+def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False, landmark_extractor='argmax', eval=False, save_dir=None, radius_eval=40, radius_num=100, lmks=None, progress_bar=True):
     """
     Perform inference for one epoch with additional functionality.
 
@@ -41,7 +41,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
     running_loss = 0.0
 
     # Progress bar for validation
-    t = tqdm(loader, desc="Validating...", total=len(loader))
+    t = tqdm(loader, desc="Validating...", total=len(loader)) if progress_bar else range(len(loader))
     ep_scores = []
     
     if eval: 

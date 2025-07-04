@@ -57,7 +57,7 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--test_patients', nargs='+', type=int, help=parameters_help['test_patients'])
 
     subparser.add_argument('--generate', type=str, default=defaults.get('generate'), choices=parameters_choices['generate'], help=parameters_help['generate'])
-    subparser.add_argument('--target_idx', nargs='+', type=int, default=defaults.get('target_idx'), help=parameters_help['target_idx'])
+    subparser.add_argument('--g_target_idx', nargs='+', type=int, default=defaults.get('g_target_idx'), help=parameters_help['g_target_idx'])
     subparser.add_argument('--g_alpha', type=float, default=defaults.get('g_alpha'), help=parameters_help['g_alpha'])
     subparser.add_argument('--g_eps', type=int, default=defaults.get('g_eps'), help=parameters_help['g_eps'])
 
@@ -91,6 +91,7 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--radius_eval', type=int , default=defaults.get('radius_eval'), help=parameters_help['radius_eval'])
     subparser.add_argument('--radius_num', type=int, default=defaults.get('radius_num'), help=parameters_help['radius_num'])
     subparser.add_argument('--landmark_extractor', type=str, default=defaults.get('landmark_extractor'), help=parameters_help['landmark_extractor'])
+    subparser.add_argument('--progress_bar', action='store_true', default=defaults.get('progress_bar'), help=parameters_help['progress_bar'])
 
 
 def parameters_parsing() -> argparse.Namespace:

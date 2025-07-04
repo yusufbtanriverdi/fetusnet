@@ -22,7 +22,7 @@
   "test_patients": "List of patient IDs reserved for testing",
   "alien_test_path": "Path to external test patient list",
   "generate": "Mode for data generation",
-  "target_idx": "Indices of target landmarks to detect",
+  "g_target_idx": "Indices of target landmarks to detect",
   "g_alpha": "Alpha parameter controlling Gaussian heatmap spread",
   "g_eps": "Threshold for Gaussian peak detection",
 
@@ -55,5 +55,6 @@
   "model_dir": "Directory for loading/saving model checkpoints",
   "radius_eval": "Radius used during evaluation",
   "radius_num": "Number of radius values to evaluate",
-  "landmark_extractor": "Method used for landmark extraction from heatmaps"
+  "landmark_extractor": "Method used for landmark extraction from heatmaps",
+  "progress_bar": "Whether to display tqdm bar."
 }

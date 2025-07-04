@@ -6,13 +6,8 @@
 # SBATCH -N 1
 #SBATCH -n 8                                     # Request 8 CPU cores
 # SBATCH --nodelist=node032
-# SBATCH --chdir=/home/jreyes
 # SBATCH --mem=32GB 
-# SBATCH --gres=gpu:gtx1080:1
 # #SBATCH --array=0-10:1%4                        # Run 10 jobs with step 1, max 4 concurrent jobs
-
-#SBATCH -o /home/ytanriverdi/%J.%u.out # STDOUT
-#SBATCH -e /home/ytanriverdi/%J.%u.err # STDERR 
 
 ## SBATCH --partition=<partition>          # Partition/queue name
 ## SBATCH --nodes=<num_nodes>              # Number of nodes to use
@@ -38,8 +33,6 @@
 
 # Load CUDA module
 module load CUDA/12.1
-nvcc --version
-
 # Load Anaconda module
 module load Anaconda3/2020.02
 
@@ -62,8 +55,6 @@ conda activate fetusnet
 pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
 pip install -r doc/requirements/requirements.txt
-
-git clone https://github.com/yusufbtanriverdi/fetusnet.git
 
 cd fetusnet 
 

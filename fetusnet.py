@@ -4,6 +4,7 @@ import torchio as tio
 import warnings
 import wandb
 import json
+import torch
 
 from net.parameters.parameters import parameters_parsing
 from net.config.create_experiment_id import create_experiment_id
@@ -108,7 +109,8 @@ def train_and_validate(fold_dataframe, fold_experiment_dir, params, transformati
             optimizer, 
             params.device, 
             global_wandb_steps,
-            params.use_wandb
+            params.use_wandb,
+            progress_bar=params.progress_bar
         )
 
         val_loss, ep_scores, global_wandb_steps = infer_one_ep(
@@ -121,9 +123,10 @@ def train_and_validate(fold_dataframe, fold_experiment_dir, params, transformati
             params.landmark_extractor, 
             eval=False,
             lmks=params.lmks, 
-            save_dir=fold_experiment_dir)
-
-                # Save best model
+            save_dir=fold_experiment_dir,
+            progress_bar=params.progress_bar
+        )
+        # Save best model
         if val_loss < best_criteria:
             best_criteria = val_loss
             save_checkpoint(model, optimizer, epoch, val_loss, 
@@ -151,7 +154,9 @@ def update_dataframe(dataframe):
     dataframe = dataframe[mask].reset_index(drop=True)
 
     return dataframe
-    
+
+
+print("Torch cuda is available? ", torch.cuda.is_available())
 # Suppress UserWarnings
 warnings.filterwarnings("ignore", category=UserWarning)
 # Initialize parameters
@@ -220,7 +225,7 @@ if params.mode == 'train':
     logger.info("I am starting to train")
     # This comes with validation.
     if 'crossfold' in params.split:
-        for fold in params.iter_fold:
+        for fold in params.iter_folds:
             if params.use_wandb:
                 initialize_wandb(params, experiment_name+'_fold' + str(fold))
 
@@ -254,7 +259,8 @@ if params.mode == 'train':
                     radius_eval=params.radius_eval, 
                     radius_num=params.radius_num,  
                     lmks=params.lmks, 
-                    save_dir=fold_experiment_dir)
+                    save_dir=fold_experiment_dir,
+                    progress_bar=params.progress_bar)
             
             for lmk in params.lmks:
                 mean = test_scores[f"dmean_{lmk}"].mean()
@@ -292,7 +298,8 @@ if params.mode == 'train':
                 radius_eval=params.radius_eval, 
                 radius_num=params.radius_num,  
                 lmks=params.lmks, 
-                save_dir=experiment_dir)
+                save_dir=experiment_dir,
+                progress_bar=params.progress_bar)
         
         for lmk in params.lmks:
             mean = test_scores[f"dmean_{lmk}"].mean()
@@ -320,7 +327,8 @@ if params.mode == 'test':
             radius_eval=params.radius_eval, 
             radius_num=params.radius_num,  
             lmks=params.lmks, 
-            save_dir=experiment_dir)
+            save_dir=experiment_dir,
+            progress_bar=params.progress_bar)
 
     for lmk in params.lmks:
         mean = test_scores[f"dmean_{lmk}"].mean()

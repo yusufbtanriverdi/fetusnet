@@ -11,7 +11,7 @@
   "n_split": 4,
   "test_patients": [],
   "generate": "gaussian",
-  "target_idx": [0, 1, 2],
+  "g_target_idx": [0, 1, 2],
   "g_alpha": 3,
   "g_eps": 1e-6,
   "prefix": "experiment",
@@ -40,5 +40,6 @@
   "resume_dir": "",
   "radius_eval": 40,
   "radius_num": 40,
-  "landmark_extractor": "argmax"
+  "landmark_extractor": "argmax",
+  "progress_bar": true
 }
