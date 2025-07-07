@@ -41,7 +41,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
     running_loss = 0.0
 
     # Progress bar for validation
-    t = tqdm(loader, desc="Validating...", total=len(loader)) if progress_bar else range(len(loader))
+    t = tqdm(loader, desc="Validating...", total=len(loader)) if progress_bar else loader
     ep_scores = []
     
     if eval: 
@@ -72,7 +72,8 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
             running_loss += loss.item()
             # Compute running average loss
             avg_loss = running_loss / (ind + 1)
-            t.set_description(f"Running Average Loss: {avg_loss:.4f}")
+            if progress_bar:
+                t.set_description(f"Running Average Loss: {avg_loss:.4f}")
             
             if use_wandb:
                 # Log loss to Weights & Biases

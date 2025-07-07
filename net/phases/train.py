@@ -25,7 +25,7 @@ def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps, use_w
     avg_loss = -1
 
     # Create a progress bar for the DataLoader
-    t = tqdm(loader, desc="Training...", total=len(loader)) if progress_bar else range(len(loader))
+    t = tqdm(loader, desc="Training...", total=len(loader)) if progress_bar else loader
 
     # Iterate over the DataLoader
     for ind, batch in enumerate(t):
@@ -59,7 +59,8 @@ def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps, use_w
         avg_loss = running_loss / (ind + 1)
 
         # Update the progress bar description with the running average loss
-        t.set_description(desc='Running Average Loss: {:.4f}'.format(avg_loss))
+        if progress_bar:
+            t.set_description(desc='Running Average Loss: {:.4f}'.format(avg_loss)) 
 
         if use_wandb:
             # Log step loss and mean loss to Weights & Biases (wandb)

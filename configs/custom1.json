@@ -62,5 +62,6 @@
       "model_dir": "",
       "radius_eval": 40,
       "radius_num": 40,
-      "landmark_extractor": "argmax"
+      "landmark_extractor": "argmax",
+      "progress_bar": false
 }
