@@ -230,11 +230,12 @@ if params.mode == 'train':
                 initialize_wandb(params, experiment_name+'_fold' + str(fold))
 
             fold_experiment_dir = os.path.join(experiment_dir, f'fold_{fold}')
+            os.makedirs(fold_experiment_dir, exist_ok=True)
             fold_dataframe = splitted_dataframe[splitted_dataframe['fold'] == fold]
             logger.info(f"\n--- Training Fold {fold}/{params.n_split-1} --- \n")
             # Initialize model, loss, optimizer
             model, criterion, optimizer, best_criteria = get_fresh_model(params)
-            train_losses, val_losses = train_and_validate(fold_dataframe, experiment_dir, params, transformations, global_wandb_steps)
+            train_losses, val_losses = train_and_validate(fold_dataframe, fold_experiment_dir, params, transformations, global_wandb_steps)
             # Combine losses into a DataFrame
             loss_df = pd.DataFrame({
                 'epoch': list(range(len(train_losses))),
