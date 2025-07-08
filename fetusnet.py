@@ -287,6 +287,7 @@ if params.mode == 'train':
         loss_df.to_csv(os.path.join(experiment_dir, f"losses.csv"), index=False)
 
         model_dir = f'{experiment_dir}/best.pt'
+        model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)        
         test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
         test_loss, test_scores, global_wandb_steps = infer_one_ep(
                 model, 
