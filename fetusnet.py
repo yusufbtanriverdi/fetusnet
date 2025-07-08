@@ -172,7 +172,7 @@ with open(os.path.join(experiment_dir, 'params.json'), 'w') as f:
 global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
 # Initialize logger
 logger = setup_logger(experiment_dir)
-logger.info("Experiment started and parameters are saved.")
+logger.info(f"Experiment started and parameters are saved. This is the experiment dir: {experiment_dir} ")
 logger.info(f"System path set to: {params.sys}")
 logger.info(f"Device set to: {params.device}")
 logger.info("Searching for master dataframe in system+dataset_root... \n If you did not prepare such dataframe or you think it misses some samples, please re-run this script in prepare mode and specify datasets")
@@ -248,7 +248,7 @@ if params.mode == 'train':
             model_dir = f'{fold_experiment_dir}/best.pt'
             model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
             test_dl = get_test_dl(fold_dataframe, params, transformations=transformations)
-            if len(test_dl) == 0: continue
+            if len(test_dl) == 0: _, test_dl = get_train_val_dl(fold_dataframe, params, transformations=transformations)
             test_loss, test_scores, global_wandb_steps = infer_one_ep(
                     model, 
                     test_dl, 
@@ -289,6 +289,7 @@ if params.mode == 'train':
         model_dir = f'{experiment_dir}/best.pt'
         model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)        
         test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
+        if len(test_dl) == 0: _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
         test_loss, test_scores, global_wandb_steps = infer_one_ep(
                 model, 
                 test_dl, 
@@ -314,6 +315,7 @@ if params.mode == 'train':
 
 if params.mode == 'test':
     test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
+    if len(test_dl) == 0: _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
     model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, params.model_dir)
