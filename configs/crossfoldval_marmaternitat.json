@@ -32,7 +32,6 @@
       "prefix": "cfvmm",
       "use_wandb": true,
       "iter_folds": [
-            1, 
             2,
             3
       ],
