@@ -248,6 +248,7 @@ if params.mode == 'train':
             model_dir = f'{fold_experiment_dir}/best.pt'
             model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
             test_dl = get_test_dl(fold_dataframe, params, transformations=transformations)
+            if len(test_dl) == 0: continue
             test_loss, test_scores, global_wandb_steps = infer_one_ep(
                     model, 
                     test_dl, 
