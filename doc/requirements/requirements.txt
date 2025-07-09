@@ -1,5 +1,4 @@
-ipython==8.12.3
-jupyter_client==8.6.3
+vtk==9.3
 matplotlib==3.7.5
 numpy==1.24.1
 opencv-python==4.10.0.84
@@ -14,5 +13,4 @@ seaborn==0.13.2
 SimpleITK==2.4.1
 torchio==0.20.1
 tqdm==4.66.5
-vtk==9.0.1
 wandb==0.19.1

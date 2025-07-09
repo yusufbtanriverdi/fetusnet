@@ -183,7 +183,7 @@ if params.mode == 'prepare':
     master_dataframe_path = perform_prepare(params)
 
 # Load or create sinfo dataframe
-master_dataframe_path = os.path.join(params.sys, params.root, 'sinfo_mater_nonfrontal.csv')
+master_dataframe_path = os.path.join(params.sys, params.root, 'sinfo.csv')
 if os.path.exists(master_dataframe_path):
     master_dataframe = pd.read_csv(master_dataframe_path)
 else:
