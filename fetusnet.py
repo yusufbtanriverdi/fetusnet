@@ -220,6 +220,7 @@ transformations = tio.Compose(transforms)
 logger.info("Transformations are created.")
 
 splitted_dataframe = update_dataframe(splitted_dataframe)
+logger.info(f"!__[U]__! Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
 
 if params.mode == 'train':
     logger.info("I am starting to train")
@@ -319,7 +320,6 @@ if params.mode == 'test':
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
     model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, params.model_dir)
-
     test_loss, test_scores, global_wandb_steps = infer_one_ep(
             model, 
             test_dl, 
