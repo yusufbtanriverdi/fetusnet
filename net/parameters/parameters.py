@@ -54,7 +54,7 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
 
     subparser.add_argument('--dataset', nargs='+', type=str, default=defaults.get('dataset'), help=parameters_help['dataset'])
     subparser.add_argument('--n_split', '-n', type=int, default=defaults.get('n_split'), help=parameters_help['n_split'])
-    subparser.add_argument('--test_patients', nargs='+', type=int, help=parameters_help['test_patients'])
+    subparser.add_argument('--test_patients', nargs='+', type=str, help=parameters_help['test_patients'])
 
     subparser.add_argument('--generate', type=str, default=defaults.get('generate'), choices=parameters_choices['generate'], help=parameters_help['generate'])
     subparser.add_argument('--g_target_idx', nargs='+', type=int, default=defaults.get('g_target_idx'), help=parameters_help['g_target_idx'])
@@ -117,10 +117,11 @@ def parameters_parsing() -> argparse.Namespace:
     rotate_parser = subparsers.add_parser('rotate', help=parameters_help['rotate'])
     presplit_parser = subparsers.add_parser('presplit', help=parameters_help['presplit'])
     help_parser = subparsers.add_parser('help', help=parameters_help['help'])
+    generate_parser = subparsers.add_parser('generate', help=parameters_help['generate'])
     help_parser.set_defaults(func=print_help)
 
     # Step 5: Add arguments with JSON-loaded defaults
-    for sub in [train_parser, test_parser, prep_parser, presplit_parser, rotate_parser]:
+    for sub in [train_parser, test_parser, prep_parser, presplit_parser, rotate_parser, generate_parser]:
         add_common_args(sub, defaults)
 
     # Step 6: Final parse using updated parser and remaining args

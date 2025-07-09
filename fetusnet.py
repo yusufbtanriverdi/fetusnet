@@ -11,6 +11,7 @@ from net.config.create_experiment_id import create_experiment_id
 from net.dataset.statistics.split import perform_split
 from net.dataset.statistics.prepare import perform_prepare
 from net.dataset.rotate import perform_rotate
+from net.dataset.generate_targets import perform_generate
 from logger_setup import setup_logger
 from net.dataset.utility.loaders import get_train_val_dl, get_test_dl
 from net.model.utility.get_fresh_model import get_fresh_model
@@ -182,7 +183,7 @@ if params.mode == 'prepare':
     master_dataframe_path = perform_prepare(params)
 
 # Load or create sinfo dataframe
-master_dataframe_path = os.path.join(params.sys, params.root, 'sinfo.csv')
+master_dataframe_path = os.path.join(params.sys, params.root, 'sinfo_mater_nonfrontal.csv')
 if os.path.exists(master_dataframe_path):
     master_dataframe = pd.read_csv(master_dataframe_path)
 else:
@@ -211,6 +212,12 @@ else:
 
 logger.info(f"Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
 
+splitted_dataframe = update_dataframe(splitted_dataframe)
+logger.info(f"!__[U]__! Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
+
+if params.mode == 'generate':
+    perform_generate(master_dataframe, experiment_dir, params)
+
 # Define transformations for 3D images
 transforms = [
                 tio.RescaleIntensity((0, 1)), 
@@ -218,9 +225,6 @@ transforms = [
               ] if params.rescale else []
 transformations = tio.Compose(transforms)
 logger.info("Transformations are created.")
-
-splitted_dataframe = update_dataframe(splitted_dataframe)
-logger.info(f"!__[U]__! Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
 
 if params.mode == 'train':
     logger.info("I am starting to train")

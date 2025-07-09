@@ -7,7 +7,7 @@ def visualize_heatmaps(scan_name: str, landmark: str):
     # Construct file paths
     pred_nrrd_path = f'tmps/{scan_name}_{landmark}_pred.nrrd'
     gt_nrrd_path   = f'tmps/{scan_name}_{landmark}_gen.nrrd'
-    mesh_path      = f'tmps/{scan_name.replace("-", "_")}-models/{scan_name.replace("-", "_")}.stl'
+    mesh_path      = f'tmps/{scan_name}_SEG.stl'
 
     # Read NRRD files
     heatmap_pred, header_pred = nrrd.read(pred_nrrd_path)
@@ -41,8 +41,7 @@ def visualize_heatmaps(scan_name: str, landmark: str):
     max_idx_pred = np.argmax(mesh_with_heatmap_pred['heatmap'])
     max_point_pred = mesh_with_heatmap_pred.points[max_idx_pred].reshape(1, 3)
 
-    max_idx_gt = np.argmax(mesh_with_heatmap_gt['heatmap'])
-    max_point_gt = mesh_with_heatmap_gt.points[max_idx_gt].reshape(1, 3)
+    # max_point_gt = mesh_with_heatmap_gt.points[max_idx_gt].reshape(1, 3)
 
     # Plotting
     pl = pv.Plotter(shape=(1, 2))
@@ -50,20 +49,22 @@ def visualize_heatmaps(scan_name: str, landmark: str):
     pl.subplot(0, 0)
     pl.add_title('Prediction')
     pl.add_mesh(mesh_with_heatmap_pred, scalars='heatmap', cmap='jet', show_scalar_bar=True)
-    pl.add_points(max_point_pred, color='white', point_size=10)
-    pl.add_point_labels(max_point_pred, [landmark], point_size=0, font_size=10)
+    pl.add_points(max_point_pred, color='white', point_size=20)
+    # pl.add_points(max_point_gt, color='black', point_size=20)
+    pl.add_point_labels(max_point_pred, [landmark], point_size=20, font_size=20)
 
     pl.subplot(0, 1)
     pl.add_title('Ground Truth')
     pl.add_mesh(mesh_with_heatmap_gt, scalars='heatmap', cmap='jet', show_scalar_bar=True)
-    pl.add_points(max_point_gt, color='white', point_size=10)
-    pl.add_point_labels(max_point_gt, [landmark], point_size=0, font_size=10)
+    pl.add_points(max_point_pred, color='white', point_size=20)
+    # pl.add_points(max_point_gt, color='black', point_size=20)
+    # pl.add_point_labels(max_point_gt, [landmark], point_size=20, font_size=20)
 
     pl.show()
 
 
 # Example usage
 if __name__ == "__main__":
-    scan_name = "1-29s-06"   # Replace with your scan name
-    landmark = "acL"         # Replace with your landmark name
+    scan_name = "FLA094_11"   # Replace with your scan name
+    landmark = "sn"         # Replace with your landmark name
     visualize_heatmaps(scan_name, landmark)

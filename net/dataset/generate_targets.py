@@ -7,8 +7,9 @@ import torch
 import pandas as pd
 import nrrd
 import time
+import numpy as np
 
-def main(sinfo, exp_dir, params):
+def perform_generate(sinfo, exp_dir, params):
     """
     Main function to generate target heatmaps or distance matrices for 3D volumes.
 
@@ -21,6 +22,7 @@ def main(sinfo, exp_dir, params):
         # Determine the indices of the target patients
         if params.test_patients:
             target_idx = sinfo.index[sinfo['pid'].isin(params.test_patients)].tolist()
+            print(target_idx)
         else:
             target_idx = params.g_target_idx
 
@@ -40,9 +42,15 @@ def main(sinfo, exp_dir, params):
             if landmark_row.empty:
                 raise ValueError(f"Landmark '{lmk}' not found in {landmark_path}")
 
+            try:
+                spacings = header.get('spacings')[:3]
+            except:
+                spacings = np.array([header['space directions'][0, 0], 
+                            header['space directions'][1, 1], 
+                            header['space directions'][2, 2]])
             # Convert coordinates to a tensor and adjust for spacing
             coord = landmark_row[['x', 'y', 'z']].iloc[0].tolist()  # Convert to list
-            coord = coord / header['spacings'][:3]  # Adjust for voxel spacing
+            coord = coord / spacings # Adjust for voxel spacing
             coord_tensor = torch.abs(torch.tensor(coord, dtype=torch.float32))
 
             # Generate the target (heatmap or distance matrix)
@@ -56,4 +64,4 @@ def main(sinfo, exp_dir, params):
             print(f"Processed {os.path.join(params.sys, params.root, params.dataset[0], sinfo.loc[i, 'processed__vol_path'])} in {elapsed_time:.4f} seconds")
 
             # Save the generated target to a file
-            nrrd.write(os.path.join(exp_dir, f"{sinfo.loc[i, 'full_id']}.nrrd"), target, header=header)
+            nrrd.write(os.path.join(exp_dir, f"{sinfo.loc[i, 'full_id']}_{lmk}.nrrd"), target, header=header)
