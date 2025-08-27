@@ -177,3 +177,5 @@ tmps/
 cluster.sh
 configs/custom1.json
 tmps/
+
+.vscode

@@ -11,10 +11,9 @@ except ModuleNotFoundError:
     from utility.rotation import *
 
 import SimpleITK as sitk
-from logger_setup import setup_logger
 
 
-def perform_rotate(dataframe, params, experiment_dir):
+def perform_rotate(dataframe, params):
     """
     Processes ultrasound data by loading images and applying transformations to produce 
     pre-processed, rotated, and translated ultrasound images along with associated landmark points.
@@ -41,7 +40,6 @@ def perform_rotate(dataframe, params, experiment_dir):
         # Prepare file paths and identifiers from dataframe row
         image_path = os.path.join(dataframe.loc[i, 'path_to_nrrd'])
         name = dataframe.loc[i, 'full_id']
-        week, pid = dataframe.loc[i, 'week'], dataframe.loc[i, 'pid']
 
         # Construct save paths for processed outputs
         save_im_path = os.path.join(params.sys + params.root, dataframe.loc[i, 'processed__vol_path'])
