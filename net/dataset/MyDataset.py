@@ -97,12 +97,12 @@ class MyDataset(Dataset):
             tio.Subject: TorchIO Subject containing the image, target, and metadata.
         """
         # Load the 3D volume from the specified path
-        image_path = os.path.join(self.root, self.dataframe.loc[idx, 'processed__vol_path'])
+        image_path = os.path.join(self.root, self.dataframe.loc[idx, 'mscan'])
         volume, header = extract_image(image_path)
         image_tensor = torch.tensor(volume).unsqueeze(0)  # Add channel dimension (C, H, W, D)
 
         # Load the landmark file containing coordinates
-        landmark_path = os.path.join(self.root, self.dataframe.loc[idx, 'processed__csv_path'])
+        landmark_path = os.path.join(self.root, self.dataframe.loc[idx, 'mcsv'])
         landmark_df = pd.read_csv(landmark_path)
 
         target = torch.zeros((len(self.lmks), *volume.shape), dtype=torch.float32)  # Initialize target tensor
@@ -164,8 +164,8 @@ class MyDataset(Dataset):
         subject = tio.Subject(
             image=self.transformations(tio.ScalarImage(tensor=image_tensor)),  # Apply transformations to the image
             target=tio.ScalarImage(tensor=target),  # Target heatmap or distance map
-            name=self.dataframe.loc[idx, 'full_id'],  # Metadata: full ID of the subject
-            pid=self.dataframe.loc[idx, 'pid'],  # Metadata: patient ID
+            name=self.dataframe.loc[idx, 'nsid'],  # Metadata: full ID of the subject
+            pid=self.dataframe.loc[idx, 'npid'],  # Metadata: patient ID
             spacings=spacings,  # Pixel spacings
             coords = coord_tensor,  # Coordinates of landmarks
             lmk=self.lmks  # List of landmarks

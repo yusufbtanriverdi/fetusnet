@@ -10,6 +10,7 @@
   "root": "Path to the dataset directory",
   "sys": "System root path based on the operating system",
   "raw_dir": "Directory containing raw input images",
+  "mdir": "Directory to move raw input images after extracting information and assigning new PIDs.",
   "os": "Operating system type (e.g., 'linux', 'windows')",
   "wandbpro": "Weights & Biases project name for logging",
   "device": "Computation device (e.g., 'cuda', 'cpu')",

@@ -2,13 +2,7 @@ import os
 import pandas as pd
 from tqdm import tqdm
 import nrrd
-
-# List of global week labels used across the dataset
-weeks_global = [
-    '20 semanas', '26 semanas', '29 semanas', '30 semanas',
-    '31 semanas', '32 semanas', '33 semanas', '35 semanas',
-    '36 semanas', '38 semanas',
-]
+import json
 
 def extract_image(filename):
     """
@@ -30,6 +24,40 @@ def extract_image(filename):
 
     return data, header
 
+def extract_list_lmks_fromfcsv(file_path: str):
+    """
+    Reads a .fcsv (Slicer fiducial file) as plain text and extracts all values
+    from the 'associatedNodeID' column into a list.
+    Empty values are ignored.
+    """
+    lmks = []
+    with open(file_path, "r") as f:
+        for line in f:
+            line = line.strip()
+            # Skip headers or comment lines
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split(",")
+            if len(parts) >= 14:  # 'associatedNodeID' is the 14th column (0-indexed)
+                val = parts[11]
+                if val:  # only add non-empty entries
+                    lmks.append(val)
+    return lmks
+
+def get_file_list(txt_file):
+    """Get a list of filenames.
+
+    Args:
+      txt_file: Name of a txt file containing a list of filenames for the images.
+
+    Returns:
+      filenames: A list of filenames for the images.
+
+    """
+    with open(txt_file) as f:
+        filenames = f.read().splitlines()
+    return filenames
+
 
 def perform_prepare(params):
     """
@@ -49,221 +77,371 @@ def perform_prepare(params):
     # Initialize lists to hold patient and scan info dictionaries
     pinfo_df = []
     sinfo_df = []
+    save_dir = params.sys + params.move_dir
+    os.makedirs(save_dir, exist_ok=True)
+    # Load ground truth data for standard planes from JSON file
+    dicto = json.loads(get_file_list('doc/info//gt.txt')[0])
 
+    ######  CASOS ######
     # Iterate over each dataset specified in params
     for dataset in params.dataset:
-
         # Process "Casos Mar" dataset
         if dataset == 'Casos Mar':
+            ds_id = '1'
             raw_files = params.sys + params.raw_dir + dataset
-            fnames = os.listdir(os.path.join(raw_files, 'Casos'))
-
-            ct = 0  # Counter for valid landmark pairs
-
+            casos = os.listdir(os.path.join(raw_files, 'Casos'))
+            ds_dict = {'ds_id': ds_id, 
+                       'ds': dataset,
+                       'num_casos': len(casos)}
             # Iterate over patient folders with progress bar
-            for fname in tqdm(fnames, total=len(fnames), desc='Scanning images......'):
-                path_to_im_fold = os.path.join(raw_files, 'Casos', fname)
+            for caso in tqdm(casos, total=len(casos), desc='--------------------Scanning subfolders (Casos)..................'):
+                caso_id = '0' + str(caso) if int(caso) >= 10 else '00' + str(caso)
 
+                fcaso = os.path.join(raw_files, 'Casos', caso)
                 # List weeks folders, filter those containing 'semanas'
-                weeks = [w for w in os.listdir(path_to_im_fold) if 'semanas' in w]
+                weeks = [w for w in os.listdir(fcaso) if 'semanas' in w]
+                npid = str(ds_id) + str(caso_id) 
 
                 # Initialize patient-level info dictionary
-                row1 = {
-                    'pid': int(fname),
-                    'path_to_im_fold': path_to_im_fold,
-                    'path_to_se_fold': os.path.join(raw_files, 'Segmentaciones', fname),
-                    'num_weeks': len(weeks)
+                caso_dict = {
+                            'opid': caso,
+                            'npid': npid,
+                            'fcaso': fcaso,
+                            'num_weeks': len(weeks), 
+                            'list_weeks': weeks
                 }
 
-                # Initialize presence flags for all global weeks to False
-                for week in weeks_global:
-                    row1[week] = False
-
-                # Update True for weeks found in this patient folder
+                scan_counter = 0
+                # for week in tqdm(weeks, total=len(weeks), desc='--------------------Scanning subfolders (XX semanas)..................'):
                 for week in weeks:
-                    row1[week] = True
-                    scans = os.listdir(os.path.join(raw_files, 'Casos', fname, week))
+                    fweek = os.path.join(raw_files, 'Casos', caso, week)
+                    scans = os.listdir(fweek)
+                    # It is a scan if only .nrrd
                     scans = [s for s in scans if 'nrrd' in s]
-
-                    num_scan_landmark_pairs_ct = 0
+                    scan_counter += len(scans)
 
                     # Process each scan in the week folder
+                    # for scan in tqdm(scans, total=len(scans), desc='--------------------Scanning scans..................'):
                     for scan in scans:
-                        scan_id = scan.split('.')[0]
-                        path_to_nrrd = os.path.join(path_to_im_fold, week, scan)
+                        osid = scan.split('.')[0]
+                        if dicto.get(osid) is None:
+                            rot_found = False
+                        else: rot_found = True
+
+                        fscan = os.path.join(raw_files, 'Casos', caso, week, scan)
 
                         # Extract header only to get metadata
-                        _, header = extract_image(path_to_nrrd)
+                        _, header = extract_image(fscan)
+                        nsid = npid + week.split(' ')[0] + osid.split('-')[-1]
 
-                        row3 = {
-                            'pid': fname,
+                        mscan = os.path.join(dataset, 'volumes', nsid + '.nrrd')
+                        scan_dict  = {
+                            'nsid': nsid,
+                            'npid': npid,
+                            'opid': caso,
                             'week': week,
-                            'scan': scan,
-                            'full_id': scan_id,
-                            'path_to_nrrd': path_to_nrrd,
-                            'orig_size_x': header['sizes'][0],
-                            'orig_size_y': header['sizes'][1],
-                            'orig_size_z': header['sizes'][2],
-                            'spacing_x': header['spacings'][0],
-                            'spacing_y': header['spacings'][1],
-                            'spacing_z': header['spacings'][2],
+                            'opid': caso,
+                            'osid': osid,
+                            'fcaso': fcaso,
+                            'fweek': fweek,
+                            'fscan': fscan,
+                            'os0': header['sizes'][0],
+                            'os1': header['sizes'][1],
+                            'os2': header['sizes'][2],
+                            'ovd0': header['spacings'][0],
+                            'ovd1': header['spacings'][1],
+                            'ovd2': header['spacings'][2],
+                            'ds': dataset,
+                            # extras to keep consistent
+                            'flmk': '',
+                            'flmk_full': '',
+                            'visibles': [],
+                            '_fcsv': '',
+                            'fply': '',
+                            'mscan': mscan,
+                            'mlmk': '',
+                            'mcsv': '',
+                            'rot_found' : rot_found
                         }
+                         
+                        lmk_folder = os.path.join(raw_files, 'Segmentaciones', caso, week, 'Lmks_Antonia') 
+                        lmks_found =  False
+                        if os.path.exists(lmk_folder):
+                            flmk = os.path.join(lmk_folder, osid + '.fcsv')
+                            flmk_modified = os.path.join(lmk_folder, osid + '_modified.fcsv')
+                            fcsv = os.path.join(lmk_folder, osid + '.csv')
+                            fcsv_modified = os.path.join(lmk_folder, osid + '_modified.csv')    
+                            if os.path.exists(flmk) or os.path.exists(flmk_modified): lmks_found = True
+                            if os.path.exists(flmk_modified): scan_dict['flmk_full'] = flmk_modified
 
-                        lmk_folder = os.path.join(raw_files, 'Segmentaciones', fname, week, 'Lmks_Antonia')
-                        row3['landmark_antonia_found'] = True
+                            if os.path.exists(flmk):
+                                scan_dict['flmk'] = flmk
+                                scan_dict['visibles'] = extract_list_lmks_fromfcsv(flmk)
+                            
+                            if os.path.exists(fcsv): scan_dict['_fcsv'] = fcsv
+                            elif os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
+                            else: scan_dict['_fcsv'] = ''
+                        scan_dict['lmks_found'] = lmks_found
+                        if lmks_found:                         
+                            mlmk = os.path.join(dataset, 'landmarks', 'fcsv', nsid + '.fcsv')
+                            mcsv = os.path.join(dataset, 'landmarks', 'csv', nsid + '.csv')
+                            scan_dict['mlmk'] = mlmk
+                            scan_dict['mcsv'] = mcsv
 
-                        if not os.path.exists(lmk_folder):
-                            row3['landmark_antonia_found'] = False
-                            continue
+                        ply_folder = os.path.join(raw_files, 'Segmentaciones', caso, week, 'PLY') 
+                        plys_found = False
+                        if os.path.exists(ply_folder):
+                            fply = os.path.join(ply_folder, osid + '.ply')
+                            if os.path.exists(fply):
+                                scan_dict['fply'] = fply
+                                plys_found = True
+                        scan_dict['plys_found'] = plys_found
 
-                        option_top_fscv = os.path.join(lmk_folder, scan_id + '_modified.fcsv')
-                        option_bttm_fscv = os.path.join(lmk_folder, scan_id + '.fcsv')
+                        sinfo_df.append(scan_dict)
+                        
+                caso_dict['num_scans']= scan_counter
+                pinfo_df.append(caso_dict)
 
-                        # Check for landmark files in prioritized order
-                        if os.path.exists(option_top_fscv):
-                            row3['path_to_lmk'] = option_top_fscv
-                            ct += 1
-                            num_scan_landmark_pairs_ct += 1
-                        elif os.path.exists(option_bttm_fscv):
-                            row3['path_to_lmk'] = option_bttm_fscv
-                            ct += 1
-                            num_scan_landmark_pairs_ct += 1
-                        else:
-                            continue
 
-                        option_top_csv = os.path.join(lmk_folder, scan_id + '_modified.csv')
-                        option_bttm_csv = os.path.join(lmk_folder, scan_id + '.csv')
-
-                        if os.path.exists(option_top_csv):
-                            row3['path_to_csv'] = option_top_csv
-                            ct += 1
-                            num_scan_landmark_pairs_ct += 1
-                        elif os.path.exists(option_bttm_csv):
-                            row3['path_to_csv'] = option_bttm_csv
-                            ct += 1
-                            num_scan_landmark_pairs_ct += 1
-                        else:
-                            continue
-
-                        # Add processed file paths and source info
-                        row3['processed__vol_path'] = os.path.join(dataset, 'volumes', scan_id + '.nrrd')
-                        row3['processed__lmk_path'] = os.path.join(dataset, 'landmarks', 'fcsv', scan_id + '.fcsv')
-                        row3['processed__csv_path'] = os.path.join(dataset, 'landmarks', 'csv', scan_id + '.csv')
-                        row3['source'] = 'Casos Mar'
-
-                        if not row3['landmark_antonia_found']:
-                            continue
-
-                        ct += 1
-                        sinfo_df.append(row3)
-
-                row1['source'] = 'Casos Mar'
-                pinfo_df.append(row1)
-
-        # Process "Casos Maternitat" dataset
-        elif dataset == 'Casos Maternitat':
+        if dataset == 'Casos Maternitat':
+            ds_id = '2'
             raw_files = params.sys + params.raw_dir + dataset
-            fnames = os.listdir(os.path.join(raw_files))
-
-            pinfo_df = []
-            sinfo_df = []
-            ct = 0
-
+            casos = os.listdir(os.path.join(raw_files))
+            ds_dict = {'ds_id': ds_id, 
+                       'ds': dataset,
+                       'num_casos': len(casos)}
             # Iterate over patient folders with progress bar
-            for fname in tqdm(fnames, total=len(fnames), desc='Scanning patients......'):
-                path_to_im_fold = os.path.join(raw_files, fname, 'nrrd')
-                if not os.path.exists(path_to_im_fold):
-                    continue
+            for caso in tqdm(casos, total=len(casos), desc='--------------------Scanning subfolders (Casos)..................'):
+                caso_id = str(caso).split('A')[-1]
+
+                fcaso = os.path.join(raw_files, caso)
+                # List weeks folders, filter those containing 'semanas'
+                weeks = ['']
+                npid = str(ds_id) + str(caso_id) 
 
                 # Initialize patient-level info dictionary
-                row1 = {
-                    'pid': str(fname),
-                    'path_to_im_fold': path_to_im_fold,
-                    'path_to_se_fold': os.path.join(raw_files, fname, 'PLY'),
-                    'num_scans': len(os.listdir(path_to_im_fold)),
-                    'num_scan_landmark_pairs': -1
+                caso_dict = {
+                            'opid': caso,
+                            'npid': npid,
+                            'fcaso': fcaso,
+                            'num_weeks': 0, 
+                            'list_weeks': weeks
+                }
+                scan_counter = 0
+                # for week in tqdm(weeks, total=len(weeks), desc='--------------------Scanning subfolders (XX semanas)..................'):
+                for week in weeks:
+                    fweek = os.path.join(raw_files, caso, 'nrrd')
+                    if not os.path.exists(fweek): break
+                    scans = os.listdir(fweek)
+                    # It is a scan if only .nrrd
+                    scans = [s for s in scans if 'nrrd' in s]
+                    scan_counter += len(scans)
+
+                    # Process each scan in the week folder
+                    # for scan in tqdm(scans, total=len(scans), desc='--------------------Scanning scans..................'):
+                    for scan in scans:
+                        osid = scan.split('.')[0]
+                        if dicto.get(osid) is None:
+                            rot_found = False
+                        else: rot_found = True
+                        
+                        fscan = os.path.join(raw_files, caso, 'nrrd', scan)
+                        # Extract header only to get metadata
+                        _, header = extract_image(fscan)
+                        nsid = npid + '00' + osid.split('_')[-1]
+                        mscan = os.path.join(dataset, 'volumes', nsid + '.nrrd')
+
+                        scan_dict  = {
+                            'nsid': nsid,
+                            'npid': npid,
+                            'opid': caso,
+                            'week': week,
+                            'opid': caso,
+                            'osid': osid,
+                            'fcaso': fcaso,
+                            'fweek': fweek,
+                            'fscan': fscan,
+                            'os0': header['sizes'][0],
+                            'os1': header['sizes'][1],
+                            'os2': header['sizes'][2],
+                            'ovd0': header['spacings'][0] if 'spacings' in header else header['space directions'][0, 0],
+                            'ovd1': header['spacings'][1] if 'spacings' in header else header['space directions'][1, 1],
+                            'ovd2': header['spacings'][2] if 'spacings' in header else header['space directions'][2, 2],
+                            'ds': dataset,
+                            # extras to keep consistent
+                            'flmk': '',
+                            'flmk_full': '',
+                            'visibles': [],
+                            '_fcsv': '',
+                            'fply': '',
+                            'mscan': mscan,
+                            'mlmk': '',
+                            'mcsv': '',
+                            'rot_found' : rot_found
+                        }
+                         
+                        lmk_folder = os.path.join(raw_files, caso, 'Lmks') 
+                        lmks_found =  False
+                        if os.path.exists(lmk_folder):
+                            flmk = os.path.join(lmk_folder, osid + '.fcsv')
+                            flmk_modified = os.path.join(lmk_folder, osid + '_modified.fcsv')
+                            fcsv = os.path.join(lmk_folder, osid + '.csv')
+                            fcsv_modified = os.path.join(lmk_folder, osid + '_modified.csv')    
+                            if os.path.exists(flmk) or os.path.exists(flmk_modified): lmks_found = True
+                            if os.path.exists(flmk_modified): scan_dict['flmk_full'] = flmk_modified
+
+                            if os.path.exists(flmk):
+                                scan_dict['flmk'] = flmk
+                                scan_dict['visibles'] = extract_list_lmks_fromfcsv(flmk)
+                            
+                            if os.path.exists(fcsv): scan_dict['_fcsv'] = fcsv
+                            elif os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
+                            else: scan_dict['_fcsv'] = ''
+                        scan_dict['lmks_found'] = lmks_found
+                        if lmks_found:                         
+                            mlmk = os.path.join(dataset, 'landmarks', 'fcsv', nsid + '.fcsv')
+                            mcsv = os.path.join(dataset, 'landmarks', 'csv', nsid + '.csv')
+                            scan_dict['mlmk'] = mlmk
+                            scan_dict['mcsv'] = mcsv
+
+                        ply_folder = os.path.join(raw_files, caso, week, 'PLY') 
+                        plys_found = False
+                        if os.path.exists(ply_folder):
+                            fply = os.path.join(ply_folder, osid + '.ply')
+                            if os.path.exists(fply):
+                                scan_dict['fply'] = fply
+                                plys_found = True
+                        scan_dict['plys_found'] = plys_found
+
+                        sinfo_df.append(scan_dict)
+                caso_dict['num_scans']= scan_counter
+                pinfo_df.append(caso_dict)
+
+        if dataset == 'Estudio Dexeus':
+            ds_id = '3'
+            raw_files = params.sys + params.raw_dir + dataset
+            casos = os.listdir(os.path.join(raw_files, 'Casos'))
+            ds_dict = {'ds_id': ds_id, 
+                       'ds': dataset,
+                       'num_casos': len(casos)}
+            # Iterate over patient folders with progress bar
+            for caso in tqdm(casos, total=len(casos), desc='--------------------Scanning subfolders (Casos)..................'):
+                caso_id = caso.split('-')[-1]
+                if int(caso_id) < 10: caso_id = '00' + caso_id
+                elif int(caso_id) >=10 and int(caso_id) <100: caso_id = '0' + caso_id
+
+                fcaso = os.path.join(raw_files, 'Casos', caso)
+                # List weeks folders, filter those containing 'semanas'
+                weeks = [w for w in os.listdir(fcaso) if 'semanas' in w]
+                npid = str(ds_id) + str(caso_id) 
+
+                # Initialize patient-level info dictionary
+                caso_dict = {
+                            'opid': caso,
+                            'npid': npid,
+                            'fcaso': fcaso,
+                            'num_weeks': len(weeks), 
+                            'list_weeks': weeks
                 }
 
-                num_scan_landmark_pairs_ct = 0
+                scan_counter = 0
+                # for week in tqdm(weeks, total=len(weeks), desc='--------------------Scanning subfolders (XX semanas)..................'):
+                for week in weeks:
+                    fweek = os.path.join(raw_files, 'Casos', caso, week)
+                    scans = os.listdir(fweek)
+                    # It is a scan if only .nrrd
+                    scans = [s for s in scans if 'nrrd' in s]
+                    scan_counter += len(scans)
 
-                # Process each scan in patient's nrrd folder
-                for scan in os.listdir(path_to_im_fold):
-                    scan_id = scan.split('.')[0]
-                    path_to_nrrd = os.path.join(path_to_im_fold, scan)
+                    # Process each scan in the week folder
+                    # for scan in tqdm(scans, total=len(scans), desc='--------------------Scanning scans..................'):
+                    for scan in scans:
+                        osid = scan.split('.')[0]
+                        if dicto.get(osid) is None:
+                            rot_found = False
+                        else: rot_found = True
 
-                    # Extract header only for metadata
-                    _, header = extract_image(path_to_nrrd)
+                        fscan = os.path.join(raw_files, 'Casos', caso, week, scan)
 
-                    row2 = {
-                        'pid': fname,
-                        'full_id': scan_id,
-                        'path_to_nrrd': path_to_nrrd,
-                        'orig_size_x': header['sizes'][0],
-                        'orig_size_y': header['sizes'][1],
-                        'orig_size_z': header['sizes'][2],
-                    }
+                        # Extract header only to get metadata
+                        _, header = extract_image(fscan)
+                        nsid = npid + week.split(' ')[0] + osid.split('s-')[-1]
 
-                    # Handle spacings info that might be stored differently in header
-                    if 'spacings' in header:
-                        row2['spacing_x'] = header['spacings'][0]
-                        row2['spacing_y'] = header['spacings'][1]
-                        row2['spacing_z'] = header['spacings'][2]
-                    else:
-                        row2['spacing_x'] = header['space directions'][0, 0]
-                        row2['spacing_y'] = header['space directions'][1, 1]
-                        row2['spacing_z'] = header['space directions'][2, 2]
+                        mscan = os.path.join(dataset, 'volumes', nsid + '.nrrd')
+                        scan_dict  = {
+                            'nsid': nsid,
+                            'npid': npid,
+                            'opid': caso,
+                            'week': week,
+                            'opid': caso,
+                            'osid': osid,
+                            'fcaso': fcaso,
+                            'fweek': fweek,
+                            'fscan': fscan,
+                            'os0': header['sizes'][0],
+                            'os1': header['sizes'][1],
+                            'os2': header['sizes'][2],
+                            'ovd0': header['spacings'][0],
+                            'ovd1': header['spacings'][1],
+                            'ovd2': header['spacings'][2],
+                            'ds': dataset,
+                            # extras to keep consistent
+                            'flmk': '',
+                            'flmk_full': '',
+                            'visibles': [],
+                            '_fcsv': '',
+                            'fply': '',
+                            'mscan': mscan,
+                            'mlmk': '',
+                            'mcsv': '',
+                            'rot_found' : rot_found
 
-                    lmk_folder = os.path.join(raw_files, fname, 'Lmks')
-                    option_top_fscv = os.path.join(lmk_folder, scan_id + '_modified.fcsv')
-                    option_bttm_fscv = os.path.join(lmk_folder, scan_id + '.fcsv')
+                        }
+                         
+                        lmk_folder = os.path.join(raw_files, 'Segmentaciones', caso, week, 'Lmks_Ricardo') 
+                        if not os.path.exists(lmk_folder): lmk_folder = os.path.join(raw_files, 'Segmentaciones', caso, week, 'Lmks_Gerard') 
+                        lmks_found =  False
+                        if os.path.exists(lmk_folder):
+                            flmk = os.path.join(lmk_folder, osid + '.fcsv')
+                            flmk_modified = os.path.join(lmk_folder, osid + '_modified.fcsv')
+                            fcsv = os.path.join(lmk_folder, osid + '.csv')
+                            fcsv_modified = os.path.join(lmk_folder, osid + '_modified.csv')    
+                            if os.path.exists(flmk) or os.path.exists(flmk_modified): lmks_found = True
+                            if os.path.exists(flmk_modified): scan_dict['flmk_full'] = flmk_modified
 
-                    # Check for landmark files in prioritized order
-                    if os.path.exists(option_top_fscv):
-                        row2['path_to_lmk'] = option_top_fscv
-                        num_scan_landmark_pairs_ct += 1
-                    elif os.path.exists(option_bttm_fscv):
-                        row2['path_to_lmk'] = option_bttm_fscv
-                        num_scan_landmark_pairs_ct += 1
-                    else:
-                        continue
+                            if os.path.exists(flmk):
+                                scan_dict['flmk'] = flmk
+                                scan_dict['visibles'] = extract_list_lmks_fromfcsv(flmk)
+                            
+                            if os.path.exists(fcsv): scan_dict['_fcsv'] = fcsv
+                            elif os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
+                            else: scan_dict['_fcsv'] = ''
+                        scan_dict['lmks_found'] = lmks_found
+                        if lmks_found:                         
+                            mlmk = os.path.join(dataset, 'landmarks', 'fcsv', nsid + '.fcsv')
+                            mcsv = os.path.join(dataset, 'landmarks', 'csv', nsid + '.csv')
+                            scan_dict['mlmk'] = mlmk
+                            scan_dict['mcsv'] = mcsv
 
-                    option_top_csv = os.path.join(lmk_folder, scan_id + '_modified.csv')
-                    option_bttm_csv = os.path.join(lmk_folder, scan_id + '.csv')
+                        ply_folder = os.path.join(raw_files, 'Segmentaciones', caso, week, 'PLY') 
+                        plys_found = False
+                        if os.path.exists(ply_folder):
+                            fply = os.path.join(ply_folder, osid + '.ply')
+                            if os.path.exists(fply):
+                                scan_dict['fply'] = fply
+                                plys_found = True
+                        scan_dict['plys_found'] = plys_found
 
-                    if os.path.exists(option_top_csv):
-                        row2['path_to_csv'] = option_top_csv
-                        num_scan_landmark_pairs_ct += 1
-                    elif os.path.exists(option_bttm_csv):
-                        row2['path_to_csv'] = option_bttm_csv
-                        num_scan_landmark_pairs_ct += 1
-                    else:
-                        continue
+                        sinfo_df.append(scan_dict)
+                caso_dict['num_scans']= scan_counter
+                pinfo_df.append(caso_dict)
 
-                    # Try to load landmark csv to ensure it's valid
-                    try:
-                        lmk = pd.read_csv(row2['path_to_csv'])
-                    except Exception as e:
-                        # print(str(e))
-                        # print(f"Could not load landmarks from {row2['path_to_csv']}! Skipping!! I used to work on the other version...")
-                        continue
-
-                    ct += 1
-                    row2['landmark_antonia_found'] = False
-                    row2['week'] = -1
-
-                    # Add processed file paths and source info
-                    row2['processed__vol_path'] = os.path.join(dataset, 'volumes', scan_id + '.nrrd')
-                    row2['processed__lmk_path'] = os.path.join(dataset, 'landmarks', 'fcsv', scan_id + '.fcsv')
-                    row2['processed__csv_path'] = os.path.join(dataset, 'landmarks', 'csv', scan_id + '.csv')
-                    row2['source'] = 'Casos Maternitat'
-
-                    sinfo_df.append(row2)
-
-                row1['source'] = 'Casos Maternitat'
-                row1['num_scan_landmark_pairs'] = num_scan_landmark_pairs_ct
-                pinfo_df.append(row1)
+    sinfo_df = pd.DataFrame.from_records(sinfo_df)
 
     # Save patient and scan info DataFrames as CSV files
-    pd.DataFrame.from_records(pinfo_df).to_csv(params.sys + params.root + 'pinfo.csv', index=False)
-    pd.DataFrame.from_records(sinfo_df).to_csv(params.sys + params.root + 'sinfo.csv', index=False)
+    pd.DataFrame.from_records(pinfo_df).to_csv(params.sys + params.root + 'pinfo_all.csv', index=False)
+    sinfo_df.to_csv(params.sys + params.root + 'sinfo_all.csv', index=False)
+    sinfo = sinfo_df[sinfo_df['rot_found'] & sinfo_df['lmks_found']]
+    pd.DataFrame.from_records(sinfo).to_csv(params.sys + params.root + 'sinfo.csv', index=False)
+
     return sinfo_df

@@ -146,7 +146,7 @@ def train_and_validate(fold_dataframe, fold_experiment_dir, params, transformati
 
 def update_dataframe(dataframe):
     # Construct full file paths by joining base paths with relative paths
-    paths = dataframe['processed__vol_path'].apply(lambda x: os.path.join(params.sys + params.root, x))
+    paths = dataframe['mscan'].apply(lambda x: os.path.join(params.sys + params.root, x))
 
     # Create a boolean mask for existing files
     mask = paths.apply(os.path.exists)
@@ -183,7 +183,7 @@ if params.mode == 'prepare':
     master_dataframe_path = perform_prepare(params)
 
 # Load or create sinfo dataframe
-master_dataframe_path = os.path.join(params.sys, params.root, 'sinfo.csv')
+master_dataframe_path = os.path.join(params.sys, params.root, 'sinfo_new_clean.csv')
 if os.path.exists(master_dataframe_path):
     master_dataframe = pd.read_csv(master_dataframe_path)
 else:
@@ -192,10 +192,10 @@ else:
 
 # Rotate/alignment step
 if params.mode == 'rotate':
-    perform_rotate(master_dataframe, params, experiment_dir)
+    perform_rotate(master_dataframe, params)
 
 # Split into subsets
-split_dataframe_path = os.path.join(params.sys, params.root, params.split + '.csv')
+split_dataframe_path = os.path.join(params.sys, params.root, 'sinfo_new_filtered_' + params.split + '.csv')
 
 if params.mode == 'presplit':
     splitted_dataframe = perform_split(master_dataframe, params)
@@ -212,8 +212,8 @@ else:
 
 logger.info(f"Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
 
-splitted_dataframe = update_dataframe(splitted_dataframe)
-logger.info(f"!__[U]__! Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
+# splitted_dataframe = update_dataframe(splitted_dataframe)
+# logger.info(f"!__[U]__! Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
 
 if params.mode == 'generate':
     perform_generate(master_dataframe, experiment_dir, params)

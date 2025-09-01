@@ -11,7 +11,7 @@ def perform_split(master_dataframe, params):
     df['fold'] = -1  # Only meaningful for crossfold
 
     split_mode = params.split
-    test_patients = set(params.test_patients) if hasattr(params, 'test_patients') else set()
+    test_patients = set()
     n_splits = getattr(params, 'n_split', 5)
     random_state = getattr(params, 'seed', 42)
     datasets = getattr(params, 'dataset', [])
@@ -19,10 +19,10 @@ def perform_split(master_dataframe, params):
     if split_mode == 'crossfold':
         # Assign test patients first
         if test_patients:
-            df.loc[df['pid'].isin(test_patients), 'set'] = 2
+            df.loc[df['npid'].isin(test_patients), 'set'] = 2
         remaining_df = df[df['set'] == -1]
 
-        unique_pids = remaining_df['pid'].unique()
+        unique_pids = remaining_df['npid'].unique()
         kf = GroupKFold(n_splits=n_splits)
 
         fold_dfs = []
@@ -32,8 +32,8 @@ def perform_split(master_dataframe, params):
             train_pids = unique_pids[train_idx]
             val_pids = unique_pids[val_idx]
 
-            fold_train = remaining_df[remaining_df['pid'].isin(train_pids)].copy()
-            fold_val = remaining_df[remaining_df['pid'].isin(val_pids)].copy()
+            fold_train = remaining_df[remaining_df['npid'].isin(train_pids)].copy()
+            fold_val = remaining_df[remaining_df['npid'].isin(val_pids)].copy()
 
             fold_train['set'] = 0
             fold_val['set'] = 1
@@ -49,25 +49,25 @@ def perform_split(master_dataframe, params):
         final_df = pd.concat([
             folds_df,
             df[df['set'] == 2]
-        ], ignore_index=True).sort_values(by='pid').reset_index(drop=True)
+        ], ignore_index=True).sort_values(by='npid').reset_index(drop=True)
 
         return final_df
 
     elif split_mode == 'splitthecake':
         # Assign test set first
         if test_patients:
-            df.loc[df['pid'].isin(test_patients), 'set'] = 2
+            df.loc[df['npid'].isin(test_patients), 'set'] = 2
             remaining_df = df[df['set'] == -1]
         else:
             remaining_df = df.copy()
 
-        unique_pids = remaining_df['pid'].unique()
+        unique_pids = remaining_df['npid'].unique()
         train_pids, val_pids = train_test_split(
             unique_pids, test_size=0.2, random_state=random_state, shuffle=True
         )
 
-        df.loc[df['pid'].isin(train_pids), 'set'] = 0
-        df.loc[df['pid'].isin(val_pids), 'set'] = 1
+        df.loc[df['npid'].isin(train_pids), 'set'] = 0
+        df.loc[df['npid'].isin(val_pids), 'set'] = 1
         return df
 
     elif split_mode == 'splitthecakeacross':
@@ -79,28 +79,28 @@ def perform_split(master_dataframe, params):
         first_ds_df = df[first_ds_mask]
         # second_ds_df = df[second_ds_mask]
 
-        unique_pids = first_ds_df['pid'].unique()
+        unique_pids = first_ds_df['npid'].unique()
         train_pids, val_pids = train_test_split(
             unique_pids, test_size=0.2, random_state=random_state, shuffle=True
         )
 
-        df.loc[first_ds_mask & df['pid'].isin(train_pids), 'set'] = 0
-        df.loc[first_ds_mask & df['pid'].isin(val_pids), 'set'] = 1
+        df.loc[first_ds_mask & df['npid'].isin(train_pids), 'set'] = 0
+        df.loc[first_ds_mask & df['npid'].isin(val_pids), 'set'] = 1
         df.loc[second_ds_mask, 'set'] = 2  # test set = entire second dataset
         return df
 
     elif split_mode == 'getalienshere':
         # Load alien test externally and mark in a separate dataframe (won't fit into master_df directly)
-        main_mask = ~df['pid'].isin(test_patients) if test_patients else pd.Series([True]*len(df))
+        main_mask = ~df['npid'].isin(test_patients) if test_patients else pd.Series([True]*len(df))
         main_df = df[main_mask].copy()
 
-        unique_pids = main_df['pid'].unique()
+        unique_pids = main_df['npid'].unique()
         train_pids, val_pids = train_test_split(
             unique_pids, test_size=0.2, random_state=random_state, shuffle=True
         )
 
-        df.loc[df['pid'].isin(train_pids), 'set'] = 0
-        df.loc[df['pid'].isin(val_pids), 'set'] = 1
+        df.loc[df['npid'].isin(train_pids), 'set'] = 0
+        df.loc[df['npid'].isin(val_pids), 'set'] = 1
 
         # Alien test data will be returned separately or handled outside
         alien_test_df = pd.read_csv(params.alien_test_path)

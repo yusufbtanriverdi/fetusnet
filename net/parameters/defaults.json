@@ -5,8 +5,9 @@
   "desired_spacings": [1.0, 1.0, 1.0],
 
   "raw_dir": "",
-  "root": "Rotated/Processed/",
-  "dataset": ["Casos Mar"],
+  "mdir": "DATA",
+  "root": "DATA",
+  "dataset": ["Estudio Dexeus", "Casos Maternitat", "Casos Mar"],
   "split": "crossfold",
   "n_split": 4,
   "test_patients": [],
