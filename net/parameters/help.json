@@ -21,6 +21,7 @@
   "split": "Choose training strategy in terms of splitting.",
   "n_split": "Number of splits for cross-validation",
   "test_patients": "List of patient IDs reserved for testing",
+  "master_df": "Filename of the master dataframe CSV",
   "alien_test_path": "Path to external test patient list",
   "generate": "Mode for data generation",
   "g_target_idx": "Indices of target landmarks to detect",

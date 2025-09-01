@@ -144,7 +144,7 @@ def train_and_validate(fold_dataframe, fold_experiment_dir, params, transformati
 
     return train_losses, val_losses
 
-def update_dataframe(dataframe):
+def update_dataframe(dataframe, params):
     # Construct full file paths by joining base paths with relative paths
     paths = dataframe['mscan'].apply(lambda x: os.path.join(params.sys + params.root, x))
 
@@ -153,9 +153,32 @@ def update_dataframe(dataframe):
 
     # Filter DataFrame by mask and reset index
     dataframe = dataframe[mask].reset_index(drop=True)
-
+    
+    # Clear nonfrontal
+    dataframe = dataframe[~dataframe['nonfrontal_after_rot']].reset_index(drop=True)
+    # Clear set = -1 
+    dataframe = dataframe[dataframe['set'] != -1].reset_index(drop=True)
+    
     return dataframe
 
+def test_loaders(dataloader):
+    from tqdm import tqdm
+    """
+    Test function to validate the DataLoader functionality.
+
+    This function iterates through the provided DataLoader, printing out the shapes
+    of the input volumes and target heatmaps for each batch. It serves as a basic
+    sanity check to ensure that the DataLoader is correctly loading and batching data.
+
+    Args:
+        dataloader (torch.utils.data.DataLoader): The DataLoader instance to be tested.
+
+    Returns:
+        None
+    """
+    for batch in tqdm(dataloader):
+        pass
+    return
 
 print("Torch cuda is available? ", torch.cuda.is_available())
 # Suppress UserWarnings
@@ -183,7 +206,7 @@ if params.mode == 'prepare':
     master_dataframe_path = perform_prepare(params)
 
 # Load or create sinfo dataframe
-master_dataframe_path = os.path.join(params.sys, params.root, 'sinfo_new_clean.csv')
+master_dataframe_path = os.path.join(params.sys, params.root, params.master_df + '.csv')
 if os.path.exists(master_dataframe_path):
     master_dataframe = pd.read_csv(master_dataframe_path)
 else:
@@ -195,12 +218,13 @@ if params.mode == 'rotate':
     perform_rotate(master_dataframe, params)
 
 # Split into subsets
-split_dataframe_path = os.path.join(params.sys, params.root, 'sinfo_new_filtered_' + params.split + '.csv')
-
+split_dataframe_path = os.path.join(params.sys, params.root, params.master_df + params.split + '.csv')
 if params.mode == 'presplit':
-    splitted_dataframe = perform_split(master_dataframe, params)
-    splitted_dataframe.to_csv(split_dataframe_path)
+    split_dataframe_path = perform_split(master_dataframe, params)
+    splitted_dataframe = pd.read_csv(split_dataframe_path)
 
+logger.info(f"Master dataframe path: {master_dataframe_path}")
+logger.info(f"Split dataframe path: {split_dataframe_path}")    
 logger.info(f"Total number of input in master dataframe: {len(master_dataframe)}")
 logger.info(f"Moving into splitting... You selected {params.split}")
 logger.info("I am checking if there is already a split dataframe for this splitter...")
@@ -208,15 +232,10 @@ if os.path.exists(split_dataframe_path):
     splitted_dataframe = pd.read_csv(split_dataframe_path, index_col=0)
 else:
     logger.warning("Split dataframe not found. Please re-run this script in presplit mode to store splitting information. Now, I will split for you. \n")
-    splitted_dataframe = perform_split(master_dataframe, params)
+    split_dataframe_path = perform_split(master_dataframe, params)
+    splitted_dataframe = pd.read_csv(split_dataframe_path)
 
 logger.info(f"Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
-
-# splitted_dataframe = update_dataframe(splitted_dataframe)
-# logger.info(f"!__[U]__! Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
-
-if params.mode == 'generate':
-    perform_generate(master_dataframe, experiment_dir, params)
 
 # Define transformations for 3D images
 transforms = [
@@ -225,6 +244,20 @@ transforms = [
               ] if params.rescale else []
 transformations = tio.Compose(transforms)
 logger.info("Transformations are created.")
+
+
+if params.mode == 'pipe':
+    train_dl, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
+    test_loaders(train_dl)
+    test_loaders(test_dl)
+
+logger.info(f"I am cleaning the dataframe from non-existing files and nonfrontal cases... {len(splitted_dataframe)}")
+splitted_dataframe = update_dataframe(splitted_dataframe, params)
+logger.info(f"After cleaning, total number of input in master dataframe: {len(splitted_dataframe)}")
+logger.info(f"!__[U]__! Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
+
+if params.mode == 'generate':
+    perform_generate(master_dataframe, experiment_dir, params)
 
 if params.mode == 'train':
     logger.info("I am starting to train")

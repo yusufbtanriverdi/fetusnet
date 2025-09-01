@@ -77,7 +77,7 @@ def perform_prepare(params):
     # Initialize lists to hold patient and scan info dictionaries
     pinfo_df = []
     sinfo_df = []
-    save_dir = params.sys + params.move_dir
+    save_dir = params.sys + params.mdir
     os.makedirs(save_dir, exist_ok=True)
     # Load ground truth data for standard planes from JSON file
     dicto = json.loads(get_file_list('doc/info//gt.txt')[0])
@@ -134,7 +134,7 @@ def perform_prepare(params):
                         _, header = extract_image(fscan)
                         nsid = npid + week.split(' ')[0] + osid.split('-')[-1]
 
-                        mscan = os.path.join(dataset, 'volumes', nsid + '.nrrd')
+                        mscan = os.path.join('volumes', nsid + '.nrrd')
                         scan_dict  = {
                             'nsid': nsid,
                             'npid': npid,
@@ -161,7 +161,9 @@ def perform_prepare(params):
                             'mscan': mscan,
                             'mlmk': '',
                             'mcsv': '',
-                            'rot_found' : rot_found
+                            'rot_found' : rot_found,
+                            'csv_found' : True
+
                         }
                          
                         lmk_folder = os.path.join(raw_files, 'Segmentaciones', caso, week, 'Lmks_Antonia') 
@@ -180,11 +182,18 @@ def perform_prepare(params):
                             
                             if os.path.exists(fcsv): scan_dict['_fcsv'] = fcsv
                             elif os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
-                            else: scan_dict['_fcsv'] = ''
+                            else: 
+                                scan_dict['_fcsv'] = ''
+                                scan_dict['csv_found'] = False
+                            try: 
+                                pd.read_csv(scan_dict['_fcsv'])
+                            except Exception as e:
+                                scan_dict['csv_found'] = False
+
                         scan_dict['lmks_found'] = lmks_found
                         if lmks_found:                         
-                            mlmk = os.path.join(dataset, 'landmarks', 'fcsv', nsid + '.fcsv')
-                            mcsv = os.path.join(dataset, 'landmarks', 'csv', nsid + '.csv')
+                            mlmk = os.path.join('landmarks', 'fcsv', nsid + '.fcsv')
+                            mcsv = os.path.join('landmarks', 'csv', nsid + '.csv')
                             scan_dict['mlmk'] = mlmk
                             scan_dict['mcsv'] = mcsv
 
@@ -249,7 +258,7 @@ def perform_prepare(params):
                         # Extract header only to get metadata
                         _, header = extract_image(fscan)
                         nsid = npid + '00' + osid.split('_')[-1]
-                        mscan = os.path.join(dataset, 'volumes', nsid + '.nrrd')
+                        mscan = os.path.join('volumes', nsid + '.nrrd')
 
                         scan_dict  = {
                             'nsid': nsid,
@@ -277,7 +286,8 @@ def perform_prepare(params):
                             'mscan': mscan,
                             'mlmk': '',
                             'mcsv': '',
-                            'rot_found' : rot_found
+                            'rot_found' : rot_found,
+                            'csv_found' : True
                         }
                          
                         lmk_folder = os.path.join(raw_files, caso, 'Lmks') 
@@ -296,11 +306,18 @@ def perform_prepare(params):
                             
                             if os.path.exists(fcsv): scan_dict['_fcsv'] = fcsv
                             elif os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
-                            else: scan_dict['_fcsv'] = ''
+                            else: 
+                                scan_dict['_fcsv'] = ''
+                                scan_dict['csv_found'] = False
+                            try: 
+                                pd.read_csv(scan_dict['_fcsv'])
+                            except Exception as e:
+                                scan_dict['csv_found'] = False
+                            
                         scan_dict['lmks_found'] = lmks_found
                         if lmks_found:                         
-                            mlmk = os.path.join(dataset, 'landmarks', 'fcsv', nsid + '.fcsv')
-                            mcsv = os.path.join(dataset, 'landmarks', 'csv', nsid + '.csv')
+                            mlmk = os.path.join('landmarks', 'fcsv', nsid + '.fcsv')
+                            mcsv = os.path.join('landmarks', 'csv', nsid + '.csv')
                             scan_dict['mlmk'] = mlmk
                             scan_dict['mcsv'] = mcsv
 
@@ -367,7 +384,7 @@ def perform_prepare(params):
                         _, header = extract_image(fscan)
                         nsid = npid + week.split(' ')[0] + osid.split('s-')[-1]
 
-                        mscan = os.path.join(dataset, 'volumes', nsid + '.nrrd')
+                        mscan = os.path.join('volumes', nsid + '.nrrd')
                         scan_dict  = {
                             'nsid': nsid,
                             'npid': npid,
@@ -394,7 +411,8 @@ def perform_prepare(params):
                             'mscan': mscan,
                             'mlmk': '',
                             'mcsv': '',
-                            'rot_found' : rot_found
+                            'rot_found' : rot_found,
+                            'csv_found' : True
 
                         }
                          
@@ -415,11 +433,17 @@ def perform_prepare(params):
                             
                             if os.path.exists(fcsv): scan_dict['_fcsv'] = fcsv
                             elif os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
-                            else: scan_dict['_fcsv'] = ''
+                            else: 
+                                scan_dict['_fcsv'] = ''
+                                scan_dict['csv_found'] = False
+                            try: 
+                                pd.read_csv(scan_dict['_fcsv'])
+                            except Exception as e:
+                                scan_dict['csv_found'] = False
                         scan_dict['lmks_found'] = lmks_found
                         if lmks_found:                         
-                            mlmk = os.path.join(dataset, 'landmarks', 'fcsv', nsid + '.fcsv')
-                            mcsv = os.path.join(dataset, 'landmarks', 'csv', nsid + '.csv')
+                            mlmk = os.path.join('landmarks', 'fcsv', nsid + '.fcsv')
+                            mcsv = os.path.join('landmarks', 'csv', nsid + '.csv')
                             scan_dict['mlmk'] = mlmk
                             scan_dict['mcsv'] = mcsv
 
@@ -439,9 +463,9 @@ def perform_prepare(params):
     sinfo_df = pd.DataFrame.from_records(sinfo_df)
 
     # Save patient and scan info DataFrames as CSV files
-    pd.DataFrame.from_records(pinfo_df).to_csv(params.sys + params.root + 'pinfo_all.csv', index=False)
-    sinfo_df.to_csv(params.sys + params.root + 'sinfo_all.csv', index=False)
-    sinfo = sinfo_df[sinfo_df['rot_found'] & sinfo_df['lmks_found']]
-    pd.DataFrame.from_records(sinfo).to_csv(params.sys + params.root + 'sinfo.csv', index=False)
+    pd.DataFrame.from_records(pinfo_df).to_csv(params.sys + params.root + 'pinfo_2.csv', index=False)
+    sinfo_df.to_csv(params.sys + params.root + 'sinfo_all_2.csv', index=False)
+    sinfo = sinfo_df[sinfo_df['rot_found'] & sinfo_df['lmks_found'] & sinfo_df['csv_found']]
+    pd.DataFrame.from_records(sinfo).to_csv(params.sys + params.root + 'sinfo_2.csv', index=False)
 
     return sinfo_df
