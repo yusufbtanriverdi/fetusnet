@@ -9,6 +9,7 @@
       "device": "cuda",
       "split": "crossfold",
       "alien_test_path": null,
+      "master_df": "sinfo_2_up",
       "desired_size": [
             128,
             128,
@@ -30,7 +31,7 @@
       "target_idx": [],
       "g_alpha": 3,
       "g_eps": 1e-06,
-      "prefix": "crossfold_tpt",
+      "prefix": "ctpt",
       "use_wandb": true,
       "iter_folds": [
             0, 
@@ -68,7 +69,7 @@
         "batch_size_test": 1,
         "num_workers": 1,
         "backbone": "resunet3d",
-        "epochs": 50,
+        "epochs": 80,
         "num_fts": 32,
         "optimizer": "adam",
         "learning_rate": 0.0001,

@@ -179,3 +179,4 @@ configs/custom1.json
 tmps/
 
 .vscode
+configs/todos.json
