@@ -27,42 +27,44 @@ def perform_rotate(dataframe, params):
     """
     logger = logging.getLogger('my_project_logger') 
     # Extract all filenames from the dataframe for processing
-    filenames = list(dataframe['path_to_nrrd'].values)
+    filenames = list(dataframe['fcaso'].values)
 
     # Load ground truth data for standard planes from JSON file
     dicto = json.loads(get_file_list('doc/info//gt.txt')[0])
 
     ct = 0
     ct_not_found = 0
-
+    dataframe.loc[:, 'csvfound'] = True
     # Iterate over each file for processing
     for i, filename in tqdm(enumerate(filenames), total=len(filenames)):
         # Prepare file paths and identifiers from dataframe row
-        image_path = os.path.join(dataframe.loc[i, 'path_to_nrrd'])
-        name = dataframe.loc[i, 'full_id']
+        image_path = os.path.join(dataframe.loc[i, 'fscan'])
+        name = dataframe.loc[i, 'osid']
 
-        # Construct save paths for processed outputs
-        save_im_path = os.path.join(params.sys + params.root, dataframe.loc[i, 'processed__vol_path'])
-        save_csv_path = os.path.join(params.sys + params.root, dataframe.loc[i, 'processed__csv_path'])
-        save_lmk_path = os.path.join(params.sys + params.root, dataframe.loc[i, 'processed__lmk_path'])
+        save_im_path = params.sys + params.mdir + '/' + dataframe.loc[i, 'mscan']
+        save_csv_path = params.sys + params.mdir + '/' + dataframe.loc[i, 'mcsv']
+        save_lmk_path = params.sys + params.mdir + '/' + dataframe.loc[i, 'mlmk']
 
         # Skip processing if image already exists
         if os.path.exists(save_im_path):
-            logger.info('Image seems to be processed already!!!')
-            logger.info(filename)
+            # logger.info('Image seems to be processed already!!!')
+            # logger.info(filename)
             continue
 
         # Load ultrasound image volume and header metadata
         V, header = extract_image(image_path)
         V = np.array(V)
 
+        lmk_path = dataframe.loc[i, '_fcsv']
+
         # Attempt to load landmarks CSV file
         try:
-            lmk_path = os.path.join(params.root, dataframe.loc[i, 'path_to_csv'])
             lmk = pd.read_csv(lmk_path)
         except Exception as e:
             logger.error(str(e))
-            logger.warning(f"Could not load landmarks from {lmk_path}! Skipping!! I used to work on the other version...")
+            ct_not_found += 1
+            logger.warning(f"Could not load landmarks from {lmk_path} for {name}! Skipping!! Count: {ct_not_found}")
+            dataframe.loc[i, 'csvfound'] = False
             continue
 
         # Verify landmarks count
@@ -73,7 +75,7 @@ def perform_rotate(dataframe, params):
         L_in_mm = get_matrix_of_lmks(lmk)
 
         # Log header info for debugging
-        logger.info(header)
+        # logger.info(header)
 
         # Determine pixel spacing information from header; fallback if keys missing
         try:
@@ -129,7 +131,8 @@ def perform_rotate(dataframe, params):
         plane = dicto.get(name)
         if plane is None:
             logger.warning(f"Ground truth for {name} not found!")
-            ct_not_found += 1
+            # ct_not_found += 1
+            dataframe.loc[i, 'rot_found'] = False
             continue
         ct += 1
 
@@ -181,37 +184,37 @@ def perform_rotate(dataframe, params):
         save_3d_image(Vhat, header, img_size, save_im_path)
         save_transformed_landmarks(Lhat_in_pix * p, lmk, save_csv_path, save_lmk_path)
 
-    logger.info("Number of images with missing ground truth: %d", ct_not_found)
+    logger.info("Number of images with missing csvs: %d", ct_not_found)
+    dataframe.to_csv('tmp.csv')
+
+# def test_main():
+#     """
+#     Basic test function to validate perform_rotate() runs without errors on a sample dataset.
+#     """
+
+#     class Params:
+#         root = "/media/yusuf/HDD 4TB/Casos Mar"
+#         save_dir = "/media/yusuf/HDD 4TB/Rotated/Processed"
+#         desired_spacings = [1.0, 1.0, 1.0]
+#         desired_size = [128, 128, 128]
+
+#     test_root = Params.root
+#     os.makedirs(test_root, exist_ok=True)
+
+#     params = Params()
+
+#     dataframe = pd.read_csv("/media/yusuf/HDD 4TB/Rotated/Processed/sinfo_new_all.csv")
+#     # dataframe = dataframe[dataframe['landmark_antonia_found'] == True].reset_index(drop=True)
+#     # dataframe = dataframe[:50]  # Limit to 50 rows for testing
+
+#     print(f"Number of rows in dataframe: {len(dataframe)}")
+
+#     try:
+#         perform_rotate(dataframe, params)
+#         print("Test passed: main function executed without errors.")
+#     except Exception as e:
+#         print(f"Test failed: {str(e)}")
 
 
-def test_main():
-    """
-    Basic test function to validate perform_rotate() runs without errors on a sample dataset.
-    """
-
-    class Params:
-        root = "/media/yusuf/HDD 4TB/Casos Mar"
-        save_dir = "/media/yusuf/HDD 4TB/Rotated/Processed"
-        desired_spacings = [1.0, 1.0, 1.0]
-        desired_size = [128, 128, 128]
-
-    test_root = Params.root
-    os.makedirs(test_root, exist_ok=True)
-
-    params = Params()
-
-    dataframe = pd.read_csv("/media/yusuf/HDD 4TB/Rotated/Processed/Maternitatsinfo.csv")
-    # dataframe = dataframe[dataframe['landmark_antonia_found'] == True].reset_index(drop=True)
-    # dataframe = dataframe[:50]  # Limit to 50 rows for testing
-
-    print(f"Number of rows in dataframe: {len(dataframe)}")
-
-    try:
-        perform_rotate(dataframe, params)
-        print("Test passed: main function executed without errors.")
-    except Exception as e:
-        print(f"Test failed: {str(e)}")
-
-
-if __name__ == "__main__":
-    test_main()
+# if __name__ == "__main__":
+#     test_main()

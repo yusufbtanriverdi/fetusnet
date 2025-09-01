@@ -1,113 +1,112 @@
+import os
 import pandas as pd
 from sklearn.model_selection import GroupKFold, train_test_split
 
 def perform_split(master_dataframe, params):
     """
-    Perform data splitting and annotate master_dataframe with 'set' and optionally 'fold'.
-    0 = train, 1 = val, 2 = test
+    Perform data splitting and write resulting dataframes to disk.
+    Returns the path to the last written file (or last fold if crossfold).
     """
     df = master_dataframe.copy()
     df['set'] = -1  # Initialize all to unassigned
-    df['fold'] = -1  # Only meaningful for crossfold
 
     split_mode = params.split
-    test_patients = set(params.test_patients) if hasattr(params, 'test_patients') else set()
+    test_patients = getattr(params, 'test_patients', list())
+    if not test_patients: test_patients = []
     n_splits = getattr(params, 'n_split', 5)
     random_state = getattr(params, 'seed', 42)
     datasets = getattr(params, 'dataset', [])
+    output_dir = os.path.join(params.sys, params.root) + '/' + params.master_df
 
     if split_mode == 'crossfold':
         # Assign test patients first
         if test_patients:
-            df.loc[df['pid'].isin(test_patients), 'set'] = 2
+            df.loc[df['npid'].isin(test_patients), 'set'] = 2
         remaining_df = df[df['set'] == -1]
 
-        unique_pids = remaining_df['pid'].unique()
+        unique_pids = remaining_df['npid'].unique()
         kf = GroupKFold(n_splits=n_splits)
 
-        fold_dfs = []
+        last_path = None
         for fold_idx, (train_idx, val_idx) in enumerate(
             kf.split(unique_pids, groups=unique_pids)
         ):
             train_pids = unique_pids[train_idx]
             val_pids = unique_pids[val_idx]
 
-            fold_train = remaining_df[remaining_df['pid'].isin(train_pids)].copy()
-            fold_val = remaining_df[remaining_df['pid'].isin(val_pids)].copy()
+            fold_train = remaining_df[remaining_df['npid'].isin(train_pids)].copy()
+            fold_val = remaining_df[remaining_df['npid'].isin(val_pids)].copy()
 
             fold_train['set'] = 0
             fold_val['set'] = 1
-            fold_train['fold'] = fold_idx
-            fold_val['fold'] = fold_idx
 
-            fold_dfs.append(fold_train)
-            fold_dfs.append(fold_val)
+            fold_df = pd.concat([fold_train, fold_val], ignore_index=True)
+            # Add test patients for this fold
+            test_df = df[df['set'] == 2].copy()
+            if not test_df.empty:
+                fold_df = pd.concat([fold_df, test_df], ignore_index=True)
 
-        folds_df = pd.concat(fold_dfs, ignore_index=True)
+            fold_df = fold_df.sort_values(by='npid').reset_index(drop=True)
+            fold_path = output_dir + f'_fold{fold_idx}.csv'
+            fold_df.to_csv(fold_path, index=False)
+            last_path = fold_path
 
-        # Test patients already present in df (with set=2)
-        final_df = pd.concat([
-            folds_df,
-            df[df['set'] == 2]
-        ], ignore_index=True).sort_values(by='pid').reset_index(drop=True)
-
-        return final_df
+        return last_path
 
     elif split_mode == 'splitthecake':
         # Assign test set first
         if test_patients:
-            df.loc[df['pid'].isin(test_patients), 'set'] = 2
+            df.loc[df['npid'].isin(test_patients), 'set'] = 2
             remaining_df = df[df['set'] == -1]
         else:
             remaining_df = df.copy()
 
-        unique_pids = remaining_df['pid'].unique()
+        unique_pids = remaining_df['npid'].unique()
         train_pids, val_pids = train_test_split(
             unique_pids, test_size=0.2, random_state=random_state, shuffle=True
         )
 
-        df.loc[df['pid'].isin(train_pids), 'set'] = 0
-        df.loc[df['pid'].isin(val_pids), 'set'] = 1
-        return df
+        df.loc[df['npid'].isin(train_pids), 'set'] = 0
+        df.loc[df['npid'].isin(val_pids), 'set'] = 1
+
+        out_path = output_dir + '_splitthecake.csv'
+        df.to_csv(out_path, index=False)
+        return out_path
 
     elif split_mode == 'splitthecakeacross':
         assert len(datasets) == 2, "splitthecakeacross requires exactly two datasets"
 
-        first_ds_mask = df['source'] == datasets[0]
-        second_ds_mask = df['source'] == datasets[1]
+        # Assign test patients first
+        if test_patients:
+            df.loc[df['npid'].isin(test_patients), 'set'] = 2
 
-        first_ds_df = df[first_ds_mask]
-        # second_ds_df = df[second_ds_mask]
+        # Assign training set: all from dataset 0 not in test
+        train_mask = (df['ds'] == datasets[0]) & (~df['npid'].isin(test_patients))
+        df.loc[train_mask, 'set'] = 0
 
-        unique_pids = first_ds_df['pid'].unique()
-        train_pids, val_pids = train_test_split(
-            unique_pids, test_size=0.2, random_state=random_state, shuffle=True
-        )
+        # Assign validation set: all from dataset 1 not in test
+        val_mask = (df['ds'] == datasets[1]) & (~df['npid'].isin(test_patients))
+        df.loc[val_mask, 'set'] = 1
 
-        df.loc[first_ds_mask & df['pid'].isin(train_pids), 'set'] = 0
-        df.loc[first_ds_mask & df['pid'].isin(val_pids), 'set'] = 1
-        df.loc[second_ds_mask, 'set'] = 2  # test set = entire second dataset
-        return df
+        out_path = output_dir + '_splitthecakeacross.csv'
+        df.to_csv(out_path, index=False)
+        return out_path
 
     elif split_mode == 'getalienshere':
-        # Load alien test externally and mark in a separate dataframe (won't fit into master_df directly)
-        main_mask = ~df['pid'].isin(test_patients) if test_patients else pd.Series([True]*len(df))
+        main_mask = ~df['npid'].isin(test_patients) if test_patients else pd.Series([True]*len(df))
         main_df = df[main_mask].copy()
 
-        unique_pids = main_df['pid'].unique()
+        unique_pids = main_df['npid'].unique()
         train_pids, val_pids = train_test_split(
             unique_pids, test_size=0.2, random_state=random_state, shuffle=True
         )
 
-        df.loc[df['pid'].isin(train_pids), 'set'] = 0
-        df.loc[df['pid'].isin(val_pids), 'set'] = 1
+        df.loc[df['npid'].isin(train_pids), 'set'] = 0
+        df.loc[df['npid'].isin(val_pids), 'set'] = 1
 
-        # Alien test data will be returned separately or handled outside
         alien_test_df = pd.read_csv(params.alien_test_path)
         alien_test_df['set'] = 2
 
-        # Important: Make sure alien_test_df columns align with df
-        # If any columns missing, add them with NaNs to match df columns
         for col in df.columns:
             if col not in alien_test_df.columns:
                 alien_test_df[col] = pd.NA
@@ -115,12 +114,18 @@ def perform_split(master_dataframe, params):
             if col not in df.columns:
                 df[col] = pd.NA
 
-        # Reorder alien_test_df columns to match df exactly
         alien_test_df = alien_test_df[df.columns]
-
-        # Concatenate the alien test data with main df
         combined_df = pd.concat([df, alien_test_df], ignore_index=True)
-        return combined_df
+
+        # Find next available filename if exists
+        base_path = output_dir + '_getalienshere'
+        out_path = base_path + '.csv'
+        idx = 1
+        while os.path.exists(out_path):
+            out_path = f"{base_path}_{params.prefix}{idx}.csv"
+            idx += 1
+        combined_df.to_csv(out_path, index=False)
+        return out_path
 
     else:
         raise ValueError(f"Unknown split mode: {split_mode}")

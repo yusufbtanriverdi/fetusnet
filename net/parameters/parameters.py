@@ -33,7 +33,7 @@ parameters_choices = load_json_config(CHOICES_CONFIG_PATH)
 
 def print_help(*args, **kwargs):
     print("Available modes:")
-    for mode in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help']:
+    for mode in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'pipe']:
         print(f"  {mode:16} {parameters_help.get(mode, '')}")
 
 
@@ -42,20 +42,22 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--root', type=str, default=defaults.get('root'), help=parameters_help['root'])
     subparser.add_argument('--sys', type=str, default=defaults.get('sys'), help=parameters_help['sys'])
     subparser.add_argument('--raw_dir', type=str, default=defaults.get('raw_dir'), help=parameters_help['raw_dir'])
+    subparser.add_argument('--mdir', type=str, default=defaults.get('mdir'), help=parameters_help['mdir'])
     subparser.add_argument('--os', type=str, default=defaults.get('os'), help=parameters_help['os'])
     subparser.add_argument('--wandbpro', type=str, default=defaults.get('wandbpro'), help=parameters_help['wandbpro'])
     subparser.add_argument('--device', type=str, default=defaults.get('device'), help=parameters_help['device'])
 
     subparser.add_argument('--split', type=str, default=defaults.get('split'), help=parameters_help['split'])
     subparser.add_argument('--alien_test_path', type=str, help=parameters_help['alien_test_path'], required=False)
+    subparser.add_argument('--n_split', '-n', type=int, default=defaults.get('n_split'), help=parameters_help['n_split'])
+    subparser.add_argument('--test_patients', nargs='+', type=int, help=parameters_help['test_patients'])
+    subparser.add_argument('--master_df', type=str, default=defaults.get('master_df'), help=parameters_help['master_df'])
+
     # Rotation related
     subparser.add_argument('--desired_size', type=int, default=defaults.get('desired_size'), help=parameters_help['desired_size'])
     subparser.add_argument('--desired_spacings', type=int, default=defaults.get('desired_spacings'), help=parameters_help['desired_spacings'])
 
     subparser.add_argument('--dataset', nargs='+', type=str, default=defaults.get('dataset'), help=parameters_help['dataset'])
-    subparser.add_argument('--n_split', '-n', type=int, default=defaults.get('n_split'), help=parameters_help['n_split'])
-    subparser.add_argument('--test_patients', nargs='+', type=str, help=parameters_help['test_patients'])
-
     subparser.add_argument('--generate', type=str, default=defaults.get('generate'), choices=parameters_choices['generate'], help=parameters_help['generate'])
     subparser.add_argument('--g_target_idx', nargs='+', type=int, default=defaults.get('g_target_idx'), help=parameters_help['g_target_idx'])
     subparser.add_argument('--g_alpha', type=float, default=defaults.get('g_alpha'), help=parameters_help['g_alpha'])
@@ -118,10 +120,11 @@ def parameters_parsing() -> argparse.Namespace:
     presplit_parser = subparsers.add_parser('presplit', help=parameters_help['presplit'])
     help_parser = subparsers.add_parser('help', help=parameters_help['help'])
     generate_parser = subparsers.add_parser('generate', help=parameters_help['generate'])
+    pipe_parser = subparsers.add_parser('pipe', help=parameters_help['generate'])
     help_parser.set_defaults(func=print_help)
 
     # Step 5: Add arguments with JSON-loaded defaults
-    for sub in [train_parser, test_parser, prep_parser, presplit_parser, rotate_parser, generate_parser]:
+    for sub in [train_parser, test_parser, prep_parser, presplit_parser, rotate_parser, generate_parser, pipe_parser]:
         add_common_args(sub, defaults)
 
     # Step 6: Final parse using updated parser and remaining args

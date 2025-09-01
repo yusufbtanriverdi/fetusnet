@@ -1,13 +1,13 @@
 {
       "config": null,
-      "mode": "test",
-      "root": "Rotated/Processed/",
+      "mode": "train",
+      "root": "DATA/",
       "sys": "/media/yusuf/HDD 4TB/",
       "raw_dir": "",
       "os": "linux",
-      "wandbpro": "fetusnetv1",
+      "wandbpro": "fetusnetv2",
       "device": "cuda",
-      "split": "sinfo_mater_nonfrontal",
+      "split": "crossfold",
       "alien_test_path": null,
       "desired_size": [
             128,
@@ -21,17 +21,22 @@
       ],
       "dataset": [
             "Casos Mar",
-            "Casos Maternitat"
+            "Casos Maternitat",
+            "Estudio Dexeus"
       ],
       "n_split": 4,
-      "test_patients": null,
+      "test_patients": [],
       "generate": "gaussian",
       "target_idx": [],
       "g_alpha": 3,
       "g_eps": 1e-06,
-      "prefix": "test_on_nonfrontal",
-      "use_wandb": false,
+      "prefix": "crossfold_tpt",
+      "use_wandb": true,
       "iter_folds": [
+            0, 
+            1,
+            2,
+            3
       ],
       "resume": false,
       "resume_dir": "",
@@ -58,24 +63,24 @@
                   "aR",
                   "aL"
                   ],
-      "batch_size_train": 1,
-      "batch_size_val": 1,
-      "batch_size_test": 1,
-      "num_workers": 1,
-      "architecture": "resunet3d",
-      "epochs": 1,
-      "num_fts": 32,
-      "optimizer": "adam",
-      "learning_rate": 0.0005,
-      "lr_momentum": 0.9,
-      "reduction": "mean",
-      "loss": [
+        "batch_size_train": 1,
+        "batch_size_val": 1,
+        "batch_size_test": 1,
+        "num_workers": 1,
+        "backbone": "resunet3d",
+        "epochs": 50,
+        "num_fts": 32,
+        "optimizer": "adam",
+        "learning_rate": 0.0001,
+        "lr_momentum": 0.9,
+        "reduction": "mean",
+        "loss": [
             "emd"
-      ],
-      "model_dir": "runs/2025-06-11/traning_2_in_prn_enL_enR_pg_n_sl_li_ls_chR_chL_sn_exL_exR_cphR_cphL_acL_acR_aR_aL/fold_1/best.pt",
+        ],
+      "model_dir": "",
       "radius_eval": 40,
       "radius_num": 40,
       "landmark_extractor": "argmax",
-      "progress_bar": true
-      
+            "progress_bar": true
+
 }
