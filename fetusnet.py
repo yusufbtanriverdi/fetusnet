@@ -320,9 +320,10 @@ if params.mode == 'train':
                 mean = test_scores[f"dmean_{lmk}"].mean()
                 std = test_scores[f"dmean_{lmk}"].std()
                 logger.info(f"Test d-mean Score for {lmk} @ fold {fold}: {mean} +/- {std}")
-
+            
             if params.use_wandb: wandb.finish()
-
+            global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
+            
     else:
         if params.use_wandb: initialize_wandb(params, experiment_name+'_'+params.split)
         logger.info(f"\n--- Training {params.split} --- \n")
