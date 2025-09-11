@@ -4,5 +4,7 @@
   "reduction": ["mean", "sum", "none"],
   "generate": ["gaussian"],
   "architecture": ["resunet3d"],
-  "split": ["crossfold", "splitthecake","splitthecakeacross","getalienshere", "custom"]
+  "split": ["crossfold", "splitthecake","splitthecakeacross","getalienshere", "custom"],
+  "loss": ["mse", "kld", "crossentropy", "distmatrix", "emd"],
+  "detector": ["dsnt", "com", "argmax"]
 }

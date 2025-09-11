@@ -92,7 +92,7 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--model_dir', type=str, default=defaults.get('model_dir'), help=parameters_help['model_dir'])
     subparser.add_argument('--radius_eval', type=int , default=defaults.get('radius_eval'), help=parameters_help['radius_eval'])
     subparser.add_argument('--radius_num', type=int, default=defaults.get('radius_num'), help=parameters_help['radius_num'])
-    subparser.add_argument('--landmark_extractor', type=str, default=defaults.get('landmark_extractor'), help=parameters_help['landmark_extractor'])
+    subparser.add_argument('--detector', type=str, default=defaults.get('detector'), help=parameters_help['detector'])
     subparser.add_argument('--progress_bar', action='store_true', default=defaults.get('progress_bar'), help=parameters_help['progress_bar'])
 
 

@@ -57,6 +57,6 @@
   "model_dir": "Directory for loading/saving model checkpoints",
   "radius_eval": "Radius used during evaluation",
   "radius_num": "Number of radius values to evaluate",
-  "landmark_extractor": "Method used for landmark extraction from heatmaps",
+  "detector": "Method used for landmark extraction from heatmaps",
   "progress_bar": "Whether to display tqdm bar."
 }

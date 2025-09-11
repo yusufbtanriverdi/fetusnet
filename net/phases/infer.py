@@ -15,7 +15,7 @@ from net.postprocess.utility.save_fscv_csv import save_fscv_csv
 from net.postprocess.utility.where_is_landmark import get_peak_location
 from net.plot.histogram_flattened import plot_histograms_and_stats
 
-def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False, landmark_extractor='argmax', eval=False, save_dir=None, radius_eval=40, radius_num=100, lmks=None, progress_bar=True):
+def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False, detector='argmax', eval=False, save_dir=None, radius_eval=40, radius_num=100, lmks=None, progress_bar=True):
     """
     Perform inference for one epoch with additional functionality.
 
@@ -88,7 +88,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
             scores_by_name = {}
             scores_by_name['heatmap'] = compute_heatmap_metrics(output_heatmap, target_heatmap)
             # Compute the peak locations of the output heatmap
-            output_coord_tensor = get_peak_location(output_heatmap, landmark_extractor).to(device)  # Ensure peak locations are computed
+            output_coord_tensor = get_peak_location(output_heatmap, detector).to(device)  # Ensure peak locations are computed
             # Get the voxel coordinates of the target landmark
             target_coord_tensor = batch['coords'][0].to(device)  # Assuming batch size of 1
 
@@ -119,7 +119,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb=False,
                                                                           spacing=spacing, 
                                                                           radius_eval=radius_eval, radius_num=radius_num, 
                                                                           save_dir=None,
-                                                                          landmark_extractor=landmark_extractor)
+                                                                          detector=detector)
                     gc.collect()
                     distance_curves[i, ind, :] = scores_v3_distances  # Store the distance curves for each landmark and batch index
                     # Save outputs and generate visualizations

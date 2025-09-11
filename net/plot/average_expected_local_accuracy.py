@@ -26,7 +26,7 @@ def plot_aela_figure(radii, edr, save_dir='average_expected_local_accuracy.png')
     plt.close()  # Close the plot to free up memory
     # Return the average expected local accuracy for each radius
 
-def average_expected_local_accuracy(output, target_coord, spacing, radius_eval, radius_num, save_dir='curve.png', landmark_extractor='argmax'):
+def average_expected_local_accuracy(output, target_coord, spacing, radius_eval, radius_num, save_dir='curve.png', detector='argmax'):
     """
     Computes the average expected local accuracy (AELA) for a batch of 3D images.
 
@@ -58,7 +58,7 @@ def average_expected_local_accuracy(output, target_coord, spacing, radius_eval, 
             mask[:, x_min:x_max, y_min:y_max, z_min:z_max] = 1
             roi = mask * output
             # Extract the peak location from the region of interest
-            output_coord = get_peak_location(roi, method=landmark_extractor)
+            output_coord = get_peak_location(roi, method=detector)
             # Calculate distance
             distances[ind]= torch.norm((output_coord - target_coord).to(float))
                 
