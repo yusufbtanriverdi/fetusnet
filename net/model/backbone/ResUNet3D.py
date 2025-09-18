@@ -69,7 +69,7 @@ class Out(nn.Module):
         return self.conv(x)
 
 class ResUNet3D(nn.Module):
-    def __init__(self, input_channels, output_channels, base_features):
+    def __init__(self, input_channels, output_channels, base_features, coordinate_regression=False):
         """
         3D Residual U-Net for segmentation or heatmap regression tasks.
 
@@ -108,6 +108,12 @@ class ResUNet3D(nn.Module):
         # Output layer
         self.output_layer = Out(base_features, output_channels)
 
+        self.coordinate_regression = coordinate_regression
+        if coordinate_regression:
+            # Dense layer for landmark regression
+            self.global_avg_pool = nn.AdaptiveAvgPool3d((1, 1, 1))
+            self.fc = nn.Linear(512, 3 * output_channels)
+
     def __str__(self):
         return f"ResUNet3D(input_channels={self.input_channels}, output_channels={self.output_channels}, base_features={self.base_features})"
 
@@ -129,4 +135,12 @@ class ResUNet3D(nn.Module):
 
         # Output layer
         output = self.output_layer(x_dec4)
-        return output
+
+        if self.coordinate_regression:
+            pooled_features = self.global_avg_pool(bottleneck_output)
+            pooled_features = torch.flatten(pooled_features, 1)
+            coord_output = self.fc(pooled_features).view(-1, self.output_channels, 3)
+            return output, coord_output
+        
+        else:
+            return output
