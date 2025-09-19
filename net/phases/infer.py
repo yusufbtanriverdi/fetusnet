@@ -159,7 +159,6 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
                     gc.collect()
 
             ep_scores.append(row)
-            break
             # if ind > 100: break      # For debugging, remove this line in production 
 
     if eval:
