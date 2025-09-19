@@ -76,7 +76,7 @@ def log_epoch_to_wandb(train_loss, val_loss, ep_scores, params, global_wandb_ste
     # Log generic losses
     wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': global_wandb_steps['epoch']})
     wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': global_wandb_steps['epoch']})
-    wandb.log({'epoc/dmean': ep_scores['dmean'], 'epoc/epoch': global_wandb_steps['epoch']})
+    wandb.log({'epoc/dmean': ep_scores['dmean'].item(), 'epoc/epoch': global_wandb_steps['epoch']})
 
     # Log per-landmark evaluation metrics
     # for lmk in params.lmks:

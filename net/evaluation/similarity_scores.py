@@ -54,7 +54,7 @@ def kullback_leibler_divergence(p, q, eps=1e-20):
     p = p.flatten()
     q = q.flatten()
     kl = torch.sum(p * torch.log((p + eps) / (q + eps)))
-    return kl
+    return kl.item()
 
 # def spatial_cross_correlation(p, q, eps=1e-20):
 #     """
