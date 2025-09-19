@@ -3,7 +3,6 @@
   "sys": "/media/yusuf/HDD 4TB/",
   "desired_size": [128, 128, 128],
   "desired_spacings": [1.0, 1.0, 1.0],
-
   "raw_dir": "",
   "mdir": "DATA/",
   "root": "DATA",

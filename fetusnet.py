@@ -288,6 +288,8 @@ if params.mode == 'train':
             logger.info(f"\n--- Training Fold {fold}/{params.n_split-1} --- \n")
             # Initialize model, loss, optimizer
             model, criterion, optimizer, best_criteria = get_fresh_model(params)
+            # If given, load pretrained weights.
+            # TODO
             train_losses, val_losses = train_and_validate(splitted_dataframe, fold_experiment_dir, params, transformations, global_wandb_steps)
             # Combine losses into a DataFrame
             loss_df = pd.DataFrame({
@@ -303,19 +305,22 @@ if params.mode == 'train':
             test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
             if len(test_dl) == 0: _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
             test_loss, global_wandb_steps, test_scores = infer_one_ep(
-                    model, 
-                    test_dl, 
-                    criterion, 
-                    params.device, 
-                    global_wandb_steps, 
-                    params.use_wandb, 
-                    params.detector, 
-                    eval=True,
-                    radius_eval=params.radius_eval, 
-                    radius_num=params.radius_num,  
-                    lmks=params.lmks, 
-                    save_dir=fold_experiment_dir,
-                    progress_bar=params.progress_bar)
+                model, 
+                test_dl, 
+                criterion, 
+                params.device, 
+                global_wandb_steps, 
+                params.use_wandb, 
+                params.detector, 
+                params.progress_bar,     
+                params.lmks, 
+                experiment_dir,
+                eval=True,
+                radius_eval=params.radius_eval,
+                radius_num=params.radius_num,
+                save_targets=False, 
+                save_outputs=False 
+                )
             
             for lmk in params.lmks:
                 mean = test_scores[f"dmean_{lmk}"].mean()
