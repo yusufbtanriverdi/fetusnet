@@ -76,13 +76,14 @@ def log_epoch_to_wandb(train_loss, val_loss, ep_scores, params, global_wandb_ste
     # Log generic losses
     wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': global_wandb_steps['epoch']})
     wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': global_wandb_steps['epoch']})
+    wandb.log({'epoc/dmean': ep_scores['dmean'], 'epoc/epoch': global_wandb_steps['epoch']})
 
     # Log per-landmark evaluation metrics
-    for lmk in params.lmks:
-        metric_name = f'dmean_{lmk}'
-        if metric_name in ep_scores:
-            wandb.log({f'epoc/{metric_name}': ep_scores[metric_name].mean(),
-                       'epoc/epoch': global_wandb_steps['epoch']})
+    # for lmk in params.lmks:
+    #     metric_name = f'dmean_{lmk}'
+    #     if metric_name in ep_scores:
+    #         wandb.log({f'epoc/{metric_name}': ep_scores[metric_name].mean(),
+    #                    'epoc/epoch': global_wandb_steps['epoch']})
 
     # Increment epoch counter
     global_wandb_steps['epoch'] += 1
@@ -114,19 +115,20 @@ def train_and_validate(fold_dataframe, fold_experiment_dir, params, transformati
             progress_bar=params.progress_bar
         )
 
-        val_loss, ep_scores, global_wandb_steps = infer_one_ep(
+        val_loss, global_wandb_steps, ep_scores = infer_one_ep(
             model, 
             val_dl, 
             criterion, 
             params.device, 
             global_wandb_steps, 
-            params.use_wandb, 
+            params.use_wandb,
             params.detector, 
-            eval=False,
-            lmks=params.lmks, 
-            save_dir=fold_experiment_dir,
-            progress_bar=params.progress_bar
+            params.progress_bar,     
+            params.lmks, 
+            experiment_dir,
+            eval=False, 
         )
+        
         # Save best model
         if val_loss < best_criteria:
             best_criteria = val_loss
@@ -220,8 +222,7 @@ if params.mode == 'rotate':
 # Split into subsets
 if params.split != 'crossfold':
     split_dataframe_path = os.path.join(params.sys, params.root, params.master_df + params.split + '.csv')
-
-else:
+else: # Takes the first number as fold in iter folds as default ! BE CAREFUL WITH TEST.
     logger.info(f"Crossfold detected. You selected folds: {params.iter_folds}")
     split_dataframe_path = os.path.join(params.sys, params.root, params.master_df + f'_fold{params.iter_folds[0]}.csv')
 
@@ -301,7 +302,7 @@ if params.mode == 'train':
             model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
             test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
             if len(test_dl) == 0: _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
-            test_loss, test_scores, global_wandb_steps = infer_one_ep(
+            test_loss, global_wandb_steps, test_scores = infer_one_ep(
                     model, 
                     test_dl, 
                     criterion, 
@@ -343,7 +344,7 @@ if params.mode == 'train':
         model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)        
         test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
         if len(test_dl) == 0: _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
-        test_loss, test_scores, global_wandb_steps = infer_one_ep(
+        test_loss, global_wandb_steps, test_scores  = infer_one_ep(
                 model, 
                 test_dl, 
                 criterion, 
@@ -351,12 +352,15 @@ if params.mode == 'train':
                 global_wandb_steps, 
                 params.use_wandb, 
                 params.detector, 
+                params.progress_bar,     
+                params.lmks, 
+                experiment_dir,
                 eval=True,
-                radius_eval=params.radius_eval, 
-                radius_num=params.radius_num,  
-                lmks=params.lmks, 
-                save_dir=experiment_dir,
-                progress_bar=params.progress_bar)
+                radius_eval=params.radius_eval,
+                radius_num=params.radius_num,
+                save_targets=False, 
+                save_outputs=False 
+                )
         
         for lmk in params.lmks:
             mean = test_scores[f"dmean_{lmk}"].mean()
@@ -365,27 +369,29 @@ if params.mode == 'train':
 
         if params.use_wandb: wandb.finish()
 
-
 if params.mode == 'test':
     test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
     if len(test_dl) == 0: _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
     model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, params.model_dir)
-    test_loss, test_scores, global_wandb_steps = infer_one_ep(
+    test_loss, global_wandb_steps, test_scores = infer_one_ep(
             model, 
             test_dl, 
             criterion, 
             params.device, 
             global_wandb_steps, 
-            params.use_wandb, 
+            False, 
             params.detector, 
-            eval=True,
-            radius_eval=params.radius_eval, 
-            radius_num=params.radius_num,  
-            lmks=params.lmks, 
-            save_dir=experiment_dir,
-            progress_bar=params.progress_bar)
+            params.progress_bar,     
+            params.lmks, 
+            experiment_dir,
+            eval=True, 
+            radius_eval=params.radius_eval,
+            radius_num=params.radius_num,
+            save_targets=False, 
+            save_outputs=False
+        )
 
     for lmk in params.lmks:
         mean = test_scores[f"dmean_{lmk}"].mean()

@@ -1,8 +1,13 @@
 import torch
 import torch.nn as nn
-from net.plot.visualize_loss import imshow_target_distance_matrices_to_gif
-from net.plot.histogram_flattened import plot_histograms_and_stats
-from net.model.modules.dsnt import to_probability_distributions
+import torch.nn.functional as F
+
+def to_probability_distributions(volume):
+    B, C, D, H, W = volume.shape
+    # softmax over voxel domain: do reshape softmax for stability & correctness
+    voxels = volume.view(B, C, -1)
+    probs = F.softmax(voxels, dim=-1).view(B, C, D, H, W)
+    return probs
 
 class MeanSquaredErrorLoss(nn.Module):
     """
@@ -60,9 +65,6 @@ class MeanSquaredErrorLoss(nn.Module):
 class SoftmaxCrossEntropyLoss(nn.Module):
     """
     Softmax Cross-Entropy Loss function.
-
-    This loss is commonly used for classification tasks where the model outputs logits, 
-    and the targets are probability distributions (one-hot encoded or soft labels). 
     The loss measures the dissimilarity between the predicted and target distributions.
     
     Supports flexible reduction methods: 'mean', 'sum', or 'none'.
@@ -120,6 +122,7 @@ class KullbackLeiblerDivLoss(nn.Module):
     Computes element-wise KLD: targets * (log(targets) - log(outputs))
 
     This loss measures the Kullback-Leibler divergence between two probability distributions.
+    
     """
 
     def __init__(self, reduction: str = 'mean', eps: float = 1e-20):

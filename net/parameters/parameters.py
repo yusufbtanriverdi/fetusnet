@@ -57,7 +57,8 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--desired_size', type=int, default=defaults.get('desired_size'), help=parameters_help['desired_size'])
     subparser.add_argument('--desired_spacings', type=int, default=defaults.get('desired_spacings'), help=parameters_help['desired_spacings'])
 
-    subparser.add_argument('--dataset', nargs='+', type=str, default=defaults.get('dataset'), help=parameters_help['dataset'])
+    subparser.add_argument('--train_val_ds', nargs='+', type=str, default=defaults.get('train_val_ds'), help=parameters_help['train_val_ds'])
+    subparser.add_argument('--test_ds', nargs='+', type=str, default=defaults.get('test_ds'), help=parameters_help['test_ds'])
     subparser.add_argument('--generate', type=str, default=defaults.get('generate'), choices=parameters_choices['generate'], help=parameters_help['generate'])
     subparser.add_argument('--g_target_idx', nargs='+', type=int, default=defaults.get('g_target_idx'), help=parameters_help['g_target_idx'])
     subparser.add_argument('--g_alpha', type=float, default=defaults.get('g_alpha'), help=parameters_help['g_alpha'])
@@ -87,7 +88,7 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--lr_momentum', '-m', type=int, default=defaults.get('lr_momentum'), help=parameters_help['lr_momentum'])
 
     subparser.add_argument('--reduction', type=str, choices=parameters_choices['reduction'], default=defaults.get('reduction'), help=parameters_help['reduction'])
-    subparser.add_argument('--loss', '-l', nargs='+', type=str, default=defaults.get('loss'), help=parameters_help['loss'])
+    subparser.add_argument('--loss', '-l', type=str, default=defaults.get('loss'), help=parameters_help['loss'])
 
     subparser.add_argument('--model_dir', type=str, default=defaults.get('model_dir'), help=parameters_help['model_dir'])
     subparser.add_argument('--radius_eval', type=int , default=defaults.get('radius_eval'), help=parameters_help['radius_eval'])

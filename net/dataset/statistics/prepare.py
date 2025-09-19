@@ -4,25 +4,7 @@ from tqdm import tqdm
 import nrrd
 import json
 
-def extract_image(filename):
-    """
-    Extracts image data and header from a NRRD file.
-    If the data has 4 dimensions, reduces it to 3D by selecting the first volume.
-
-    Args:
-        filename (str): Path to the NRRD file.
-
-    Returns:
-        tuple:
-            data (numpy.ndarray): 3D image array [x, y, z].
-            header (dict): Header information including metadata.
-    """
-    data, header = nrrd.read(filename)
-
-    if len(data.shape) == 4:
-        data = data[:, :, :, 0]
-
-    return data, header
+from net.dataset.utility.rotation import extract_image
 
 def extract_list_lmks_fromfcsv(file_path: str):
     """
@@ -81,10 +63,10 @@ def perform_prepare(params):
     os.makedirs(save_dir, exist_ok=True)
     # Load ground truth data for standard planes from JSON file
     dicto = json.loads(get_file_list('doc/info//gt.txt')[0])
-
+    datasets = params.train_val_ds + params.test_ds
     ######  CASOS ######
     # Iterate over each dataset specified in params
-    for dataset in params.dataset:
+    for dataset in datasets:
         # Process "Casos Mar" dataset
         if dataset == 'Casos Mar':
             ds_id = '1'

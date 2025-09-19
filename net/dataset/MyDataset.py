@@ -1,5 +1,7 @@
 from net.dataset.target import gaussian_heatmap
 from net.dataset.target import distance_matrix
+from net.dataset.utility.rotation import extract_image
+
 import torchio as tio
 from torch.utils.data import Dataset
 import os 
@@ -7,25 +9,6 @@ import torch
 import pandas as pd
 import nrrd
 import numpy as np
-# Import necessary libraries
-def extract_image(filename):
-    """Extract the image into a 3D numpy array [x, y, z]. As it was saved in RAS
-
-    Args:
-      filename: Path and name of nifti file.
-
-    Returns:
-      data: A 3D numpy array [x, y, z]
-      pix_dim: pixel spacings
-
-    """
-
-    data, header = nrrd.read(filename)
-
-    if len(data.shape) == 4:
-        data=data[:, :, :, 0]
-
-    return data, header
 
 class MyDataset(Dataset):
     """

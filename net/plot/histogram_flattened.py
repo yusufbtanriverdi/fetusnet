@@ -1,5 +1,6 @@
 import torch
 import matplotlib.pyplot as plt
+import numpy as np
 
 def plot_histograms_and_stats(outputs: torch.Tensor, targets: torch.Tensor, save_path = None):
     """
@@ -20,21 +21,24 @@ def plot_histograms_and_stats(outputs: torch.Tensor, targets: torch.Tensor, save
     # Plot histograms
     plt.figure(figsize=(12, 6))
     plt.subplot(1, 2, 1)
-    plt.hist(outputs_np, bins=50, color='blue', alpha=0.7, label='Outputs')
+    counts, bins = np.histogram(outputs_np, bins=50, range=(outputs_np.max() / 2, outputs_np.max()))
+    plt.stairs(counts, bins)
+    # plt.hist(outputs_np, bins=50, color='blue', alpha=0.7, label='Outputs')
     plt.title('Outputs Histogram')
     plt.xlabel('Value')
     plt.ylabel('Frequency')
     plt.legend()
 
     plt.subplot(1, 2, 2)
-    plt.hist(targets_np, bins=50, color='green', alpha=0.7, label='Targets')
+    counts, bins = np.histogram(targets_np, bins=50, range=(targets_np.max() / 2, targets_np.max()))
+    plt.stairs(counts, bins)
     plt.title('Targets Histogram')
     plt.xlabel('Value')
     plt.ylabel('Frequency')
     plt.legend()
 
     plt.tight_layout()
-    # plt.show()
+    plt.show()
 
     if save_path:
         plt.savefig(save_path + 'histograms.png' )

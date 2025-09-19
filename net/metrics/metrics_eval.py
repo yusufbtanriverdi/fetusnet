@@ -1,4 +1,5 @@
 from net.evaluation.dMean import d_mean_mm
+from net.evaluation.similarity_scores import kullback_leibler_divergence
 
 def compute_metrics(outputs, targets, spacings):
     """
@@ -60,12 +61,13 @@ def compute_heatmap_metrics(outputs, targets):
     """
     # Define metric functions
     metric_functions = {
-         # corr 
-         # r2  
-         # mae
+        # "nmse": normalized_mse,
+        "kl": kullback_leibler_divergence,
+        # "corr": spatial_cross_correlation,
+        # "hist_match": histogram_matching_measure,
     }
 
     # Compute metrics
-    scores = {key: func(outputs, targets) for key, func in metric_functions.items()}
+    scores = {key: func(targets, outputs) for key, func in metric_functions.items()}
 
     return scores

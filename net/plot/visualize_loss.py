@@ -12,7 +12,8 @@ def imshow_target_distance_matrices_to_gif(*targets: torch.Tensor, titles: list 
         gif_path (str): Path to save the generated GIF.
     """
     # Convert tensors to numpy arrays for visualization
-    targets_np = [target.cpu().detach().numpy()[0, 0] for target in targets]
+    # targets_np = [target.cpu().detach().numpy()[0, 0] for target in targets] # Assuming targets have shape (1, 1, D, H, W)
+    targets_np = [target.cpu().detach().numpy() for target in targets]
     # Define a function to update the slices being displayed
     def update_slice(val):
         slice_idx = int(slider.val)

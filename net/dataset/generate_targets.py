@@ -30,11 +30,11 @@ def perform_generate(sinfo, exp_dir, params):
             start_time = time.time()  # Start timing
 
             # Load the 3D volume
-            image_path = os.path.join(params.sys + params.root, sinfo.loc[i, 'processed__vol_path'])
+            image_path = os.path.join(params.sys + params.root, sinfo.loc[i, 'mscan'])
             volume, header = extract_image(image_path)
 
             # Load the landmark file
-            landmark_path = os.path.join(params.sys + params.root, sinfo.loc[i, 'processed__csv_path'])
+            landmark_path = os.path.join(params.sys + params.root, sinfo.loc[i, 'mcsv'])
             landmark_df = pd.read_csv(landmark_path)
 
             # Extract coordinates for the selected landmark
@@ -61,7 +61,7 @@ def perform_generate(sinfo, exp_dir, params):
 
             end_time = time.time()  # End timing
             elapsed_time = end_time - start_time  # Compute elapsed time
-            print(f"Processed {os.path.join(params.sys, params.root, params.dataset[0], sinfo.loc[i, 'processed__vol_path'])} in {elapsed_time:.4f} seconds")
+            print(f"Processed {sinfo.loc[i, 'nsid']} in {elapsed_time:.4f} seconds")
 
             # Save the generated target to a file
-            nrrd.write(os.path.join(exp_dir, f"{sinfo.loc[i, 'full_id']}_{lmk}.nrrd"), target, header=header)
+            nrrd.write(os.path.join(exp_dir, f"{sinfo.loc[i, 'nsid']}_{lmk}.nrrd"), target, header=header)

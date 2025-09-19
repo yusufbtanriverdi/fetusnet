@@ -17,7 +17,8 @@
   "desired_size": "Target size for input images (e.g., [128, 128, 128])",
   "desired_spacings": "Target voxel spacing for image resampling",
 
-  "dataset": "List of clinics or data sources included",
+  "train_val_ds": "List of clinics or data sources included in training/validation",
+  "test_ds": "List of clinics or data sources reserved for testing",
   "split": "Choose training strategy in terms of splitting.",
   "n_split": "Number of splits for cross-validation",
   "test_patients": "List of patient IDs reserved for testing",
