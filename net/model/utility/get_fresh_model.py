@@ -2,7 +2,7 @@ import torch.optim as optim
 import torch
 from functools import partial
 
-from net.model.backbone import ResUNet3D  
+from net.model.backbone import ResUNet3D, LighterResUNet3D, DeeperResUNet3D  
 from net.loss.voxel import *
 
 def get_fresh_model(params):
@@ -17,7 +17,7 @@ def get_fresh_model(params):
     Args:
         params (Namespace or dict-like): Configuration object with attributes:
             - lmks (list): List of target landmarks, used to set output channels.
-            - num_fts (int, optional): Number of base features in the UNet (default: 64).
+            - num_fts (int, optional): Number of base features in the UNet (default: 32).
             - device (str, optional): Device for model training ('cuda' or 'cpu').
             - reduction (str, optional): Reduction type for the loss (e.g., 'mean', 'sum').
             - loss (list[str], optional): List with one string indicating the loss function name.
@@ -32,12 +32,29 @@ def get_fresh_model(params):
             - float: Placeholder value (currently set to `torch.inf`).
     """
     # === Model Initialization ===
-    model = ResUNet3D.ResUNet3D(
-        input_channels=1,  # Assuming single-channel input (e.g., grayscale or single-modality volumes)
-        output_channels=len(params.lmks),  # Output channels match the number of landmarks
-        base_features=getattr(params, "num_fts", 64)  # Base feature count (default: 64)
-    )
-
+    model_key = getattr(params, 'architecture', 'resunet3d')  # Default to 'mse' if not specified
+    
+    if model_key == 'resunet3d':
+        model = ResUNet3D.ResUNet3D(
+            input_channels=1,  # Assuming single-channel input (e.g., grayscale or single-modality volumes)
+            output_channels=len(params.lmks),  # Output channels match the number of landmarks
+            base_features=getattr(params, "num_fts", 32)  # Base feature count (default: 32)
+        )
+    elif model_key == 'lighter':
+        model = LighterResUNet3D.ResUNet3D(
+            input_channels=1,  # Assuming single-channel input (e.g., grayscale or single-modality volumes)
+            output_channels=len(params.lmks),  # Output channels match the number of landmarks
+            base_features=getattr(params, "num_fts", 32)  # Base feature count (default: 32)
+        )
+    elif model_key == 'deeper':
+        model = DeeperResUNet3D.ResUNet3D(
+            input_channels=1,  # Assuming single-channel input (e.g., grayscale or single-modality volumes)
+            output_channels=len(params.lmks),  # Output channels match the number of landmarks
+            base_features=getattr(params, "num_fts", 32)  # Base feature count (default: 32)
+        )
+    else: 
+        raise ValueError
+    
     # Move model to the specified device (default to CUDA if available)
     device = getattr(params, "device", "cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -60,7 +77,6 @@ def get_fresh_model(params):
     loss_cls = loss_dict[loss_key]
     loss_params = getattr(params, 'loss_params', {})  # Additional parameters for the loss function
     criterion = loss_cls(reduction=reduction, **loss_params)
-    criterion = loss_dict[loss_key]()  # Instantiate the selected loss function
 
     # === Optimizer Selection ===
     m = getattr(params, 'lr_momentum', 0.9)
