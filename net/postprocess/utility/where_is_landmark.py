@@ -1,7 +1,7 @@
 import torch
 from net.model.modules.dsnt import dsnt_3d_separable
-from net.plot.visualize_loss import imshow_target_distance_matrices_to_gif
-from net.plot.histogram_flattened import plot_histograms_and_stats
+from net.plot.losses import imshow_target_distance_matrices_to_gif
+from net.plot.histograms import plot_histograms_and_stats
 from net.evaluation.similarity_scores import to_probability_distributions
 
 def get_peak_location(heatmap, method):

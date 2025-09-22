@@ -2,7 +2,7 @@ import torch
 import matplotlib.pyplot as plt
 from net.postprocess.utility.where_is_landmark import get_peak_location
 
-def plot_aela_figure(radii, edr, save_dir='average_expected_local_accuracy.png'):
+def aela_figure(radii, edr, save_dir='average_expected_local_accuracy.png'):
     """
     Function to plot the average expected local accuracy (AELA) figure.
     This function is a placeholder and should be replaced with the actual implementation.
@@ -63,6 +63,6 @@ def average_expected_local_accuracy(output, target_coord, spacing, radius_eval, 
             distances[ind]= torch.norm((output_coord - target_coord).to(float))
                 
     # Plotting the results
-    plot_aela_figure(mm_radii, distances.tolist(), save_dir=save_dir)
+    aela_figure(mm_radii, distances.tolist(), save_dir=save_dir)
     # Return the average expected local accuracy for each radius
     return distances

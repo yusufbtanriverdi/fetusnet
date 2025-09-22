@@ -1,7 +1,6 @@
 import nrrd
 import numpy as np
 import pyvista as pv
-import os
 import pandas as pd
 
 def numpy_sigmoid(arr):

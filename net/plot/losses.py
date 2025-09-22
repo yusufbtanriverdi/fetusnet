@@ -49,6 +49,7 @@ def imshow_target_distance_matrices_to_gif(*targets: torch.Tensor, titles: list 
     # Connect the slider to the update function
     slider.on_changed(update_slice)
     plt.show()
+    
     # # Automatically slide through slices and save as GIF frames
     # images = []
     # for slice_idx in range(targets_np[0].shape[0]):

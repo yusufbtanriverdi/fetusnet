@@ -8,7 +8,7 @@ import gc
 import nrrd 
 
 from net.metrics.metrics_eval import compute_heatmap_metrics, compute_landmark_metrics
-from net.plot.average_expected_local_accuracy import average_expected_local_accuracy, plot_aela_figure
+from net.plot.curves import average_expected_local_accuracy, aela_figure
 from net.postprocess.utility.save_fscv_csv import save_fscv_csv
 from net.postprocess.utility.where_is_landmark import get_peak_location
 from net.dataset.utility.rotation import extract_image
@@ -166,7 +166,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
             # Save the ep_scores_curve as CSV, including lmk info in the filename
             curve_csv_path = os.path.join(output_dir, f"{lmk}_curve_mean.csv") 
             np.savetxt(curve_csv_path, distance_curves[i].mean(dim=0), delimiter=",")
-            plot_aela_figure(torch.linspace(0, radius_eval, radius_num), distance_curves[i].mean(dim=0), save_dir=os.path.join(output_dir, f"{lmk}_curve_mean.png") )
+            aela_figure(torch.linspace(0, radius_eval, radius_num), distance_curves[i].mean(dim=0), save_dir=os.path.join(output_dir, f"{lmk}_curve_mean.png") )
             gc.collect()
         
         
