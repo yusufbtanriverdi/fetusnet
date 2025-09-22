@@ -1,5 +1,8 @@
 import torch
-from net.model.modules.dsnt import to_probability_distributions, dsnt_3d_separable
+from net.model.modules.dsnt import dsnt_3d_separable
+from net.plot.visualize_loss import imshow_target_distance_matrices_to_gif
+from net.plot.histogram_flattened import plot_histograms_and_stats
+from net.evaluation.similarity_scores import to_probability_distributions
 
 def get_peak_location(heatmap, method):
     """Extracts peak location from a heatmap."""
@@ -21,15 +24,23 @@ def get_peak_location_single(heatmap, method):
         return peak[0] if peak.numel() > 0 else None
 
     if method == 'com':
+        D, H, W = heatmap.shape
         # Compute soft center-of-mass for smoother localization
-        coords = torch.meshgrid(torch.arange(heatmap.shape[0]),
-                                torch.arange(heatmap.shape[1]),
-                                torch.arange(heatmap.shape[2]), indexing='ij')
-        coords = torch.stack(coords, dim=-1).float().to(heatmap.device)  # Shape (D, H, W, 3)
-        heatmap = to_probability_distributions(heatmap) # Normalize to make it a probability map
-        coords = (heatmap.unsqueeze(-1) * coords).sum(dim=(0, 1, 2))  # Weighted sum
-        return coords
+        grid = torch.meshgrid(torch.arange(D, device=heatmap.device),
+                              torch.arange(H, device=heatmap.device),
+                              torch.arange(W, device=heatmap.device), indexing='ij')
+        grid = torch.stack(grid, dim=-1).float()  # Shape (D, H, W, 3)
+        # softmax over voxel domain: do reshape softmax for stability & correctness
+        probs = torch.nn.functional.softmax(heatmap.view(-1), dim=-1).view(D, H, W)
+        weighted = probs.unsqueeze(-1) * grid
+        # imshow_target_distance_matrices_to_gif(weighted[:, :, :, 0], weighted[:, :, :, 1], weighted[:, :, :, 2], titles=['Weighted X', 'Weighted Y', 'Weighted Z'], gif_path='debug_com.gif')
+        # print(heatmap.max().item(), heatmap.min().item(), heatmap.mean().item())
+        # plot_histograms_and_stats(probs, weighted[:, :, :, 0])
+        # Weighted sum of coordinates by probability
+        com = weighted.sum(dim=(0, 1, 2))
+        return com
 
     if method == 'dsnt':
-        coords = dsnt_3d_separable(heatmap.unsqueeze(0).unsqueeze(0))  # Use DSNT to get coordinates
+        probs = to_probability_distributions(heatmap)
+        coords = dsnt_3d_separable(probs, heatmap.device, heatmap.dtype)  # Use DSNT to get coordinates
         return coords

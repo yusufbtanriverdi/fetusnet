@@ -51,9 +51,8 @@ def get_fresh_model(params):
         'emd': EMDRegularizedLoss,
     }
 
-    loss_name = getattr(params, 'loss', 'mse')  # Default to 'mse' if not specified
-    loss_key = loss_name[0]
-
+    loss_key = getattr(params, 'loss', 'mse')  # Default to 'mse' if not specified
+    
     if loss_key not in loss_dict:
         raise ValueError(f"Unsupported loss function '{loss_key}'. Choose from: {list(loss_dict.keys())}.")
 

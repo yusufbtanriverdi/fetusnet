@@ -175,8 +175,7 @@ graveyard/
 mock.py
 tmps/
 cluster.sh
-configs/custom1.json
 tmps/
 
 .vscode
-configs/todos.json
+configs

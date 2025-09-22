@@ -1,17 +1,19 @@
 from tqdm import tqdm
 import wandb
 
-def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps, use_wandb = False, progress_bar=True):
+def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps, use_wandb, progress_bar):
     """
     Train the model for one epoch.
 
     Args:
         model (torch.nn.Module): The model being trained.
-        loader (DataLoader): DataLoader for training data.
-        criterion (torch.nn.Module): Loss function.
+        loader (torch.utils.data.DataLoader): DataLoader for training data.
+        criterion (callable): Loss function.
         optimizer (torch.optim.Optimizer): Optimizer.
-        device (str): Device ('cpu' or 'cuda').
-        wandb_steps (dict): Global wandb loss indices.
+        device (torch.device or str): Device to run training on ('cpu' or 'cuda').
+        wandb_steps (dict): Dictionary tracking wandb step indices.
+        use_wandb (bool, optional): Whether to log metrics to Weights & Biases. Default is False.
+        progress_bar (bool, optional): Whether to display a progress bar. Default is True.
 
     Returns:
         float: Average loss for the epoch.
@@ -40,13 +42,7 @@ def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps, use_w
         outputs = model(images)
 
         # Compute the loss
-        if ind % 50 == 0:
-            try:
-                loss = criterion(outputs, targets, flag_visualize=False)
-            except Exception as e:
-                loss = criterion(outputs, targets)
-        else:
-            loss = criterion(outputs, targets)
+        loss = criterion(outputs, targets)
         # Compute the mean loss
         # Backward pass: compute gradients
         loss.backward()
@@ -69,5 +65,5 @@ def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps, use_w
 
             # Increment the wandb step counter
             wandb_steps['train_loss'] += 1
-            
+        
     return avg_loss, wandb_steps
