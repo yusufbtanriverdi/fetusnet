@@ -314,7 +314,7 @@ if params.mode == 'train':
                 params.detector, 
                 params.progress_bar,     
                 params.lmks, 
-                experiment_dir,
+                fold_experiment_dir,
                 eval=True,
                 radius_eval=params.radius_eval,
                 radius_num=params.radius_num,
@@ -394,8 +394,9 @@ if params.mode == 'test':
             eval=True, 
             radius_eval=params.radius_eval,
             radius_num=params.radius_num,
-            save_targets=False, 
-            save_outputs=False
+            save_targets=True, 
+            save_outputs=True,
+            show_figures=False
         )
 
     for lmk in params.lmks:

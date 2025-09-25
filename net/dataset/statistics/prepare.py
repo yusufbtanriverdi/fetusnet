@@ -144,7 +144,8 @@ def perform_prepare(params):
                             'mlmk': '',
                             'mcsv': '',
                             'rot_found' : rot_found,
-                            'csv_found' : True
+                            'csv_found' : True,
+                            'num_visibles': 0
 
                         }
                          
@@ -161,6 +162,7 @@ def perform_prepare(params):
                             if os.path.exists(flmk):
                                 scan_dict['flmk'] = flmk
                                 scan_dict['visibles'] = extract_list_lmks_fromfcsv(flmk)
+                                scan_dict['num_visibles'] = len(scan_dict['visibles'])
                             
                             if os.path.exists(fcsv): scan_dict['_fcsv'] = fcsv
                             elif os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
@@ -269,7 +271,9 @@ def perform_prepare(params):
                             'mlmk': '',
                             'mcsv': '',
                             'rot_found' : rot_found,
-                            'csv_found' : True
+                            'csv_found' : True,
+                            'num_visibles': 0
+
                         }
                          
                         lmk_folder = os.path.join(raw_files, caso, 'Lmks') 
@@ -285,6 +289,7 @@ def perform_prepare(params):
                             if os.path.exists(flmk):
                                 scan_dict['flmk'] = flmk
                                 scan_dict['visibles'] = extract_list_lmks_fromfcsv(flmk)
+                                scan_dict['num_visibles'] = len(scan_dict['visibles'])
                             
                             if os.path.exists(fcsv): scan_dict['_fcsv'] = fcsv
                             elif os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
@@ -394,7 +399,8 @@ def perform_prepare(params):
                             'mlmk': '',
                             'mcsv': '',
                             'rot_found' : rot_found,
-                            'csv_found' : True
+                            'csv_found' : True,
+                            'num_visibles': 0
 
                         }
                          
@@ -412,6 +418,7 @@ def perform_prepare(params):
                             if os.path.exists(flmk):
                                 scan_dict['flmk'] = flmk
                                 scan_dict['visibles'] = extract_list_lmks_fromfcsv(flmk)
+                                scan_dict['num_visibles'] = len(scan_dict['visibles'])
                             
                             if os.path.exists(fcsv): scan_dict['_fcsv'] = fcsv
                             elif os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
@@ -445,9 +452,9 @@ def perform_prepare(params):
     sinfo_df = pd.DataFrame.from_records(sinfo_df)
 
     # Save patient and scan info DataFrames as CSV files
-    pd.DataFrame.from_records(pinfo_df).to_csv(params.sys + params.root + 'pinfo_2.csv', index=False)
-    sinfo_df.to_csv(params.sys + params.root + 'sinfo_all_2.csv', index=False)
+    pd.DataFrame.from_records(pinfo_df).to_csv(params.sys + params.root + 'pinfo_3.csv', index=False)
+    sinfo_df.to_csv(params.sys + params.root + 'sinfo_all_3.csv', index=False)
     sinfo = sinfo_df[sinfo_df['rot_found'] & sinfo_df['lmks_found'] & sinfo_df['csv_found']]
-    pd.DataFrame.from_records(sinfo).to_csv(params.sys + params.root + 'sinfo_2.csv', index=False)
+    pd.DataFrame.from_records(sinfo).to_csv(params.sys + params.root + 'sinfo_3.csv', index=False)
 
     return sinfo_df

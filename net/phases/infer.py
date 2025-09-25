@@ -8,7 +8,12 @@ import gc
 import nrrd 
 
 from net.metrics.metrics_eval import compute_heatmap_metrics, compute_landmark_metrics
-from net.plot.curves import average_expected_local_accuracy, aela_figure
+from net.plot.curves import compute_aela, plot_aela_figure
+from net.plot.histograms import plot_histograms_and_stats
+from net.plot.matrices_3d import plot_3d_matrices
+from net.plot.heatmaps import plot_heatmaps_slices_from_coord
+from net.plot.volumes import visualize_heatmaps_from_df
+
 from net.postprocess.utility.save_fscv_csv import save_fscv_csv
 from net.postprocess.utility.where_is_landmark import get_peak_location
 from net.dataset.utility.rotation import extract_image
@@ -88,6 +93,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
                                                            target_coord_tensor[i], 
                                                            spacing)
                 landmark_scores.update({f"{k}_{lmk}": v for k, v in landmark_score.items()})
+                print(f"{nsid} - {lmk} - {landmark_score}")
             dmean =np.mean(list(landmark_scores.values()))
 
             # Update the progress bar description with the running average loss
@@ -109,6 +115,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
                 radius_eval = kwargs.get('radius_eval', 40)
                 save_targets = kwargs.get('save_targets', False)
                 save_outputs = kwargs.get('save_outputs', False)
+                show_figures = kwargs.get('show_figures', False)
 
                 output_dir = os.path.join(experiment_dir, "eval")
                 os.makedirs(output_dir, exist_ok=True)
@@ -129,21 +136,28 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
                     )
 
                 for i, lmk in enumerate(lmks):
+                    output_heatmap_i = torch.nn.functional.sigmoid(output_heatmap[i])            # Assuming batch size of 1   
                     # Extract the landmark coordinates for the current landmark
-                    scores_v3_distances = average_expected_local_accuracy(output_heatmap[i].unsqueeze(0), target_coord_tensor[i].cpu(), 
+                    scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i].cpu(), 
                                                                           spacing=spacing, 
                                                                           radius_eval=radius_eval, 
                                                                           radius_num=radius_num, 
                                                                           save_dir=None,
-                                                                          detector=detector)
+                                                                          detector='argmax',
+                                                                          show=show_figures)
                     distance_curves[i, ind, :] = scores_v3_distances  # Store the distance curves for each landmark and batch index
+
+                    if show_figures:
+                        _ = plot_histograms_and_stats(output_heatmap_i, target_heatmap[i])
+                        plot_3d_matrices(output_heatmap_i, target_heatmap[i])
+                        plot_heatmaps_slices_from_coord([output_heatmap_i, target_heatmap[i]], coord_tensor=target_coord_tensor[i].cpu().numpy(), titles=[f"{lmk} Output", f"{lmk} Target"])
 
                     # Save the predicted output as an NRRD file in the subdirectory
                     if save_outputs:
                         template_header = extract_image('templates/1.nrrd')[1]
                         nrrd.write(
                             os.path.join(output_dir, f"{nsid}_{lmk}.nrrd"),
-                            output_heatmap[i].cpu().numpy(),
+                            output_heatmap_i.cpu().numpy(),
                             header=template_header
                         )
                     
@@ -160,13 +174,12 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
 
             ep_scores.append(row)
             # if ind > 100: break      # For debugging, remove this line in production 
-            break
     if eval:
         for i, lmk in enumerate(lmks):
             # Save the ep_scores_curve as CSV, including lmk info in the filename
             curve_csv_path = os.path.join(output_dir, f"{lmk}_curve_mean.csv") 
             np.savetxt(curve_csv_path, distance_curves[i].mean(dim=0), delimiter=",")
-            aela_figure(torch.linspace(0, radius_eval, radius_num), distance_curves[i].mean(dim=0), save_dir=os.path.join(output_dir, f"{lmk}_curve_mean.png") )
+            plot_aela_figure(torch.linspace(0, radius_eval, radius_num), distance_curves[i].mean(dim=0), save_dir=os.path.join(output_dir, f"{lmk}_curve_mean.png") )
             gc.collect()
         
         
