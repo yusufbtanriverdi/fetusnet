@@ -48,7 +48,6 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--device', type=str, default=defaults.get('device'), help=parameters_help['device'])
 
     subparser.add_argument('--split', type=str, default=defaults.get('split'), help=parameters_help['split'])
-    subparser.add_argument('--alien_test_path', type=str, help=parameters_help['alien_test_path'], required=False)
     subparser.add_argument('--n_split', '-n', type=int, default=defaults.get('n_split'), help=parameters_help['n_split'])
     subparser.add_argument('--test_patients', nargs='+', type=int, help=parameters_help['test_patients'])
     subparser.add_argument('--master_df', type=str, default=defaults.get('master_df'), help=parameters_help['master_df'])
@@ -57,7 +56,7 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--desired_size', type=int, default=defaults.get('desired_size'), help=parameters_help['desired_size'])
     subparser.add_argument('--desired_spacings', type=int, default=defaults.get('desired_spacings'), help=parameters_help['desired_spacings'])
 
-    subparser.add_argument('--train_val_ds', nargs='+', type=str, default=defaults.get('train_val_ds'), help=parameters_help['train_val_ds'])
+    subparser.add_argument('--train_ds', nargs='+', type=str, default=defaults.get('train_ds'), help=parameters_help['train_val_ds'])
     subparser.add_argument('--test_ds', nargs='+', type=str, default=defaults.get('test_ds'), help=parameters_help['test_ds'])
     subparser.add_argument('--generate', type=str, default=defaults.get('generate'), choices=parameters_choices['generate'], help=parameters_help['generate'])
     subparser.add_argument('--g_target_idx', nargs='+', type=int, default=defaults.get('g_target_idx'), help=parameters_help['g_target_idx'])
@@ -90,12 +89,15 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--reduction', type=str, choices=parameters_choices['reduction'], default=defaults.get('reduction'), help=parameters_help['reduction'])
     subparser.add_argument('--loss', '-l', type=str, default=defaults.get('loss'), help=parameters_help['loss'])
 
-    subparser.add_argument('--model_dir', type=str, default=defaults.get('model_dir'), help=parameters_help['model_dir'])
+    subparser.add_argument('--experiment_dir', type=str, default=defaults.get('experiment_dir'), help=parameters_help['experiment_dir'])
+    subparser.add_argument('--use_model', type=str, default=defaults.get('use_model'), help=parameters_help['use_model'], choices=parameters_choices['use_model'])
     subparser.add_argument('--radius_eval', type=int , default=defaults.get('radius_eval'), help=parameters_help['radius_eval'])
     subparser.add_argument('--radius_num', type=int, default=defaults.get('radius_num'), help=parameters_help['radius_num'])
     subparser.add_argument('--detector', type=str, default=defaults.get('detector'), help=parameters_help['detector'])
     subparser.add_argument('--progress_bar', action='store_true', default=defaults.get('progress_bar'), help=parameters_help['progress_bar'])
-
+    subparser.add_argument('--check_visibility', action='store_true', default=defaults.get('check_visibility', False), help=parameters_help.get('check_visibility', 'Check visibility of landmarks'))
+    subparser.add_argument('--save_targets', action='store_true', default=defaults.get('save_targets', False), help=parameters_help.get('save_targets', 'Save target values'))
+    subparser.add_argument('--save_outputs', action='store_true', default=defaults.get('save_outputs', False), help=parameters_help.get('save_outputs', 'Save model outputs'))
 
 def parameters_parsing() -> argparse.Namespace:
     """Unified entry point for parameter parsing with JSON config override."""
@@ -130,7 +132,8 @@ def parameters_parsing() -> argparse.Namespace:
 
     # Step 6: Final parse using updated parser and remaining args
     args = parser.parse_args(remaining_argv)
-
+    args.config_dir = early_args.config
+    
     # Step 7: Handle 'help' mode
     if args.mode == 'help':
         print_help()

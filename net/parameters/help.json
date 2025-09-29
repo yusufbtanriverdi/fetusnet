@@ -55,9 +55,15 @@
   "reduction": "Method to reduce loss values (e.g., mean, sum)",
   "loss": "Loss functions to be applied (accepts list)",
 
-  "model_dir": "Directory for loading/saving model checkpoints",
+  "experiment_dir": "Directory for saving experiment outputs or for checkpoint loading",
+  "use_model": "Which model checkpoint to use for testing (best or last)",
   "radius_eval": "Radius used during evaluation",
   "radius_num": "Number of radius values to evaluate",
   "detector": "Method used for landmark extraction from heatmaps",
-  "progress_bar": "Whether to display tqdm bar."
+  "progress_bar": "Whether to display tqdm bar.",
+
+  "save_targets": "Whether to save target landmark coordinates",
+  "save_outputs": "Whether to save model output heatmaps",
+  "check_visibility": "Whether to check visibility of landmarks"
+
 }

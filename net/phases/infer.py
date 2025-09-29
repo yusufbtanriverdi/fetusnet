@@ -19,7 +19,7 @@ from net.postprocess.utility.where_is_landmark import get_peak_location
 from net.dataset.utility.rotation import extract_image
 
 def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detector, progress_bar,
-                 lmks, experiment_dir, eval, **kwargs):
+                 lmks, experiment_dir, check_visibility, eval, **kwargs):
     """
     Perform inference for one epoch with additional functionality.
 
@@ -71,7 +71,8 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
             targets = batch['target']['data'].to(device)
             spacing = batch['spacings'][0][0] # Assuming ISO spacing for simplicity
             nsid = batch['name'][0]
-
+            visibles = batch['visibles'][0]  # Assuming batch size of 1
+            # print(visibles)
             # Forward pass through the model
             outputs = model(images)
 
@@ -89,12 +90,16 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
             # Compute metrics for each landmark
             landmark_scores = {}
             for i, lmk in enumerate(lmks):
-                landmark_score = compute_landmark_metrics(output_coord_tensor[i],
-                                                           target_coord_tensor[i], 
-                                                           spacing)
-                landmark_scores.update({f"{k}_{lmk}": v for k, v in landmark_score.items()})
-                print(f"{nsid} - {lmk} - {landmark_score}")
-            dmean =np.mean(list(landmark_scores.values()))
+                if check_visibility and lmk in visibles:
+                    landmark_score = compute_landmark_metrics(output_coord_tensor[i],
+                                                            target_coord_tensor[i], 
+                                                            spacing)
+                    landmark_scores.update({f"{k}_{lmk}": v for k, v in landmark_score.items()})
+                    # print(f"{nsid} - {lmk} - {landmark_score}")
+                else:
+                    landmark_scores.update({f"{k}_{lmk}": np.nan for k in landmark_score.keys()})
+                    # print(f"{nsid} - {lmk} - Not visible, skipping metric computation.")
+            dmean =np.nanmean(list(landmark_scores.values()))
 
             # Update the progress bar description with the running average loss
             if progress_bar:
@@ -131,8 +136,8 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
                 save_fscv_csv(
                         out=os.path.join(output_dir, f"{nsid}"),
                         coords=output_coord_tensor.cpu().numpy(),
-                        selected_lmks=lmks,  # Replace with actual landmark name if available
-                        spacing=spacing
+                        selected_lmks=lmks,  
+                        spacing=spacing,
                     )
 
                 for i, lmk in enumerate(lmks):

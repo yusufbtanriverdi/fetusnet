@@ -36,12 +36,17 @@
   "num_fts": 32,
 
   "wandbpro": "fetusnetv1",
-  "model_dir": "",
+  "experiment_dir": "",
+  "use_model": "best",
   "iter_folds": [1],
   "resume": false,
   "resume_dir": "",
   "radius_eval": 40,
   "radius_num": 40,
   "detector": "argmax",
-  "progress_bar": true
+  "progress_bar": true,
+  "save_targets": false,
+  "save_outputs": false,
+  "check_visibility": false
+
 }

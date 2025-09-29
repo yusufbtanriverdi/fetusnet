@@ -62,7 +62,7 @@ def compute_heatmap_metrics(outputs, targets):
     # Define metric functions
     metric_functions = {
         # "nmse": normalized_mse,
-        "kl": kullback_leibler_divergence,
+        # "kl": kullback_leibler_divergence,
         # "corr": spatial_cross_correlation,
         # "hist_match": histogram_matching_measure,
     }

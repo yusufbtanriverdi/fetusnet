@@ -151,7 +151,8 @@ class MyDataset(Dataset):
             pid=self.dataframe.loc[idx, 'npid'],  # Metadata: patient ID
             spacings=spacings,  # Pixel spacings
             coords = coord_tensor,  # Coordinates of landmarks
-            lmk=self.lmks  # List of landmarks
+            lmk=self.lmks,  # List of landmarks
+            visibles=self.dataframe.loc[idx, 'visibles']  # Visibility flag list for landmarks.
         )
 
         return subject

@@ -91,7 +91,8 @@ def log_epoch_to_wandb(train_loss, val_loss, ep_scores, params, global_wandb_ste
 
 def train_and_validate(fold_dataframe, fold_experiment_dir, params, transformations, global_wandb_steps):
     train_dl, val_dl = get_train_val_dl(fold_dataframe, params, transformations=transformations)
-
+    if len(val_dl) == 0: val_dl = get_test_dl(fold_dataframe, params, transformations=transformations)
+    logger.info(f"Training - validation subset sizes: {len(train_dl.dataset), len(val_dl.dataset)}")
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
     logger.info(optimizer)
@@ -126,6 +127,7 @@ def train_and_validate(fold_dataframe, fold_experiment_dir, params, transformati
             params.progress_bar,     
             params.lmks, 
             experiment_dir,
+            check_visibility=params.check_visibility,
             eval=False, 
         )
         
@@ -185,19 +187,28 @@ def test_loaders(dataloader):
 print("Torch cuda is available? ", torch.cuda.is_available())
 # Suppress UserWarnings
 warnings.filterwarnings("ignore", category=UserWarning)
+
 # Initialize parameters
 params = parameters_parsing()
-experiment_dir, experiment_name = create_experiment_id(params, create_directory=True)
+if params.mode not in ['help', 'prepare', 'rotate', 'presplit', 'pipe', 'generate', 'train', 'test']:
+    raise ValueError(f"Invalid mode: {params.mode}. Choose from 'train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'pipe'.")
+
+if params.mode == 'test':
+    experiment_dir = params.experiment_dir
+else:
+    experiment_dir, experiment_name = create_experiment_id(params, create_directory=True)
 # Convert to dictionary (if Namespace or similar)
 params_dict = vars(params)  # or: params.__dict__ if vars() doesn't work
 
 # Write to JSON
-with open(os.path.join(experiment_dir, 'params.json'), 'w') as f:
-    json.dump(params_dict, f, indent=6)
+if params.mode != 'test':
+    with open(os.path.join(experiment_dir, 'params.json'), 'w') as f:
+        json.dump(params_dict, f, indent=6)
     
 global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
 # Initialize logger
 logger = setup_logger(experiment_dir)
+logger.info(f"Experiment directory created at: {experiment_dir}")
 logger.info(f"Experiment started and parameters are saved. This is the experiment dir: {experiment_dir} ")
 logger.info(f"System path set to: {params.sys}")
 logger.info(f"Device set to: {params.device}")
@@ -315,6 +326,7 @@ if params.mode == 'train':
                 params.progress_bar,     
                 params.lmks, 
                 fold_experiment_dir,
+                check_visibility=params.check_visibility,
                 eval=True,
                 radius_eval=params.radius_eval,
                 radius_num=params.radius_num,
@@ -359,7 +371,8 @@ if params.mode == 'train':
                 params.detector, 
                 params.progress_bar,     
                 params.lmks, 
-                experiment_dir,
+                experiment_dir,            
+                check_visibility=params.check_visibility,
                 eval=True,
                 radius_eval=params.radius_eval,
                 radius_num=params.radius_num,
@@ -375,31 +388,48 @@ if params.mode == 'train':
         if params.use_wandb: wandb.finish()
 
 if params.mode == 'test':
-    test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
-    if len(test_dl) == 0: _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
-    # Initialize model, loss, optimizer
-    model, criterion, optimizer, best_criteria = get_fresh_model(params)
-    model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, params.model_dir)
-    test_loss, global_wandb_steps, test_scores = infer_one_ep(
-            model, 
-            test_dl, 
-            criterion, 
-            params.device, 
-            global_wandb_steps, 
-            False, 
-            params.detector, 
-            params.progress_bar,     
-            params.lmks, 
-            experiment_dir,
-            eval=True, 
-            radius_eval=params.radius_eval,
-            radius_num=params.radius_num,
-            save_targets=True, 
-            save_outputs=True,
-            show_figures=False
-        )
+    if 'crossfold' in params.split:
+        for fold in params.iter_folds:
+            split_dataframe_path = os.path.join(params.sys, params.root, params.master_df + f'_fold{fold}.csv')
+            splitted_dataframe = pd.read_csv(split_dataframe_path) 
+            logger.info(f"I am cleaning the dataframe from non-existing files and nonfrontal cases... {len(splitted_dataframe)}")
+            splitted_dataframe = update_dataframe(splitted_dataframe, params)
+            logger.info(f"After cleaning, total number of input in master dataframe: {len(splitted_dataframe)}")
+            logger.info(f"!__[U]__! Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
 
-    for lmk in params.lmks:
-        mean = test_scores[f"dmean_{lmk}"].mean()
-        std = test_scores[f"dmean_{lmk}"].std()
-        logger.info(f"Test d-mean Score for {lmk}: {mean} +/- {std}")
+            fold_experiment_dir = os.path.join(experiment_dir, f'fold_{fold}')
+            os.makedirs(fold_experiment_dir, exist_ok=True)
+            params.model_dir = fold_experiment_dir + '/' + params.use_model + '.pt'
+            if not os.path.exists(params.model_dir):
+                raise FileNotFoundError(f"Model directory {params.model_dir} does not exist.")
+            
+            logger.info(f"\n--- Testing {params.use_model} model from {params.model_dir} --- \n")
+            test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
+            if len(test_dl) == 0: _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
+            # Initialize model, loss, optimizer
+            model, criterion, optimizer, best_criteria = get_fresh_model(params)
+            model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, params.model_dir)
+            test_loss, global_wandb_steps, test_scores = infer_one_ep(
+                    model, 
+                    test_dl, 
+                    criterion, 
+                    params.device, 
+                    global_wandb_steps, 
+                    False, 
+                    params.detector, 
+                    params.progress_bar,     
+                    params.lmks, 
+                    fold_experiment_dir,
+                    check_visibility=params.check_visibility,
+                    eval=True, 
+                    radius_eval=params.radius_eval,
+                    radius_num=params.radius_num,
+                    save_targets=params.save_targets,
+                    save_outputs=params.save_outputs,
+                    show_figures=False,
+                )
+
+            for lmk in params.lmks:
+                mean = test_scores[f"dmean_{lmk}"].mean()
+                std = test_scores[f"dmean_{lmk}"].std()
+                logger.info(f"Test d-mean Score for {lmk}: {mean} +/- {std}")
