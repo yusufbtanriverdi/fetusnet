@@ -97,7 +97,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
                     landmark_scores.update({f"{k}_{lmk}": v for k, v in landmark_score.items()})
                     # print(f"{nsid} - {lmk} - {landmark_score}")
                 else:
-                    landmark_scores.update({f"{k}_{lmk}": np.nan for k in landmark_score.keys()})
+                    landmark_scores.update({f"{k}_{lmk}": np.nan for k in landmark_scores.keys()})
                     # print(f"{nsid} - {lmk} - Not visible, skipping metric computation.")
             dmean =np.nanmean(list(landmark_scores.values()))
 
@@ -179,6 +179,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
 
             ep_scores.append(row)
             # if ind > 100: break      # For debugging, remove this line in production 
+            break
     if eval:
         for i, lmk in enumerate(lmks):
             # Save the ep_scores_curve as CSV, including lmk info in the filename

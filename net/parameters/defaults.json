@@ -11,7 +11,7 @@
   "split": "crossfold",
   "n_split": 4,
   "test_patients": [],
-  "master_df": "testOnCasosMar",
+  "master_df": "testOnCasosMarReally",
   "generate": "gaussian",
   "g_target_idx": [0, 1, 2],
   "g_alpha": 3,
@@ -35,7 +35,7 @@
   "loss": "emd",
   "num_fts": 32,
 
-  "wandbpro": "fetusnetv1",
+  "wandbpro": "fetusnetv2",
   "experiment_dir": "",
   "use_model": "best",
   "iter_folds": [1],

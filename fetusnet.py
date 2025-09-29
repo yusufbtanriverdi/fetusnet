@@ -381,9 +381,12 @@ if params.mode == 'train':
                 )
         
         for lmk in params.lmks:
-            mean = test_scores[f"dmean_{lmk}"].mean()
-            std = test_scores[f"dmean_{lmk}"].std()
-            logger.info(f"Test d-mean Score for {lmk}: {mean} +/- {std}")
+            try: 
+                mean = test_scores[f"dmean_{lmk}"].mean()
+                std = test_scores[f"dmean_{lmk}"].std()
+                logger.info(f"Test d-mean Score for {lmk}: {mean} +/- {std}")
+            except KeyError:
+                logger.warning(f"Key dmean_{lmk} not found in test_scores.")
 
         if params.use_wandb: wandb.finish()
 
