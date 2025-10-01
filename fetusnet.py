@@ -89,9 +89,9 @@ def log_epoch_to_wandb(train_loss, val_loss, ep_scores, params, global_wandb_ste
     global_wandb_steps['epoch'] += 1
     return global_wandb_steps
 
-def train_and_validate(fold_dataframe, fold_experiment_dir, params, transformations, global_wandb_steps):
-    train_dl, val_dl = get_train_val_dl(fold_dataframe, params, transformations=transformations)
-    if len(val_dl) == 0: val_dl = get_test_dl(fold_dataframe, params, transformations=transformations)
+def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps, validate=True):
+    train_dl, val_dl = get_train_val_dl(dataframe, params, transformations=transformations)
+    if len(val_dl) == 0: val_dl = get_test_dl(dataframe, params, transformations=transformations)
     logger.info(f"Training - validation subset sizes: {len(train_dl.dataset), len(val_dl.dataset)}")
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
@@ -100,6 +100,7 @@ def train_and_validate(fold_dataframe, fold_experiment_dir, params, transformati
 
     train_losses = []
     val_losses = []
+    val_loss = torch.inf
     # Epoch training loop
     for epoch in range(0, params.epochs):
         logger.info(f" \n[Epoch {epoch + 1}/{params.epochs}] \n ")
@@ -116,36 +117,38 @@ def train_and_validate(fold_dataframe, fold_experiment_dir, params, transformati
             progress_bar=params.progress_bar
         )
 
-        val_loss, global_wandb_steps, ep_scores = infer_one_ep(
-            model, 
-            val_dl, 
-            criterion, 
-            params.device, 
-            global_wandb_steps, 
-            params.use_wandb,
-            params.detector, 
-            params.progress_bar,     
-            params.lmks, 
-            experiment_dir,
-            check_visibility=params.check_visibility,
-            eval=False, 
-        )
+        if validate:
+            val_loss, global_wandb_steps, ep_scores = infer_one_ep(
+                model, 
+                val_dl, 
+                criterion, 
+                params.device, 
+                global_wandb_steps, 
+                params.use_wandb,
+                params.detector, 
+                params.progress_bar,     
+                params.lmks, 
+                experiment_dir,
+                check_visibility=params.check_visibility,
+                eval=False, 
+            )
         
-        # Save best model
-        if val_loss < best_criteria:
-            best_criteria = val_loss
-            save_checkpoint(model, optimizer, epoch, val_loss, 
-                            os.path.join(fold_experiment_dir, f'best.pt'))
+            # Save best model
+            if val_loss < best_criteria:
+                best_criteria = val_loss
+                save_checkpoint(model, optimizer, epoch, val_loss, 
+                                os.path.join(experiment_dir, f'best.pt'))
 
         # Save last model
         save_checkpoint(model, optimizer, epoch, val_loss, 
-                        os.path.join(fold_experiment_dir, f'last.pt'))
+                        os.path.join(experiment_dir, f'last.pt'))
+
         logger.info(f"Train loss: {train_loss}")
         logger.info(f"Validation loss: {val_loss}")
         train_losses.append(train_loss)
         val_losses.append(val_loss)
         global_wandb_steps = log_epoch_to_wandb(train_loss, val_loss, ep_scores, params, global_wandb_steps)
-
+    
     return train_losses, val_losses
 
 def update_dataframe(dataframe, params):
@@ -190,11 +193,11 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 # Initialize parameters
 params = parameters_parsing()
-if params.mode not in ['help', 'prepare', 'rotate', 'presplit', 'pipe', 'generate', 'train', 'test']:
-    raise ValueError(f"Invalid mode: {params.mode}. Choose from 'train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'pipe'.")
+if params.mode not in ['help', 'prepare', 'rotate', 'presplit', 'test_loaders', 'generate', 'train', 'test']:
+    raise ValueError(f"Invalid mode: {params.mode}. Choose from 'train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders'.")
 
-if params.mode == 'test':
-    experiment_dir = params.experiment_dir
+if params.mode == 'test' or params.resume:
+    experiment_dir = params.checkpoint_dir
 else:
     experiment_dir, experiment_name = create_experiment_id(params, create_directory=True)
 # Convert to dictionary (if Namespace or similar)
@@ -264,7 +267,7 @@ transformations = tio.Compose(transforms)
 logger.info("Transformations are created.")
 
 
-if params.mode == 'pipe':
+if params.mode == 'test_loaders':
     print(splitted_dataframe[:10])
     train_dl, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
     test_loaders(train_dl)
@@ -283,7 +286,6 @@ if params.mode == 'train':
     # This comes with validation.
     if 'crossfold' in params.split:
         for fold in params.iter_folds:
-
             split_dataframe_path = os.path.join(params.sys, params.root, params.master_df + f'_fold{fold}.csv')
             splitted_dataframe = pd.read_csv(split_dataframe_path) 
             logger.info(f"I am cleaning the dataframe from non-existing files and nonfrontal cases... {len(splitted_dataframe)}")
@@ -300,8 +302,13 @@ if params.mode == 'train':
             # Initialize model, loss, optimizer
             model, criterion, optimizer, best_criteria = get_fresh_model(params)
             # If given, load pretrained weights.
+            if params.resume:
+                model_dir = f'{fold_experiment_dir}/best.pt'
+                model, optimizer, start_epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
+                logger.info(f"Resuming from {params.resume_dir}, epoch {start_epoch}, best val loss {best_val_loss}")
+                global_wandb_steps['epoch'] = start_epoch + 1
             # TODO
-            train_losses, val_losses = train_and_validate(splitted_dataframe, fold_experiment_dir, params, transformations, global_wandb_steps)
+            train_losses, val_losses = pipe(splitted_dataframe, fold_experiment_dir, params, transformations, global_wandb_steps)
             # Combine losses into a DataFrame
             loss_df = pd.DataFrame({
                 'epoch': list(range(len(train_losses))),
@@ -330,8 +337,8 @@ if params.mode == 'train':
                 eval=True,
                 radius_eval=params.radius_eval,
                 radius_num=params.radius_num,
-                save_targets=False, 
-                save_outputs=False 
+                save_targets=params.save_targets, 
+                save_outputs=params.save_outputs
                 )
             
             for lmk in params.lmks:
@@ -347,7 +354,7 @@ if params.mode == 'train':
         logger.info(f"\n--- Training {params.split} --- \n")
         # Initialize model, loss, optimizer
         model, criterion, optimizer, best_criteria = get_fresh_model(params)
-        train_losses, val_losses = train_and_validate(splitted_dataframe, experiment_dir, params, transformations, global_wandb_steps)
+        train_losses, val_losses = pipe(splitted_dataframe, experiment_dir, params, transformations, global_wandb_steps)
         # Combine losses into a DataFrame
         loss_df = pd.DataFrame({
             'epoch': list(range(len(train_losses))),
@@ -376,8 +383,8 @@ if params.mode == 'train':
                 eval=True,
                 radius_eval=params.radius_eval,
                 radius_num=params.radius_num,
-                save_targets=False, 
-                save_outputs=False 
+                save_targets=params.save_targets, 
+                save_outputs=params.save_outputs
                 )
         
         for lmk in params.lmks:
@@ -436,3 +443,43 @@ if params.mode == 'test':
                 mean = test_scores[f"dmean_{lmk}"].mean()
                 std = test_scores[f"dmean_{lmk}"].std()
                 logger.info(f"Test d-mean Score for {lmk}: {mean} +/- {std}")
+    else:
+        logger.info(f"!__[U]__! Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
+
+        params.model_dir = experiment_dir + '/' + params.use_model + '.pt'
+        if not os.path.exists(params.model_dir):
+            raise FileNotFoundError(f"Model directory {params.model_dir} does not exist.")
+        
+        logger.info(f"\n--- Testing {params.use_model} model from {params.model_dir} --- \n")
+        test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
+        if len(test_dl) == 0: _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
+        # Initialize model, loss, optimizer
+        model, criterion, optimizer, best_criteria = get_fresh_model(params)
+        model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, params.model_dir)
+        test_loss, global_wandb_steps, test_scores = infer_one_ep(
+                model, 
+                test_dl, 
+                criterion, 
+                params.device, 
+                global_wandb_steps, 
+                False, 
+                params.detector, 
+                params.progress_bar,     
+                params.lmks, 
+                experiment_dir,
+                check_visibility=params.check_visibility,
+                eval=True, 
+                radius_eval=params.radius_eval,
+                radius_num=params.radius_num,
+                save_targets=params.save_targets,
+                save_outputs=params.save_outputs,
+                show_figures=False,
+            )
+
+        for lmk in params.lmks:
+            try:
+                mean = test_scores[f"dmean_{lmk}"].mean()
+                std = test_scores[f"dmean_{lmk}"].std()
+                logger.info(f"Test d-mean Score for {lmk}: {mean} +/- {std}")
+            except Exception as e:
+                logger.error(f"Error computing metrics for {lmk}: {e}. Perhaps, they were not visible in any test samples.")

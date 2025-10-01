@@ -1,13 +1,16 @@
-##### SBATCH PARAMETERS ##### 
-
 #!/bin/bash
-# SBATCH -J herewegoagain
-# SBATCH -p high
-# SBATCH -N 1
+#SBATCH -J herewego
+#SBATCH -p high
+#SBATCH -N 1
 #SBATCH -n 8                                     # Request 8 CPU cores
-# SBATCH --nodelist=node032
-# SBATCH --mem=32GB 
-# #SBATCH --array=0-10:1%4                        # Run 10 jobs with step 1, max 4 concurrent jobs
+#SBATCH --nodelist=node032
+#SBATCH --chdir=/home/ytanriverdi
+#SBATCH --mem=32GB 
+#SBATCH --gres=gpu:gtx1080:1
+# SBATCH --array=0-3:1%3                      # Run 6 jobs with step 2, max 3 concurrent jobs
+
+#SBATCH -o /home/ytanriverdi/logs/%J.%u.out # STDOUT
+#SBATCH -e /home/ytanriverdi/logs/%J.%u.err # STDERR 
 
 ## SBATCH --partition=<partition>          # Partition/queue name
 ## SBATCH --nodes=<num_nodes>              # Number of nodes to use
@@ -29,36 +32,38 @@
 ## SBATCH --account=<account>              # Billing account (if required)
 ## SBATCH --constraint=<features>          # Restrict to nodes with specific features
 
-##### LOAD CUDA and ANACONDA #####
 
+#### LOAD CUDA and ANACONDA #####
 # Load CUDA module
 module load CUDA/12.1
+nvcc --version
 # Load Anaconda module
 module load Anaconda3/2020.02
-
+module load cuDNN/8.9.4.25-CUDA-12.1.0
 ##### SET UP THE ENV #####
 # Run this bash for setup.
 # TODO: Test across different OS.
+module avail
 
 eval "$(conda shell.bash hook)"
 
 # Update Conda and create environment if needed
 if ! conda info --envs | grep -q fetusnet; then
     echo "Creating conda environment 'fetusnet' .........................."
-    conda create -y -n fetusnet python=3.8
+    conda create -y -n fetusnet python=3.8.20
 else
     echo "Conda environment 'fetusnet' already exists!"
 fi
 
 conda activate fetusnet 
+echo "Environment is here!" 
 
 pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
-pip install -r doc/requirements/requirements.txt
-
 cd fetusnet 
+git pull
+pip3 install -r doc/requirements/requirements.txt
 
-echo "Environment is here!" 
 
 # Get Python version
 python_version=$(python --version 2>&1)
@@ -76,10 +81,19 @@ echo "$cuda_status"
 
 ### JOBS 
 # List config files
-CONFIG_DIR="/path/to/configs"
+CONFIG_DIR="configs"
 CONFIG_FILES=($CONFIG_DIR/*.json)
-CONFIG=${CONFIG_FILES[$SLURM_ARRAY_TASK_ID]}
+
+CONFIG="${CONFIG_FILES[$SLURM_ARRAY_TASK_ID]}"
+echo "CONFIG FILE COUNT: ${#CONFIG_FILES[@]}"
+for cfg in "${CONFIG_FILES[@]}"; do
+    echo " > $cfg"
+done
 
 echo "Running config: $CONFIG"
+# authorise wandb
+export WANDB_API_KEY=CENSORED
+wandb login
+python fetusnet.py train --config "$CONFIG" --prefix "$(basename "$CONFIG" .json)"
 
-python fetusnet.py train --config "$CONFIG"
+# python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"

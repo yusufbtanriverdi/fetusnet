@@ -11,12 +11,21 @@ def create_gaussian_heatmap(coord, template, alpha = 3, eps=1e-6, **args):
         Landmark coordinates, i.e., the mean of the Gaussian.
     template : np.ndarray volume that corresponds to this gaussian heatmap. 
     alpha : float
-        Coefficient controlling the spread of the Gaussian.
+        Coefficient controlling the spread of the Gaussian. If 0, a delta function is created.
+    eps : float
+        Threshold below which Gaussian values are set to zero to avoid very small values.
 
     Returns:
     heatmap : a 3D matrix same shape as _template.shape_
         Gaussian value at pixel x relative to the landmark.
     """
+    if alpha == 0:
+        heatmap = np.zeros_like(template, dtype=float)
+        heatmap[int(coord[0]), int(coord[1]), int(coord[2])] = 1.0
+        return heatmap
+
+    if alpha < 0: 
+        raise ValueError("Alpha must be non-negative.")
     # Convert from torch to numpy array.
     coord = coord.numpy()
     # Unpack the input dimensions
@@ -44,7 +53,3 @@ def create_gaussian_heatmap(coord, template, alpha = 3, eps=1e-6, **args):
     heatmap[template == 0] = 0
 
     return heatmap
-
-
-# TODO: Test computational time per one landmark
-

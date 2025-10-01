@@ -90,17 +90,22 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
             # Compute metrics for each landmark
             landmark_scores = {}
             for i, lmk in enumerate(lmks):
-                if check_visibility and lmk in visibles:
+                if check_visibility:
+                    if lmk in visibles:
+                        landmark_score = compute_landmark_metrics(output_coord_tensor[i],
+                                                                target_coord_tensor[i], 
+                                                                spacing)
+                        landmark_scores.update({f"{k}_{lmk}": v for k, v in landmark_score.items()})
+                        # print(f"{nsid} - {lmk} - {landmark_score}")
+                    else:
+                        landmark_scores.update({f"{k}_{lmk}": np.nan for k in landmark_scores.keys()})
+                else: 
                     landmark_score = compute_landmark_metrics(output_coord_tensor[i],
-                                                            target_coord_tensor[i], 
-                                                            spacing)
+                                        target_coord_tensor[i], 
+                                        spacing)
                     landmark_scores.update({f"{k}_{lmk}": v for k, v in landmark_score.items()})
-                    # print(f"{nsid} - {lmk} - {landmark_score}")
-                else:
-                    landmark_scores.update({f"{k}_{lmk}": np.nan for k in landmark_scores.keys()})
                     # print(f"{nsid} - {lmk} - Not visible, skipping metric computation.")
             dmean =np.nanmean(list(landmark_scores.values()))
-
             # Update the progress bar description with the running average loss
             if progress_bar:
                 t.set_description(f"Running Average Loss: {avg_loss:.4f}")
@@ -142,14 +147,29 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
 
                 for i, lmk in enumerate(lmks):
                     output_heatmap_i = torch.nn.functional.sigmoid(output_heatmap[i])            # Assuming batch size of 1   
-                    # Extract the landmark coordinates for the current landmark
-                    scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i].cpu(), 
-                                                                          spacing=spacing, 
-                                                                          radius_eval=radius_eval, 
-                                                                          radius_num=radius_num, 
-                                                                          save_dir=None,
-                                                                          detector='argmax',
-                                                                          show=show_figures)
+
+                    if check_visibility:
+                        if lmk in visibles:
+                            # Extract the landmark coordinates for the current landmark
+                            scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i].cpu(), 
+                                                                                spacing=spacing, 
+                                                                                radius_eval=radius_eval, 
+                                                                                radius_num=radius_num, 
+                                                                                save_dir=None,
+                                                                                detector='argmax',
+                                                                                show=show_figures)
+                        else:  
+                            scores_v3_distances = torch.full((radius_num,), torch.nan)  # Placeholder value (currently set to `torch.nan`).
+                    else:
+                        # Extract the landmark coordinates for the current landmark
+                        scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i].cpu(), 
+                                                                            spacing=spacing, 
+                                                                            radius_eval=radius_eval, 
+                                                                            radius_num=radius_num, 
+                                                                            save_dir=None,
+                                                                            detector='argmax',
+                                                                            show=show_figures)
+                        
                     distance_curves[i, ind, :] = scores_v3_distances  # Store the distance curves for each landmark and batch index
 
                     if show_figures:
@@ -179,12 +199,11 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
 
             ep_scores.append(row)
             # if ind > 100: break      # For debugging, remove this line in production 
-            break
     if eval:
         for i, lmk in enumerate(lmks):
             # Save the ep_scores_curve as CSV, including lmk info in the filename
             curve_csv_path = os.path.join(output_dir, f"{lmk}_curve_mean.csv") 
-            np.savetxt(curve_csv_path, distance_curves[i].mean(dim=0), delimiter=",")
+            np.savetxt(curve_csv_path, distance_curves[i].nanmean(dim=0), delimiter=",")
             plot_aela_figure(torch.linspace(0, radius_eval, radius_num), distance_curves[i].mean(dim=0), save_dir=os.path.join(output_dir, f"{lmk}_curve_mean.png") )
             gc.collect()
         

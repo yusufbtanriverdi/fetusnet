@@ -33,7 +33,7 @@ parameters_choices = load_json_config(CHOICES_CONFIG_PATH)
 
 def print_help(*args, **kwargs):
     print("Available modes:")
-    for mode in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'pipe']:
+    for mode in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders']:
         print(f"  {mode:16} {parameters_help.get(mode, '')}")
 
 
@@ -43,7 +43,6 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--sys', type=str, default=defaults.get('sys'), help=parameters_help['sys'])
     subparser.add_argument('--raw_dir', type=str, default=defaults.get('raw_dir'), help=parameters_help['raw_dir'])
     subparser.add_argument('--mdir', type=str, default=defaults.get('mdir'), help=parameters_help['mdir'])
-    subparser.add_argument('--os', type=str, default=defaults.get('os'), help=parameters_help['os'])
     subparser.add_argument('--wandbpro', type=str, default=defaults.get('wandbpro'), help=parameters_help['wandbpro'])
     subparser.add_argument('--device', type=str, default=defaults.get('device'), help=parameters_help['device'])
 
@@ -59,7 +58,6 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--train_ds', nargs='+', type=str, default=defaults.get('train_ds'), help=parameters_help['train_val_ds'])
     subparser.add_argument('--test_ds', nargs='+', type=str, default=defaults.get('test_ds'), help=parameters_help['test_ds'])
     subparser.add_argument('--generate', type=str, default=defaults.get('generate'), choices=parameters_choices['generate'], help=parameters_help['generate'])
-    subparser.add_argument('--g_target_idx', nargs='+', type=int, default=defaults.get('g_target_idx'), help=parameters_help['g_target_idx'])
     subparser.add_argument('--g_alpha', type=float, default=defaults.get('g_alpha'), help=parameters_help['g_alpha'])
     subparser.add_argument('--g_eps', type=int, default=defaults.get('g_eps'), help=parameters_help['g_eps'])
 
@@ -67,7 +65,6 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--use_wandb', action='store_true', default=defaults.get('use_wandb'), help=parameters_help['use_wandb'])
     subparser.add_argument('--iter_folds', '-ifs', nargs='+', type=int, default=defaults.get('iter_folds'), help=parameters_help['iter_folds'])
     subparser.add_argument('--resume', action='store_true', default=defaults.get('resume'), help=parameters_help['resume'])
-    subparser.add_argument('--resume_dir', type=str, default=defaults.get('resume_dir'), help=parameters_help['resume_dir'])
     subparser.add_argument('--seed', type=int, default=defaults.get('seed'), help=parameters_help['seed'])
 
     subparser.add_argument('--rescale', action='store_true', default=defaults.get('rescale'), help=parameters_help['rescale'])
@@ -89,7 +86,7 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--reduction', type=str, choices=parameters_choices['reduction'], default=defaults.get('reduction'), help=parameters_help['reduction'])
     subparser.add_argument('--loss', '-l', type=str, default=defaults.get('loss'), help=parameters_help['loss'])
 
-    subparser.add_argument('--experiment_dir', type=str, default=defaults.get('experiment_dir'), help=parameters_help['experiment_dir'])
+    subparser.add_argument('--checkpoint_dir', type=str, default=defaults.get('checkpoint_dir'), help=parameters_help['checkpoint_dir'])
     subparser.add_argument('--use_model', type=str, default=defaults.get('use_model'), help=parameters_help['use_model'], choices=parameters_choices['use_model'])
     subparser.add_argument('--radius_eval', type=int , default=defaults.get('radius_eval'), help=parameters_help['radius_eval'])
     subparser.add_argument('--radius_num', type=int, default=defaults.get('radius_num'), help=parameters_help['radius_num'])
@@ -123,7 +120,7 @@ def parameters_parsing() -> argparse.Namespace:
     presplit_parser = subparsers.add_parser('presplit', help=parameters_help['presplit'])
     help_parser = subparsers.add_parser('help', help=parameters_help['help'])
     generate_parser = subparsers.add_parser('generate', help=parameters_help['generate'])
-    pipe_parser = subparsers.add_parser('pipe', help=parameters_help['generate'])
+    pipe_parser = subparsers.add_parser('test_loaders', help=parameters_help['test_loaders'])
     help_parser.set_defaults(func=print_help)
 
     # Step 5: Add arguments with JSON-loaded defaults

@@ -2,7 +2,8 @@ import torch.optim as optim
 import torch
 from functools import partial
 
-from net.model.backbone import ResUNet3D, LighterResUNet3D, DeeperResUNet3D  
+from net.model.backbone import ResUNet3D #, LighterResUNet3D, DeeperResUNet3D  
+from net.model.backbone import ResNet34
 from net.loss.voxel import *
 
 def get_fresh_model(params):
@@ -10,7 +11,7 @@ def get_fresh_model(params):
     Initialize a fresh model, loss function, and optimizer based on the provided parameters.
 
     This function sets up:
-      - A 3D ResUNet model for medical image processing or landmark detection tasks.
+      - A 3D CNN model for medical image processing or landmark detection tasks.
       - A loss function chosen from several custom or standard options.
       - An optimizer configured with the desired learning rate and settings.
 
@@ -40,20 +41,14 @@ def get_fresh_model(params):
             output_channels=len(params.lmks),  # Output channels match the number of landmarks
             base_features=getattr(params, "num_fts", 32)  # Base feature count (default: 32)
         )
-    elif model_key == 'lighter':
-        model = LighterResUNet3D.ResUNet3D(
-            input_channels=1,  # Assuming single-channel input (e.g., grayscale or single-modality volumes)
-            output_channels=len(params.lmks),  # Output channels match the number of landmarks
-            base_features=getattr(params, "num_fts", 32)  # Base feature count (default: 32)
+    elif model_key == 'resnet34':
+        model = ResNet34.R3D_18(
+            num_landmarks=len(params.lmks),  # Output channels match the number of landmarks
+            pretrained=True,  # Use pretrained weights
         )
-    elif model_key == 'deeper':
-        model = DeeperResUNet3D.ResUNet3D(
-            input_channels=1,  # Assuming single-channel input (e.g., grayscale or single-modality volumes)
-            output_channels=len(params.lmks),  # Output channels match the number of landmarks
-            base_features=getattr(params, "num_fts", 32)  # Base feature count (default: 32)
-        )
+        raise ValueError(f"Currently unsupported model architecture '{model_key}'. Please use 'resunet3d'.")
     else: 
-        raise ValueError
+        raise ValueError(f"Unsupported model architecture '{model_key}'. Choose from: ['resunet3d', 'resnet34'].")
     
     # Move model to the specified device (default to CUDA if available)
     device = getattr(params, "device", "cuda" if torch.cuda.is_available() else "cpu")

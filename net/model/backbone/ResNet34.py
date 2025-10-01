@@ -3,10 +3,10 @@ import torch.nn as nn
 import torchvision.models.video as video_models
 
 class R3D_18(nn.Module):
-    def __init__(self, num_landmarks, coordinate_regression=False):
+    def __init__(self, num_landmarks, pretrained=False, coordinate_regression=False):
         super(R3D_18, self).__init__()
         # Load pre-trained 3D ResNet-34
-        resnet34_3d = video_models.r3d_18(pretrained=False)  # Using R3D-18 as a 3D backbone
+        resnet34_3d = video_models.r3d_18(pretrained=pretrained)  # Using R3D-18 as a 3D backbone
         self.num_landmarks = num_landmarks
         self.backbone = nn.Sequential(*list(resnet34_3d.children())[:-2])  # Remove the fully connected layers
         
@@ -21,6 +21,9 @@ class R3D_18(nn.Module):
             self.fc = nn.Linear(512, 3 * num_landmarks)
 
     def forward(self, x):
+        # Repeat channels to mimic 3-channel input
+        if x.shape[1] == 1:
+            x = x.repeat(1, 3, 1, 1, 1)  # Repeat the single channel 3 times
         # Backbone feature extraction
         features = self.backbone(x)
         fcn_features = self.fcn_head(features)
@@ -34,3 +37,4 @@ class R3D_18(nn.Module):
             return fcn_output, dense_output
         else: 
             return fcn_output            
+

@@ -24,8 +24,8 @@ def perform_generate(sinfo, exp_dir, params):
             target_idx = sinfo.index[sinfo['pid'].isin(params.test_patients)].tolist()
             print(target_idx)
         else:
-            target_idx = params.g_target_idx
-
+            raise ValueError("No test patients specified in params.test_patients")
+        
         for i in target_idx:  # Iterate over the target indices
             start_time = time.time()  # Start timing
 
