@@ -1,7 +1,7 @@
 from tqdm import tqdm
 import wandb
 
-def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps, use_wandb, progress_bar):
+def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps, use_wandb, progress_bar, coord_reg=False):
     """
     Train the model for one epoch.
 

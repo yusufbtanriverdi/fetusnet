@@ -5,6 +5,7 @@
   "batch_size_val": 1,
   "check_visibility": false,
   "checkpoint_dir": "",
+  "coord_reg": false,
   "desired_size": [128, 128, 128],
   "desired_spacings": [1.0, 1.0, 1.0],
   "detector": "argmax",

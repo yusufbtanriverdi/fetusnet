@@ -307,7 +307,6 @@ if params.mode == 'train':
                 model, optimizer, start_epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)
                 logger.info(f"Resuming from {params.resume_dir}, epoch {start_epoch}, best val loss {best_val_loss}")
                 global_wandb_steps['epoch'] = start_epoch + 1
-            # TODO
             train_losses, val_losses = pipe(splitted_dataframe, fold_experiment_dir, params, transformations, global_wandb_steps)
             # Combine losses into a DataFrame
             loss_df = pd.DataFrame({
@@ -364,8 +363,12 @@ if params.mode == 'train':
         # Save to CSV or any preferred format
         loss_df.to_csv(os.path.join(experiment_dir, f"losses.csv"), index=False)
 
-        model_dir = f'{experiment_dir}/best.pt'
-        model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir)        
+        params.model_dir = experiment_dir + '/' + params.use_model + '.pt'
+        if not os.path.exists(params.model_dir):
+            raise FileNotFoundError(f"Model directory {params.model_dir} does not exist.")
+        
+        logger.info(f"\n--- Testing {params.use_model} model from {params.model_dir} --- \n")
+         
         test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
         if len(test_dl) == 0: _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
         test_loss, global_wandb_steps, test_scores  = infer_one_ep(

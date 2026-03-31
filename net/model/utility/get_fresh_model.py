@@ -39,7 +39,8 @@ def get_fresh_model(params):
         model = ResUNet3D.ResUNet3D(
             input_channels=1,  # Assuming single-channel input (e.g., grayscale or single-modality volumes)
             output_channels=len(params.lmks),  # Output channels match the number of landmarks
-            base_features=getattr(params, "num_fts", 32)  # Base feature count (default: 32)
+            base_features=getattr(params, "num_fts", 32),  # Base feature count (default: 32)
+            coord_reg=getattr(params, "coord_reg", False)  # Whether to use coordinate regression
         )
     elif model_key == 'resnet34':
         model = ResNet34.R3D_18(
