@@ -195,7 +195,7 @@ class DistanceMatrixLoss(nn.Module):
         self.mu = mu
         self.w = w
 
-    def forward(self, outputs: torch.Tensor, targets: torch.Tensor, flag_visualize=False) -> torch.Tensor:
+    def forward(self, outputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
         Forward pass to compute the Distance Matrix loss.
 
@@ -263,7 +263,7 @@ class EMDRegularizedLoss(nn.Module):
         self.w = w
         self.eps = eps
 
-    def forward(self, outputs: torch.Tensor, targets: torch.Tensor, flag_visualize=False) -> torch.Tensor:
+    def forward(self, outputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
         Forward pass to compute the Distance Matrix loss.
 
@@ -283,7 +283,7 @@ class EMDRegularizedLoss(nn.Module):
 
         # Compute softmax cross entropy: targets * (log(outputs))
         loss1 = - targets * torch.log(outputs + self.eps)
-        # Compute the loss using the formula: lambda_ * (outputs^2 * targets^w + mu)
+        # Compute the regularization using the formula: lambda_ * (outputs^2 * targets^w + mu)
         loss2 = self.lambda_ * (outputs * dist_ms ** self.w + self.mu)
 
         loss = loss1 + loss2    

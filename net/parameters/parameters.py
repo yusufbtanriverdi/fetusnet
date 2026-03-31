@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 
-DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'defaults.json')
+DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'default.json')
 HELP_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'help.json')
 CHOICES_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'choices.json')
 
