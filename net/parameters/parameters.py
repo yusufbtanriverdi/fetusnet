@@ -65,7 +65,7 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--use_wandb', action='store_true', default=defaults.get('use_wandb'), help=parameters_help['use_wandb'])
     subparser.add_argument('--iter_folds', '-ifs', nargs='+', type=int, default=defaults.get('iter_folds'), help=parameters_help['iter_folds'])
     subparser.add_argument('--resume', action='store_true', default=defaults.get('resume'), help=parameters_help['resume'])
-    subparser.add_argument('--seed', type=int, default=defaults.get('seed'), help=parameters_help['seed'])
+    subparser.add_argument('--base_seed', type=int, default=defaults.get('base_seed'), help=parameters_help['base_seed'])
 
     subparser.add_argument('--rescale', action='store_true', default=defaults.get('rescale'), help=parameters_help['rescale'])
     subparser.add_argument('--lmks', type=str, nargs='+', default=defaults.get('lmks'), help=parameters_help['lmks'])
@@ -76,6 +76,7 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--num_workers', type=int, default=defaults.get('num_workers'), help=parameters_help['num_workers'])
 
     subparser.add_argument('--architecture', '-a', type=str, default=defaults.get('architecture'), help=parameters_help['architecture'])
+    subparser.add_argument('--torch_seed', type=int, default=defaults.get('torch_seed'), help=parameters_help['torch_seed'])
 
     subparser.add_argument('--epochs', '-ep', type=int, default=defaults.get('epochs'), help=parameters_help['epochs'])
     subparser.add_argument('--num_fts', type=int, default=defaults.get('num_fts'), help=parameters_help['num_fts'])

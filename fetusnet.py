@@ -5,6 +5,9 @@ import warnings
 import wandb
 import json
 import torch
+import random
+import numpy as np
+
 
 from net.parameters.parameters import parameters_parsing
 from net.config.create_experiment_id import create_experiment_id
@@ -193,6 +196,26 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 # Initialize parameters
 params = parameters_parsing()
+
+# Apply reproducibility settings
+# Set random seed from parameters for reproducibility
+torch_seed = params.torch_seed
+# Set environment variables for deterministic behavior
+os.environ["PYTHONHASHSEED"] = str(torch_seed)  # Python hash randomization
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":16:8"  # CUDA determinism configuration
+# Set PyTorch seeds for reproducibility across CPU and GPU
+torch.manual_seed(torch_seed)  # CPU seed
+torch.cuda.manual_seed(torch_seed)  # GPU seed (current device)
+torch.cuda.manual_seed_all(torch_seed)  # All GPU devices
+# Set NumPy and random module seeds
+np.random.seed(torch_seed)  # NumPy random seed
+random.seed(torch_seed)  # Python random module seed
+# Enable deterministic algorithms in PyTorch
+torch.backends.cudnn.deterministic = True  # Use deterministic CUDA algorithms
+torch.backends.cudnn.benchmark = False  # Disable auto-tuning (slower but reproducible)
+# torch.use_deterministic_algorithms(True)  # Force deterministic behavior globally
+
+
 if params.mode not in ['help', 'prepare', 'rotate', 'presplit', 'test_loaders', 'generate', 'train', 'test']:
     raise ValueError(f"Invalid mode: {params.mode}. Choose from 'train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders'.")
 

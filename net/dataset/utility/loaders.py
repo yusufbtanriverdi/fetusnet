@@ -1,5 +1,6 @@
 from net.dataset.MyDataset import MyDataset
 import torchio as tio
+import torch
 
 def get_train_val_dl(splitted_dataframe, params, transformations):
     """
@@ -31,6 +32,10 @@ def get_train_val_dl(splitted_dataframe, params, transformations):
             - train_dl (tio.SubjectsLoader): DataLoader for training data.
             - val_dl (tio.SubjectsLoader): DataLoader for validation data.
     """
+
+    g_cpu = torch.Generator()  # Create a generator for CUDA
+    g_cpu.manual_seed(params.base_seed)  # Set the seed for reproducibility
+
     # Create training and validation datasets
     train_ds = MyDataset(
         splitted_dataframe[splitted_dataframe['set'] == 0].reset_index(drop=True), # Subset for training
@@ -55,8 +60,10 @@ def get_train_val_dl(splitted_dataframe, params, transformations):
         dataset=train_ds,
         batch_size=params.batch_size_train,  # Batch size for training
         shuffle=True,                        # Shuffle training data
-        num_workers=params.num_workers      # Number of worker threads
+        num_workers=params.num_workers,      # Number of worker threads
+        generator=g_cpu,                        # Use the generator for reproducibility
     )
+
     val_dl = tio.SubjectsLoader(
         dataset=val_ds,
         batch_size=params.batch_size_val,   # Batch size for validation
