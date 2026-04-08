@@ -90,21 +90,17 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
             # Compute metrics for each landmark
             landmark_scores = {}
             for i, lmk in enumerate(lmks):
-                if check_visibility:
-                    if lmk in visibles:
-                        landmark_score = compute_landmark_metrics(output_coord_tensor[i],
-                                                                target_coord_tensor[i], 
-                                                                spacing)
-                        landmark_scores.update({f"{k}_{lmk}": v for k, v in landmark_score.items()})
-                        # print(f"{nsid} - {lmk} - {landmark_score}")
-                    else:
-                        landmark_scores.update({f"{k}_{lmk}": np.nan for k in landmark_scores.keys()})
-                else: 
-                    landmark_score = compute_landmark_metrics(output_coord_tensor[i],
-                                        target_coord_tensor[i], 
-                                        spacing)
-                    landmark_scores.update({f"{k}_{lmk}": v for k, v in landmark_score.items()})
-                    # print(f"{nsid} - {lmk} - Not visible, skipping metric computation.")
+                landmark_score = compute_landmark_metrics(
+                    output_coord_tensor[i],
+                    target_coord_tensor[i], 
+                    spacing
+                )
+
+                if check_visibility and lmk not in visibles:
+                    landmark_score = {k: np.nan for k in landmark_score.keys()}
+
+                landmark_scores.update({f"{k}_{lmk}": v for k, v in landmark_score.items()})
+
             dmean =np.nanmean(list(landmark_scores.values()))
             # Update the progress bar description with the running average loss
             if progress_bar:
