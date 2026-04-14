@@ -1,3 +1,4 @@
+import datetime
 import os
 import pandas as pd
 import torchio as tio
@@ -310,16 +311,84 @@ if params.mode == 'train':
     logger.info(f"\n--- Training {params.split} --- \n")
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
+
+    epoch = 0
+    if params.resume:
+        experiment_dir = params.checkpoint_dir
+        model_dir = experiment_dir + '/' + params.use_model + '.pt'
+        if not os.path.exists(model_dir):
+            raise FileNotFoundError(f"Model directory {model_dir} does not exist.")
+        model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir) 
+        logger.info(f"Resuming training from epoch {epoch} with best validation loss {best_val_loss}.")
+        stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        logger.info(f"Resuming training from checkpoint loaded at {stamp}.")
+    
     train_losses, val_losses = pipe(splitted_dataframe, experiment_dir, params, transformations, global_wandb_steps)
     # Combine losses into a DataFrame
     loss_df = pd.DataFrame({
-        'epoch': list(range(len(train_losses))),
+        'epoch': epoch + list(range(len(train_losses))),
         'train_loss': train_losses,
         'val_loss': val_losses
     })
     # Save to CSV or any preferred format
-    loss_df.to_csv(os.path.join(experiment_dir, f"losses.csv"), index=False)
+    loss_df.to_csv(os.path.join(experiment_dir, f"losses_{stamp}.csv"), index=False)
 
+    model_dir = experiment_dir + '/' + params.use_model + '.pt'
+    if not os.path.exists(model_dir):
+        raise FileNotFoundError(f"Model directory {model_dir} does not exist.")
+    
+    model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir) 
+    logger.info(f"\n--- Testing {params.use_model} model from {model_dir} --- \n")
+        
+    test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
+    if len(test_dl) == 0: _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
+    test_loss, global_wandb_steps, test_scores  = infer_one_ep(
+            model, 
+            test_dl, 
+            criterion, 
+            params.device, 
+            global_wandb_steps, 
+            params.use_wandb, 
+            params.detector, 
+            params.progress_bar,     
+            params.lmks, 
+            experiment_dir,            
+            check_visibility=params.check_visibility,
+            eval=True,
+            radius_eval=params.radius_eval,
+            radius_num=params.radius_num,
+            save_targets=params.save_targets, 
+            save_outputs=params.save_outputs
+            )
+    
+    for lmk in params.lmks:
+        try: 
+            mean = test_scores[f"dmean_{lmk}"].mean()
+            std = test_scores[f"dmean_{lmk}"].std()
+            logger.info(f"Test d-mean Score for {lmk}: {mean} +/- {std}")
+        except KeyError:
+            logger.warning(f"Key dmean_{lmk} not found in test_scores.")
+
+    if params.use_wandb: wandb.finish()
+
+
+if params.mode == 'test':
+    logger.info("I am starting to test")
+    if params.use_wandb: initialize_wandb(params, experiment_name+'_'+params.split)
+    logger.info(f"\n--- Testing {params.split} --- \n")
+    # Initialize model, loss, optimizer
+    model, criterion, optimizer, best_criteria = get_fresh_model(params)
+    # train_losses, val_losses = pipe(splitted_dataframe, experiment_dir, params, transformations, global_wandb_steps)
+    # Combine losses into a DataFrame
+    loss_df = pd.DataFrame({
+        # 'epoch': list(range(len(train_losses))),
+        # 'train_loss': train_losses,
+        'val_loss': best_criteria
+    })
+    # Save to CSV or any preferred format
+    loss_df.to_csv(os.path.join(experiment_dir, f"losses.csv"), index=False)
+    
+    experiment_dir = params.checkpoint_dir
     model_dir = experiment_dir + '/' + params.use_model + '.pt'
     if not os.path.exists(model_dir):
         raise FileNotFoundError(f"Model directory {model_dir} does not exist.")

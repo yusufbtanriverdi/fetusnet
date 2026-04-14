@@ -62,6 +62,7 @@ def get_fresh_model(params):
         'crossentropy': SoftmaxCrossEntropyLoss,
         'distmatrix': DistanceMatrixLoss,
         'emd': EMDRegularizedLoss,
+        'l1_emd': L1_EMDRegularizedLoss,
     }
 
     loss_key = getattr(params, 'loss', 'mse')  # Default to 'mse' if not specified
