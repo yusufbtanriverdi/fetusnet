@@ -192,7 +192,6 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
 
                     # plot_histograms_and_stats(output_heatmap, target_heatmap, save_path = os.path.join(output_dir, f"{name}_"))
                     gc.collect()
-
             ep_scores.append(row)
             # if ind > 100: break      # For debugging, remove this line in production 
     if eval:
@@ -206,7 +205,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
         
     # Return the average loss, computed metrics, and updated wandb_steps
     avg_loss = running_loss / len(loader) 
-
+    # Save ep_scores to a CSV file in the experiment directory and also save the mean scores across all samples.
     ep_scores = pd.DataFrame.from_records(ep_scores)
     ep_scores.to_csv(os.path.join(experiment_dir, "test_scores.csv"), index=False)
     ep_scores.drop(['nsid'], axis=1).mean().to_csv(os.path.join(experiment_dir, "test_scores_mean.csv"))
