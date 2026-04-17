@@ -326,7 +326,7 @@ if params.mode == 'train':
     train_losses, val_losses = pipe(splitted_dataframe, experiment_dir, params, transformations, global_wandb_steps)
     # Combine losses into a DataFrame
     loss_df = pd.DataFrame({
-        'epoch': epoch + list(range(len(train_losses))),
+        'epoch': epoch + np.arange(len(train_losses)),
         'train_loss': train_losses,
         'val_loss': val_losses
     })
