@@ -311,7 +311,7 @@ if params.mode == 'train':
     logger.info(f"\n--- Training {params.split} --- \n")
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
-
+    stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     epoch = 0
     if params.resume:
         experiment_dir = params.checkpoint_dir
@@ -320,7 +320,6 @@ if params.mode == 'train':
             raise FileNotFoundError(f"Model directory {model_dir} does not exist.")
         model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir) 
         logger.info(f"Resuming training from epoch {epoch} with best validation loss {best_val_loss}.")
-        stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         logger.info(f"Resuming training from checkpoint loaded at {stamp}.")
     
     train_losses, val_losses = pipe(splitted_dataframe, experiment_dir, params, transformations, global_wandb_steps)
