@@ -311,7 +311,7 @@ if params.mode == 'train':
     logger.info(f"\n--- Training {params.split} --- \n")
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
-    stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     epoch = 0
     if params.resume:
         experiment_dir = params.checkpoint_dir
