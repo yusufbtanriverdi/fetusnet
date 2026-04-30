@@ -179,3 +179,5 @@ tmps/
 
 .vscode
 configs
+
+tmp.*
