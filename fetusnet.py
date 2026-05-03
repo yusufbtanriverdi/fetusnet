@@ -380,15 +380,7 @@ if params.mode == 'test':
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
     # train_losses, val_losses = pipe(splitted_dataframe, experiment_dir, params, transformations, global_wandb_steps)
-    # Combine losses into a DataFrame
-    loss_df = pd.DataFrame({
-        # 'epoch': list(range(len(train_losses))),
-        # 'train_loss': train_losses,
-        'val_loss': best_criteria
-    })
-    # Save to CSV or any preferred format
-    loss_df.to_csv(os.path.join(experiment_dir, f"losses.csv"), index=False)
-    
+
     experiment_dir = params.checkpoint_dir
     model_dir = experiment_dir + '/' + params.use_model + '.pt'
     if not os.path.exists(model_dir):
@@ -396,8 +388,11 @@ if params.mode == 'test':
     
     model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir) 
     logger.info(f"\n--- Testing {params.use_model} model from {model_dir} --- \n")
-        
-    test_dl = get_test_dl(splitted_dataframe, params, transformations=transformations)
+    
+    test_patients = getattr(params, 'test_patients', None)
+    # Filter test patients first
+    test_dl = get_test_dl(splitted_dataframe.loc[splitted_dataframe['npid'].isin(test_patients)] , params, transformations=transformations)
+    logger.info(f"!__[U]__! Test subset size: {len(test_dl)}")
     if len(test_dl) == 0: _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
     test_loss, global_wandb_steps, test_scores  = infer_one_ep(
             model, 
