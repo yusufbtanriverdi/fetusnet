@@ -33,7 +33,7 @@ parameters_choices = load_json_config(CHOICES_CONFIG_PATH)
 
 def print_help(*args, **kwargs):
     print("Available modes:")
-    for mode in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders']:
+    for mode in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d']:
         print(f"  {mode:16} {parameters_help.get(mode, '')}")
 
 

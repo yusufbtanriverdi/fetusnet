@@ -55,5 +55,6 @@
   "presplit": "Presplit the dataset",
   "help": "Display help message",
   "generate": "Generate new data or augmentations",
-  "test_loaders": "Test the data loaders for consistency"
+  "test_loaders": "Test the data loaders for consistency",
+  "plot_3d": "Plots a 3D scene with evaluation."
 }
