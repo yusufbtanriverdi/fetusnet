@@ -23,6 +23,7 @@ from net.phases.train import train_one_ep
 from net.phases.infer import infer_one_ep
 from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.config.wandb import initialize_wandb
+from net.plot.volumes import perform_plot_3d
 
 def save_experiment_parameters(experiment_directory, experiment_id, params, date):
     """
@@ -217,10 +218,10 @@ torch.backends.cudnn.benchmark = False  # Disable auto-tuning (slower but reprod
 # torch.use_deterministic_algorithms(True)  # Force deterministic behavior globally
 
 
-if params.mode not in ['help', 'prepare', 'rotate', 'presplit', 'test_loaders', 'generate', 'train', 'test']:
-    raise ValueError(f"Invalid mode: {params.mode}. Choose from 'train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders'.")
+if params.mode not in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_volumes']:
+    raise ValueError(f"Invalid mode: {params.mode}. Choose from 'train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_volumes'.")
 
-if params.mode == 'test' or params.resume:
+if params.mode in ['test', 'plot_volumes'] or params.resume:
     experiment_dir = params.checkpoint_dir
 else:
     experiment_dir, experiment_name = create_experiment_id(params, create_directory=True)
@@ -279,7 +280,6 @@ else:
     split_dataframe_path = perform_split(master_dataframe, params)
     splitted_dataframe = pd.read_csv(split_dataframe_path)
 
-
 logger.info(f"Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
 
 # Define transformations for 3D images
@@ -290,9 +290,8 @@ transforms = [
 transformations = tio.Compose(transforms)
 logger.info("Transformations are created.")
 
-
 if params.mode == 'test_loaders':
-    print(splitted_dataframe[:10])
+    logger.info(f"I have been asked to test loaders... Here it goes.")
     train_dl, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
     test_loaders(train_dl)
     test_loaders(test_dl)
@@ -304,6 +303,9 @@ logger.info(f"!__[U]__! Training - validation - test subset sizes: {len(splitted
 
 if params.mode == 'generate':
     perform_generate(splitted_dataframe, experiment_dir, params)
+
+if params.mode == 'plot_3d':
+    perform_plot_3d(splitted_dataframe, experiment_dir, params)
 
 if params.mode == 'train':
     logger.info("I am starting to train")

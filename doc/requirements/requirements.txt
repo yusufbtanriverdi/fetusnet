@@ -14,3 +14,4 @@ SimpleITK==2.4.1
 torchio==0.20.1
 tqdm==4.66.5
 wandb==0.19.1
+imageio==2.35.1

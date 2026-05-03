@@ -3,7 +3,7 @@ import nrrd
 import numpy as np
 import pyvista as pv
 import pandas as pd
-
+import ast
 
 def numpy_sigmoid(arr: np.ndarray) -> np.ndarray:
     """Apply the sigmoid function element-wise to a 3D array."""
@@ -42,9 +42,9 @@ def load_heatmap_as_grid(nrrd_path: str) -> pv.ImageData:
     return grid
 
 
-def visualize_heatmaps_from_df(row: pd.Series, out_dir: str = ".") -> float:
-    """
-    Visualize predicted vs ground truth heatmaps from a DataFrame row.
+
+def perform_plot_3d(df, experiment_dir, params):
+    """ Visualize predicted vs ground truth heatmaps from a DataFrame row.
 
     Expected columns in row:
         - 'nsid': str
@@ -60,15 +60,21 @@ def visualize_heatmaps_from_df(row: pd.Series, out_dir: str = ".") -> float:
 
     Returns:
         float: Euclidean distance between predicted max and ground-truth lmk.
-    """
-    nsid = row["nsid"]
-    lmk = row["lmk"]
 
+    """
+    df['lmks_array'] = df['visibles'].apply(ast.literal_eval)
+    row = df.loc[0] # for now
+
+    nsid = row["nsid"]
+    lmk = row["lmks_array"][0] # visibles? then loop 
+    
     # --- Load inputs ---
-    point_cloud, labels = load_landmarks_as_point_cloud(row["mcsv"])
-    grid_pred = load_heatmap_as_grid(row["pred_nrrd"])
-    grid_gt = load_heatmap_as_grid(row["gt_nrrd"])
-    mesh = pv.read(row["stl"])
+    point_cloud, labels = load_landmarks_as_point_cloud(os.path.join(params.root, row['mcsv']))
+    grid_pred = load_heatmap_as_grid(os.path.join(experiment_dir, 'evals', nsid+lmk+'.nrrd')) 
+    grid_gt = load_heatmap_as_grid(os.path.join(experiment_dir, 'evals', nsid+lmk+'_target.nrrd')) 
+
+    if row['plys_found']:
+        mesh = pv.read(row["fply"].replace(".ply", "_rotated.ply"))
 
     # --- Sample heatmaps on surface ---
     mesh_pred = mesh.sample(grid_pred)
@@ -100,7 +106,7 @@ def visualize_heatmaps_from_df(row: pd.Series, out_dir: str = ".") -> float:
     pl.add_points(max_point_pred, color="blue", point_size=point_size, render_points_as_spheres=True)
 
     pl.link_views()
-    out_html = os.path.join(out_dir, f"{nsid}_{lmk}.html")
+    out_html = os.path.join(os.path.join(experiment_dir, 'evals'), f"{nsid}_{lmk}.html")
     pl.export_html(out_html)
     pl.show()
 
