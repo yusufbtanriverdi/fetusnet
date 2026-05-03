@@ -218,10 +218,10 @@ torch.backends.cudnn.benchmark = False  # Disable auto-tuning (slower but reprod
 # torch.use_deterministic_algorithms(True)  # Force deterministic behavior globally
 
 
-if params.mode not in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_volumes']:
-    raise ValueError(f"Invalid mode: {params.mode}. Choose from 'train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_volumes'.")
+if params.mode not in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d']:
+    raise ValueError(f"Invalid mode: {params.mode}. Choose from 'train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d'.")
 
-if params.mode in ['test', 'plot_volumes'] or params.resume:
+if params.mode in ['test', 'plot_3d'] or params.resume:
     experiment_dir = params.checkpoint_dir
 else:
     experiment_dir, experiment_name = create_experiment_id(params, create_directory=True)
@@ -302,9 +302,13 @@ logger.info(f"After cleaning, total number of input in master dataframe: {len(sp
 logger.info(f"!__[U]__! Training - validation - test subset sizes: {len(splitted_dataframe[splitted_dataframe['set'] == 0]), len(splitted_dataframe[splitted_dataframe['set'] == 1]), len(splitted_dataframe[splitted_dataframe['set'] == 2])}")
 
 if params.mode == 'generate':
+    splitted_dataframe = splitted_dataframe.loc[splitted_dataframe['npid'].isin(params.test_patients)]
     perform_generate(splitted_dataframe, experiment_dir, params)
 
 if params.mode == 'plot_3d':
+    splitted_dataframe = splitted_dataframe.loc[splitted_dataframe['npid'].isin(params.test_patients)]
+    if len(splitted_dataframe) == 0:
+        raise KeyError("No test patient is given. Aborting mission...")
     perform_plot_3d(splitted_dataframe, experiment_dir, params)
 
 if params.mode == 'train':

@@ -63,15 +63,15 @@ def perform_plot_3d(df, experiment_dir, params):
 
     """
     df['lmks_array'] = df['visibles'].apply(ast.literal_eval)
-    row = df.loc[0] # for now
+    row = df.iloc[0] # for now
 
     nsid = row["nsid"]
     lmk = row["lmks_array"][0] # visibles? then loop 
     
     # --- Load inputs ---
-    point_cloud, labels = load_landmarks_as_point_cloud(os.path.join(params.root, row['mcsv']))
-    grid_pred = load_heatmap_as_grid(os.path.join(experiment_dir, 'evals', nsid+lmk+'.nrrd')) 
-    grid_gt = load_heatmap_as_grid(os.path.join(experiment_dir, 'evals', nsid+lmk+'_target.nrrd')) 
+    point_cloud, labels = load_landmarks_as_point_cloud(os.path.join(params.sys + params.root, row['mcsv']))
+    grid_gt = load_heatmap_as_grid(os.path.join(experiment_dir, 'eval', str(nsid)+'_'+lmk+'_target.nrrd')) 
+    grid_pred = load_heatmap_as_grid(os.path.join(experiment_dir, 'eval', str(nsid)+'_'+lmk+'.nrrd')) 
 
     if row['plys_found']:
         mesh = pv.read(row["fply"].replace(".ply", "_rotated.ply"))
@@ -106,7 +106,7 @@ def perform_plot_3d(df, experiment_dir, params):
     pl.add_points(max_point_pred, color="blue", point_size=point_size, render_points_as_spheres=True)
 
     pl.link_views()
-    out_html = os.path.join(os.path.join(experiment_dir, 'evals'), f"{nsid}_{lmk}.html")
+    out_html = os.path.join(os.path.join(experiment_dir, 'eval'), f"{nsid}_{lmk}.html")
     pl.export_html(out_html)
     pl.show()
 

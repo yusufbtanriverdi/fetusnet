@@ -122,10 +122,11 @@ def parameters_parsing() -> argparse.Namespace:
     help_parser = subparsers.add_parser('help', help=parameters_help['help'])
     generate_parser = subparsers.add_parser('generate', help=parameters_help['generate'])
     pipe_parser = subparsers.add_parser('test_loaders', help=parameters_help['test_loaders'])
+    plot_parser = subparsers.add_parser('plot_3d', help=parameters_help['plot_3d'])
     help_parser.set_defaults(func=print_help)
 
     # Step 5: Add arguments with JSON-loaded defaults
-    for sub in [train_parser, test_parser, prep_parser, presplit_parser, rotate_parser, generate_parser, pipe_parser]:
+    for sub in [train_parser, test_parser, prep_parser, presplit_parser, rotate_parser, generate_parser, pipe_parser, plot_parser]:
         add_common_args(sub, defaults)
 
     # Step 6: Final parse using updated parser and remaining args
