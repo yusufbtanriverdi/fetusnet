@@ -73,9 +73,13 @@ def compute_aela(
 
         if radius != 0:
             # Define bounding box around target
-            x_min, x_max = max(0, target_coord[0] - radius).round().int().item(), min(D, target_coord[0] + radius).round().int().item()
-            y_min, y_max = max(0, target_coord[1] - radius).round().int().item(), min(H, target_coord[1] + radius).round().int().item()
-            z_min, z_max = max(0, target_coord[2] - radius).round().int().item(), min(W, target_coord[2] + radius).round().int().item()
+
+            x_min = torch.clamp(target_coord[0] - radius, min=0).round().int().item()
+            x_max = torch.clamp(target_coord[0] + radius, max=D).round().int().item()
+            y_min = torch.clamp(target_coord[1] - radius, min=0).round().int().item()
+            y_max = torch.clamp(target_coord[1] + radius, max=H).round().int().item()
+            z_min = torch.clamp(target_coord[2] - radius, min=0).round().int().item()
+            z_max = torch.clamp(target_coord[2] + radius, max=W).round().int().item()
 
             # Mask region of interest
             mask = torch.zeros_like(output, dtype=torch.float32)
