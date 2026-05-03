@@ -389,11 +389,19 @@ if params.mode == 'test':
     model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir) 
     logger.info(f"\n--- Testing {params.use_model} model from {model_dir} --- \n")
     
-    test_patients = getattr(params, 'test_patients', None)
+    # test_patients = getattr(params, 'test_patients', [''])
+    print(params.test_patients)
     # Filter test patients first
-    test_dl = get_test_dl(splitted_dataframe.loc[splitted_dataframe['npid'].isin(test_patients)] , params, transformations=transformations)
+    test_dl = get_test_dl(splitted_dataframe.loc[splitted_dataframe['npid'].isin(params.test_patients)], params, transformations=transformations)
     logger.info(f"!__[U]__! Test subset size: {len(test_dl)}")
-    if len(test_dl) == 0: _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
+    if len(test_dl) == 0: 
+        test_dl = get_test_dl(splitted_dataframe, params, transformations)
+        logger.info(f"!__[U]__! Couldn't find test patients, switch to entire test subset. Subset size: {len(test_dl)}")
+
+        if len(test_dl) == 0:         
+                _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
+                logger.info(f"!__[U]__! Switched to val subset. Subset size: {len(test_dl)}")
+
     test_loss, global_wandb_steps, test_scores  = infer_one_ep(
             model, 
             test_dl, 

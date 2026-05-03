@@ -60,7 +60,7 @@
   "split": "",
   "sys": "/media/yusuf/HDD 4TB/",
   "test_ds": ["Casos Mar"],
-  "test_patients": [],
+  "test_patients": [""],
   "torch_seed": 42,
   "train_val_ds": ["Estudio Dexeus", "Casos Maternitat"],
   "use_model": "last",

@@ -12,7 +12,6 @@ from net.plot.curves import compute_aela, plot_aela_figure
 from net.plot.histograms import plot_histograms_and_stats
 from net.plot.matrices_3d import plot_3d_matrices
 from net.plot.heatmaps import plot_heatmaps_slices_from_coord
-from net.plot.volumes import visualize_heatmaps_from_df
 
 from net.postprocess.utility.save_fscv_csv import save_fscv_csv
 from net.postprocess.utility.where_is_landmark import get_peak_location
