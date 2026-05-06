@@ -62,11 +62,18 @@ def perform_plot_3d(df, experiment_dir, params):
         float: Euclidean distance between predicted max and ground-truth lmk.
 
     """
+    pv.global_theme.font.family = 'arial'
+
     df['lmks_array'] = df['visibles'].apply(ast.literal_eval)
-    row = df.iloc[0] # for now
+    print(df)
+    row = df.iloc[2] # for now
 
     nsid = row["nsid"]
-    lmk = row["lmks_array"][0] # visibles? then loop 
+    if params.lmks[0] in row['lmks_array']:
+        lmk = params.lmks[0]
+        pass
+    else:
+        lmk = row["lmks_array"][0] # visibles? then loop 
     
     # --- Load inputs ---
     point_cloud, labels = load_landmarks_as_point_cloud(os.path.join(params.sys + params.root, row['mcsv']))
@@ -84,26 +91,37 @@ def perform_plot_3d(df, experiment_dir, params):
     max_idx = np.argmax(mesh_pred["heatmap"])
     max_point_pred = mesh_pred.points[max_idx].reshape(1, 3)
 
+    # surf = point_cloud.delaunay_3d(alpha=0.0)
     # --- PyVista plot ---
     pl = pv.Plotter(shape=(1, 2))
     point_size = 10
 
     # Prediction subplot
+    sargs = dict(
+    title_font_size=20,
+    label_font_size=20,
+    shadow=False,
+    n_labels=10,
+    vertical=True, position_x=0.05, position_y=0.05
+    )
+    
     pl.subplot(0, 0)
     pl.add_title("Prediction")
-    pl.add_mesh(mesh_pred, scalars="heatmap", cmap="hot", show_scalar_bar=True)
-    cloud_proj = project_landmarks_to_surface(point_cloud, mesh_pred)
-    pl.add_points(cloud_proj.points[labels != lmk], color="white", point_size=point_size, render_points_as_spheres=True)
-    pl.add_points(cloud_proj.points[labels == lmk], color="lightgreen", point_size=point_size, render_points_as_spheres=True)
-    pl.add_points(max_point_pred, color="blue", point_size=point_size, render_points_as_spheres=True)
+    # pl.add_mesh(surf, color=True, show_edges=True)
+    pl.add_mesh(mesh_pred, scalars="heatmap", cmap="hot", show_scalar_bar=True, scalar_bar_args=sargs)
+    cloud_proj = project_landmarks_to_surface(point_cloud, mesh_gt)
+    pl.add_points(cloud_proj.points[labels != lmk], color="blue", point_size=point_size, render_points_as_spheres=True)
+    # pl.add_points(cloud_proj.points[labels == lmk], color="pink", point_size=point_size, render_points_as_spheres=True)
+    pl.add_points(max_point_pred, color="lightblue", point_size=point_size, render_points_as_spheres=True)
 
     # Ground truth subplot
     pl.subplot(0, 1)
     pl.add_title("Ground Truth")
-    pl.add_mesh(mesh_gt, scalars="heatmap", cmap="hot", show_scalar_bar=True)
-    pl.add_points(point_cloud.points[labels != lmk], color="white", point_size=point_size, render_points_as_spheres=True)
-    pl.add_points(point_cloud.points[labels == lmk], color="lightgreen", point_size=point_size, render_points_as_spheres=True)
-    pl.add_points(max_point_pred, color="blue", point_size=point_size, render_points_as_spheres=True)
+    # pl.add_mesh(surf, color=True, show_edges=True)
+    pl.add_mesh(mesh_gt, scalars="heatmap", cmap="hot", show_scalar_bar=True, scalar_bar_args=sargs)
+    pl.add_points(cloud_proj.points[labels != lmk], color="blue", point_size=point_size, render_points_as_spheres=True)
+    pl.add_points(cloud_proj.points[labels == lmk], color="pink", point_size=point_size, render_points_as_spheres=True)
+    # pl.add_points(max_point_pred, color="blue", point_size=point_size, render_points_as_spheres=True)
 
     pl.link_views()
     out_html = os.path.join(os.path.join(experiment_dir, 'eval'), f"{nsid}_{lmk}.html")
