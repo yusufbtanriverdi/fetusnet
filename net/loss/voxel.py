@@ -253,7 +253,7 @@ class EMDRegularizedLoss(nn.Module):
         w (float): Exponent applied to the distance matrix (1 - targets).
     """
 
-    def __init__(self, reduction: str = 'mean', lambda_: float = 1, mu: float = 0, w: float = 1.0, eps: float = 1e-20):
+    def __init__(self, reduction: str = 'mean', lambda_: float = 0.5, mu: float = 0, w: float = 1.0, eps: float = 1e-20):
         super(EMDRegularizedLoss, self).__init__()
         # Ensure the reduction method is valid
         assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
@@ -283,10 +283,10 @@ class EMDRegularizedLoss(nn.Module):
 
         # Compute softmax cross entropy: targets * (log(outputs))
         loss1 = - targets * torch.log(outputs + self.eps)
-        # Compute the regularization using the formula: lambda_ * (outputs^2 * targets^w + mu)
-        loss2 = self.lambda_ * (outputs * dist_ms ** self.w + self.mu)
+        # Compute the regularization using the formula: outputs^2 * targets^2
+        loss2 = outputs * dist_ms ** 2 + self.eps
 
-        loss = loss1 + loss2    
+        loss = self.lambda_ * loss1 + (1 - self.lambda_) * loss2    
         loss = loss.view(loss.size(0), -1).sum(dim=-1)  # Sum over spatial dimensions
 
         # Apply the specified reduction method
