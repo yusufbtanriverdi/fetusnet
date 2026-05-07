@@ -57,10 +57,10 @@ def get_fresh_model(params):
     # === Loss Function Selection ===
     reduction = getattr(params, "reduction", 'mean')
     loss_dict = {
-        'kld': KullbackLeiblerDivLoss,
+        # 'kld': KullbackLeiblerDivLoss,
         'mse': MeanSquaredErrorLoss,
         'crossentropy': SoftmaxCrossEntropyLoss,
-        'distmatrix': DistanceMatrixLoss,
+        # 'distmatrix': DistanceMatrixLoss,
         'emd': EMDRegularizedLoss,
         'l1_emd': L1_EMDRegularizedLoss,
     }
