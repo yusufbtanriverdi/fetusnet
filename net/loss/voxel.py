@@ -48,8 +48,8 @@ class MeanSquaredErrorLoss(nn.Module):
             torch.Tensor: The computed loss, reduced based on the specified method.
         """
         # Normalize each landmark (channel) so that its sum over spatial dims is 1
-        targets = to_probability_distributions(targets)
-        outputs = to_probability_distributions(outputs)
+        # targets = to_probability_distributions(targets)
+        # outputs = to_probability_distributions(outputs)
 
         # Compute the element-wise squared difference
         loss = (outputs - targets) ** 2
