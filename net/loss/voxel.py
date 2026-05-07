@@ -240,6 +240,7 @@ class L1_EMDRegularizedLoss(nn.Module):
         Returns:
             torch.Tensor: Computed loss based on the specified reduction method.
         """
+        loss3 = (outputs - targets) ** 2
 
         # Normalize the targets to ensure they sum to 1 (softmax-like behavior)
         dist_ms = 1 - targets
@@ -252,7 +253,6 @@ class L1_EMDRegularizedLoss(nn.Module):
         # Compute the regularization using the formula: alpha_ * (outputs^2 * targets^w + mu)
         loss2 = outputs * dist_ms ** 2 + self.eps
         # Compute the element-wise squared difference
-        loss3 = (outputs - targets) ** 2
         
         loss = self.alpha_ * loss1 + self.beta_ * loss2 + (1 - (self.alpha_ + self.beta_)) * loss3
         loss = loss.view(loss.size(0), -1).sum(dim=-1)  # Sum over spatial dimensions
