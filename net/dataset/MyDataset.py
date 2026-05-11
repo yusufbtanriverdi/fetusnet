@@ -1,14 +1,13 @@
 from net.dataset.target import gaussian_heatmap
-from net.dataset.target import distance_matrix
 from net.dataset.utility.rotation import extract_image
-
-import torchio as tio
-from torch.utils.data import Dataset
-import os 
+from net.plot.heatmaps import plot_heatmaps_slices_from_coord
 import torch
+import os 
 import pandas as pd
-import nrrd
 import numpy as np
+from torch.utils.data import Dataset
+import torchio as tio
+
 
 class MyDataset(Dataset):
     """
@@ -82,13 +81,14 @@ class MyDataset(Dataset):
         # Load the 3D volume from the specified path
         image_path = os.path.join(self.root, self.dataframe.loc[idx, 'mscan'])
         volume, header = extract_image(image_path)
-        image_tensor = torch.tensor(volume).unsqueeze(0)  # Add channel dimension (C, H, W, D)
+        volume = torch.from_numpy(volume)
+        image_tensor = volume.unsqueeze(0)  # Add channel dimension (C, H, W, D)
 
         # Load the landmark file containing coordinates
         landmark_path = os.path.join(self.root, self.dataframe.loc[idx, 'mcsv'])
         landmark_df = pd.read_csv(landmark_path)
 
-        target = torch.zeros((len(self.lmks), *volume.shape), dtype=torch.float32)  # Initialize target tensor
+        target = torch.zeros((len(self.lmks), 2, *volume.shape), dtype=torch.float32)  # Initialize target tensor
         coord_tensor = torch.zeros((len(self.lmks), 3), dtype=torch.float32)  # Initialize coordinates tensor
         try:
             spacings = header.get('spacings')[:3]
@@ -102,7 +102,7 @@ class MyDataset(Dataset):
             if lmk not in landmark_df['label'].values:
                 raise ValueError(f"Landmark '{lmk}' not found in {landmark_path}")
 
-            # Surprise the model
+            # Surprise the model!
             # if lmk in ['enL']:
             #     landmark_row = landmark_df[landmark_df['label'] == 'enR']
             # elif lmk in ['enR']:
@@ -119,26 +119,13 @@ class MyDataset(Dataset):
             coord = torch.tensor(coord, dtype=torch.float32)
             coord_tensor[i] = coord  # Store the coordinates in the tensor
             # Coords are in voxel coordinates, now. 
-
-            # Generate the target output based on the specified mode (gaussian or distance)
-            if self.target_mode == 'gaussian':
-                target_ = torch.tensor(
-                    gaussian_heatmap.create_gaussian_heatmap(
+            heatmap, distance = gaussian_heatmap.create_gaussian_heatmap(
                         coord, volume, alpha=self.alpha, eps=self.eps
-                    )
-                ).unsqueeze(0)  # Add channel dimension
-            elif self.target_mode == 'distance':
-                target_ = torch.tensor(
-                    distance_matrix.create_distance_matrix(
-                        coord, volume, alpha=self.alpha, eps=self.eps
-                    )
-                ).unsqueeze(0)  # Add channel dimension
-            else:
-                raise ValueError(f"Unsupported target mode: {self.target_mode}")
-
-            target[i] = target_  # Assign the generated target to the corresponding landmark index
-
-
+                )  # Add dimension e.g, L, T, D, H, W
+            
+            target[i][0], target[i][1] = heatmap, distance  # Assign the generated target to the corresponding landmark index
+            # plot_heatmaps_slices_from_coord([target[i][0], target[i][1], 1-target[i][0]], coord.numpy())
+            # print(target.shape)
         # Ensure transformations are provided
         if self.transformations is None:
             raise ValueError("Transformations are required but not provided.")
@@ -146,7 +133,7 @@ class MyDataset(Dataset):
         # Apply transformations and create a TorchIO Subject
         subject = tio.Subject(
             image=self.transformations(tio.ScalarImage(tensor=image_tensor)),  # Apply transformations to the image
-            target=tio.ScalarImage(tensor=target),  # Target heatmap or distance map
+            target=target,  # Target heatmap and/or distance map
             name=self.dataframe.loc[idx, 'nsid'],  # Metadata: full ID of the subject
             pid=self.dataframe.loc[idx, 'npid'],  # Metadata: patient ID
             spacings=spacings,  # Pixel spacings

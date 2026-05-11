@@ -67,7 +67,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
                 continue
             # Move input data and targets to the specified device
             images = batch['image']['data'].to(device)
-            targets = batch['target']['data'].to(device)
+            targets = batch['target'].to(device)
             spacing = batch['spacings'][0][0] # Assuming ISO spacing for simplicity
             nsid = batch['name'][0]
             visibles = batch['visibles'][0]  # Assuming batch size of 1

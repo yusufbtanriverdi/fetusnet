@@ -63,6 +63,7 @@ def get_fresh_model(params):
         # 'distmatrix': DistanceMatrixLoss,
         'emd': EMDRegularizedLoss,
         'l1_emd': L1_EMDRegularizedLoss,
+        'mitral': EucEMDRegularizedLoss,
     }
 
     loss_key = getattr(params, 'loss', 'mse')  # Default to 'mse' if not specified

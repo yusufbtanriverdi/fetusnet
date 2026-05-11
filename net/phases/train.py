@@ -33,7 +33,7 @@ def train_one_ep(model, loader, criterion, optimizer, device, wandb_steps, use_w
     for ind, batch in enumerate(t):
         # Move images and targets to the specified device
         images = batch['image']['data'].to(device)
-        targets = batch['target']['data'].to(device)
+        targets = batch['target'].to(device)
 
         # Zero the parameter gradients
         optimizer.zero_grad()

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 # from mpl_toolkits.mplot3d import Axes3D  # Required for 3D plotting
 
-def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, titles=None, figsize=(12, 6)):
+def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, titles=None):
     """
     Plot 2D heatmaps and 3D surfaces for slices along each axis.
     Columns = axes (0,1,2), Rows = 2D heatmap / 3D surface.
