@@ -1,6 +1,5 @@
 # Import necessary modules
 from net.dataset.target.gaussian_heatmap import create_gaussian_heatmap
-from net.dataset.target.distance_matrix import create_distance_matrix
 from net.dataset.MyDataset import extract_image
 import os
 import torch
@@ -54,11 +53,8 @@ def perform_generate(sinfo, exp_dir, params):
             coord_tensor = torch.abs(torch.tensor(coord, dtype=torch.float32))
 
             # Generate the target (heatmap or distance matrix)
-            if params.generate == 'gaussian':
-                target = create_gaussian_heatmap(coord_tensor, volume, alpha=params.g_alpha, eps=params.g_eps)
-            else:
-                target = create_distance_matrix(coord_tensor, volume, alpha=params.g_alpha, eps=params.g_eps)
-
+            target, distance = create_gaussian_heatmap(coord_tensor, volume, alpha=params.g_alpha, eps=params.g_eps)
+ 
             end_time = time.time()  # End timing
             elapsed_time = end_time - start_time  # Compute elapsed time
             print(f"Processed {sinfo.loc[i, 'nsid']} in {elapsed_time:.4f} seconds")

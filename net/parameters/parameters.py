@@ -86,6 +86,7 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
 
     subparser.add_argument('--reduction', type=str, choices=parameters_choices['reduction'], default=defaults.get('reduction'), help=parameters_help['reduction'])
     subparser.add_argument('--loss', '-l', type=str, default=defaults.get('loss'), help=parameters_help['loss'])
+    subparser.add_argument('--lossw_abc', nargs='+', type=int, default=defaults.get('lossw_abc'), help=parameters_help['lossw_abc'])
 
     subparser.add_argument('--checkpoint_dir', type=str, default=defaults.get('checkpoint_dir'), help=parameters_help['checkpoint_dir'])
     subparser.add_argument('--use_model', type=str, default=defaults.get('use_model'), help=parameters_help['use_model'], choices=parameters_choices['use_model'])

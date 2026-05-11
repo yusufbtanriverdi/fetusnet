@@ -57,12 +57,13 @@ def get_fresh_model(params):
     # === Loss Function Selection ===
     reduction = getattr(params, "reduction", 'mean')
     loss_dict = {
-        'kld': KullbackLeiblerDivLoss,
+        # 'kld': KullbackLeiblerDivLoss,
         'mse': MeanSquaredErrorLoss,
         'crossentropy': SoftmaxCrossEntropyLoss,
-        'distmatrix': DistanceMatrixLoss,
+        # 'distmatrix': DistanceMatrixLoss,
         'emd': EMDRegularizedLoss,
         'l1_emd': L1_EMDRegularizedLoss,
+        'mitral': EucEMDRegularizedLoss,
     }
 
     loss_key = getattr(params, 'loss', 'mse')  # Default to 'mse' if not specified
@@ -72,8 +73,9 @@ def get_fresh_model(params):
 
     # Dynamically instantiate the loss function with parameters
     loss_cls = loss_dict[loss_key]
-    loss_params = getattr(params, 'loss_params', {})  # Additional parameters for the loss function
-    criterion = loss_cls(reduction=reduction, **loss_params)
+    abc  = getattr(params, 'lossw_abc', [1, 1, 1])  # Additional parameters for the loss function
+    loss_weights = {'a': abc[0], 'b': abc[1], 'c': abc[2]}
+    criterion = loss_cls(reduction=reduction, **loss_weights)
 
     # === Optimizer Selection ===
     m = getattr(params, 'lr_momentum', 0.9)

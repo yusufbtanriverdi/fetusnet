@@ -22,7 +22,7 @@ def perform_split(master_dataframe, params):
 
     remaining_df = df[df['set'] == -1]
     n_splits = getattr(params, 'n_split', 4)
-    random_state = getattr(params, 'seed', 42)
+    random_state = getattr(params, 'base_seed', 42)
     output_dir = os.path.join(params.sys, params.root) + '/' + params.master_df
 
     if split_mode == 'crossfold':
@@ -54,19 +54,6 @@ def perform_split(master_dataframe, params):
             last_path = fold_path
 
         return last_path
-
-    elif split_mode == 'splitthecake':
-        unique_pids = remaining_df['npid'].unique()
-        train_pids, val_pids = train_test_split(
-            unique_pids, test_size=0.2, random_state=random_state, shuffle=True
-        )
-
-        df.loc[df['npid'].isin(train_pids), 'set'] = 0
-        df.loc[df['npid'].isin(val_pids), 'set'] = 1
-
-        out_path = output_dir + '_splitthecake.csv'
-        df.to_csv(out_path, index=False)
-        return out_path
 
     else:
         raise ValueError(f"Unknown split mode: {split_mode}")
