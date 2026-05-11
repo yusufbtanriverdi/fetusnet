@@ -73,8 +73,9 @@ def get_fresh_model(params):
 
     # Dynamically instantiate the loss function with parameters
     loss_cls = loss_dict[loss_key]
-    loss_params = getattr(params, 'loss_params', {})  # Additional parameters for the loss function
-    criterion = loss_cls(reduction=reduction, **loss_params)
+    abc  = getattr(params, 'lossw_abc', [1, 1, 1])  # Additional parameters for the loss function
+    loss_weights = {'a': abc[0], 'b': abc[1], 'c': abc[2]}
+    criterion = loss_cls(reduction=reduction, **loss_weights)
 
     # === Optimizer Selection ===
     m = getattr(params, 'lr_momentum', 0.9)

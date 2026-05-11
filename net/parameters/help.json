@@ -19,6 +19,7 @@
   "learning_rate": "Learning rate for optimizer",
   "lmks": "List of landmarks to detect",
   "loss": "Loss functions to apply (accepts list)",
+  "lossw_abc": "Loss weights",
   "lr_momentum": "Momentum parameter for SGD optimizer",
   "master_df": "Filename of the master dataframe CSV",
   "mdir": "Directory to move raw images after processing",

@@ -262,7 +262,7 @@ class L1_EMDRegularizedLoss(nn.Module):
         # Compute softmax cross entropy: targets * (log(outputs))
         loss1 = - targets * torch.log(outputs + self.eps)
         # Compute the regularization using the formula: alpha_ * (outputs^2 * targets^w + mu)
-        loss2 = outputs * dist_ms ** 2 + self.eps
+        loss2 = outputs * dist_ms ** 2
         # Compute the element-wise squared difference
         
         loss = self.alpha_ * loss1 + self.beta_ * loss2 + (1 - (self.alpha_ + self.beta_)) * loss3
@@ -306,13 +306,19 @@ class EucEMDRegularizedLoss(nn.Module):
         w (float): Exponent applied to the distance matrix (1 - targets).
     """
 
-    def __init__(self, reduction: str = 'mean', coefs: tuple = (0, 0.6, 0), eps: float = 1e-20):
+    def __init__(self, reduction: str = 'mean', eps: float = 1e-20, 
+                 a: float = 1.0, 
+                 b: float = 1.0, 
+                 c: float = 1.0):
         super(EucEMDRegularizedLoss, self).__init__()
         # Ensure the reduction method is valid
         assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
         self.reduction = reduction
-        self.coefs = coefs
+        self.a, self.b, self.c = a, b, c
         self.eps = eps
+
+    def __str__(self):
+        return f"EucEMDRegularizedLoss( \n reduction: {self.reduction} \n eps: {self.eps} \n  a: {self.a} \n  b: {self.b} \n c: {self.c} \n)"
 
     def forward(self, outputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
@@ -340,7 +346,7 @@ class EucEMDRegularizedLoss(nn.Module):
         # Compute the EMD regularization from mitral paper
         loss2 = outputs * (distance ** 2)
 
-        loss = self.coefs[0] * loss1 + self.coefs[1] * loss2 + self.coefs[2] * loss3    
+        loss = self.a * loss1 + self.b * loss2 + self.c * loss3    
         loss = loss.view(loss.size(0), -1).sum(dim=-1)  # Sum over spatial dimensions
 
         # Apply the specified reduction method

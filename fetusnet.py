@@ -225,6 +225,7 @@ if params.mode in ['test', 'plot_3d'] or params.resume:
     experiment_dir = params.checkpoint_dir
 else:
     experiment_dir, experiment_name = create_experiment_id(params, create_directory=True)
+
 # Convert to dictionary (if Namespace or similar)
 params_dict = vars(params)  # or: params.__dict__ if vars() doesn't work
 
@@ -232,7 +233,10 @@ params_dict = vars(params)  # or: params.__dict__ if vars() doesn't work
 if params.mode != 'test':
     with open(os.path.join(experiment_dir, 'params.json'), 'w') as f:
         json.dump(params_dict, f, indent=6)
-    
+
+# stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+# save_experiment_parameters(experiment_dir, experiment_name, params, stamp)
+
 global_wandb_steps = {'train_loss': 0, 'val_loss': 0, 'epoch': 0}
 # Initialize logger
 logger = setup_logger(experiment_dir)

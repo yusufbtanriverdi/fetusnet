@@ -39,6 +39,7 @@
     "exR"
   ],  
   "loss": "emd",
+  "lossw_abc": [1.0, 1.0, 1.0],
   "lr_momentum": 0.9,
   "master_df": "testOnCasosMarReally",
   "mdir": "DATA/",
