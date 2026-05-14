@@ -382,8 +382,9 @@ if params.mode == 'train':
 
 
 if params.mode == 'test':
+    params.use_wandb = False
     logger.info("I am starting to test")
-    if params.use_wandb: initialize_wandb(params, experiment_name+'_'+params.split)
+    # if params.use_wandb: initialize_wandb(params, experiment_name+'_'+params.split)
     logger.info(f"\n--- Testing {params.split} --- \n")
     # Initialize model, loss, optimizer
     model, criterion, optimizer, best_criteria = get_fresh_model(params)
