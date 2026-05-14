@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 # from mpl_toolkits.mplot3d import Axes3D  # Required for 3D plotting
+from matplotlib.patches import Circle
 
 def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, titles=None):
     """
@@ -27,15 +28,21 @@ def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, titles=None):
 
         for j, ax in enumerate(axes):
             # Select slice along current axis
+            ax2d = axs[0, j]
             if ax == 0:
                 slice_data = heatmap[coord_idx[0], :, :]
+                patch = Circle((coord_idx[2], coord_idx[1]), radius=1, color='white')
+                ax2d.add_patch(patch)
             elif ax == 1:
-                slice_data = heatmap[:, coord_idx[1], :]
+                slice_data = heatmap[:, coord_idx[1], :]                
+                patch = Circle((coord_idx[2], coord_idx[0]), radius=1, color='white')
+                ax2d.add_patch(patch)
             else:
                 slice_data = heatmap[:, :, coord_idx[2]]
-
+                patch = Circle((coord_idx[1], coord_idx[0]), radius=1, color='white')
+                ax2d.add_patch(patch)
+            
             # 2D heatmap (top row)
-            ax2d = axs[0, j]
             im = ax2d.imshow(slice_data, cmap='jet', origin='lower')
             ax2d.set_title(f"{titles[i]} - Axis {ax}")
             ax2d.set_axis_off()
