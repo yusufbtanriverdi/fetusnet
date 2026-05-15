@@ -99,9 +99,9 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
     if len(val_dl) == 0: val_dl = get_test_dl(dataframe, params, transformations=transformations)
     logger.info(f"Training - validation subset sizes: {len(train_dl.dataset), len(val_dl.dataset)}")
     # Initialize model, loss, optimizer
-    model, criterion, optimizer, best_criteria = get_fresh_model(params)
+    model, criteria, optimizer, best_val_loss = get_fresh_model(params)
     logger.info(optimizer)
-    logger.info(criterion)
+    logger.info(criteria)
 
     train_losses = []
     val_losses = []
@@ -114,7 +114,7 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
         train_loss, global_wandb_steps = train_one_ep(
             model, 
             train_dl, 
-            criterion, 
+            criteria, 
             optimizer, 
             params.device, 
             global_wandb_steps,
@@ -126,7 +126,7 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
             val_loss, global_wandb_steps, ep_scores = infer_one_ep(
                 model, 
                 val_dl, 
-                criterion, 
+                criteria, 
                 params.device, 
                 global_wandb_steps, 
                 params.use_wandb,
@@ -139,8 +139,8 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
             )
         
             # Save best model
-            if val_loss < best_criteria:
-                best_criteria = val_loss
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
                 save_checkpoint(model, optimizer, epoch, val_loss, 
                                 os.path.join(experiment_dir, f'best.pt'))
 
@@ -320,7 +320,7 @@ if params.mode == 'train':
     if params.use_wandb: initialize_wandb(params, experiment_name+'_'+params.split)
     logger.info(f"\n--- Training {params.split} --- \n")
     # Initialize model, loss, optimizer
-    model, criterion, optimizer, best_criteria = get_fresh_model(params)
+    model, criteria, optimizer, _ = get_fresh_model(params)
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     epoch = 0
     if params.resume:
@@ -354,7 +354,7 @@ if params.mode == 'train':
     test_loss, global_wandb_steps, test_scores  = infer_one_ep(
             model, 
             test_dl, 
-            criterion, 
+            criteria, 
             params.device, 
             global_wandb_steps, 
             params.use_wandb, 
@@ -387,7 +387,7 @@ if params.mode == 'test':
     # if params.use_wandb: initialize_wandb(params, experiment_name+'_'+params.split)
     logger.info(f"\n--- Testing {params.split} --- \n")
     # Initialize model, loss, optimizer
-    model, criterion, optimizer, best_criteria = get_fresh_model(params)
+    model, criteria, optimizer, _ = get_fresh_model(params)
     # train_losses, val_losses = pipe(splitted_dataframe, experiment_dir, params, transformations, global_wandb_steps)
 
     experiment_dir = params.checkpoint_dir
@@ -414,7 +414,7 @@ if params.mode == 'test':
     test_loss, global_wandb_steps, test_scores  = infer_one_ep(
             model, 
             test_dl, 
-            criterion, 
+            criteria, 
             params.device, 
             global_wandb_steps, 
             params.use_wandb, 

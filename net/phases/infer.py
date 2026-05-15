@@ -16,8 +16,9 @@ from net.plot.heatmaps import plot_heatmaps_slices_from_coord
 from net.postprocess.utility.save_fscv_csv import save_fscv_csv
 from net.postprocess.utility.where_is_landmark import get_peak_location
 from net.dataset.utility.rotation import extract_image
+from net.plot.heatmaps import plot_heatmaps_slices_from_coord # To debug.
 
-def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detector, progress_bar,
+def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detector, progress_bar,
                  lmks, experiment_dir, check_visibility, eval, **kwargs):
     """
     Perform inference for one epoch with additional functionality.
@@ -25,7 +26,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
     Args:
         model (torch.nn.Module): The model to validate.
         loader (DataLoader): DataLoader for validation data.
-        criterion (torch.nn.Module): Loss function.
+        criteria (torch.nn.Module): Loss functions.
         device (str or torch.device): Device to run the model on ('cpu' or 'cuda').
         wandb_steps (dict): Dictionary to track Weights & Biases (wandb) steps.
         use_wandb (bool, optional): Whether to log metrics to Weights & Biases. Default is False.
@@ -71,12 +72,12 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
             spacing = batch['spacings'][0][0] # Assuming ISO spacing for simplicity
             nsid = batch['name'][0]
             visibles = batch['visibles'][0]  # Assuming batch size of 1
-            # print(visibles)
             # Forward pass through the model
             outputs = model(images)
 
-            # Compute loss
-            loss = criterion(outputs, targets)
+            # Compute the losses
+            losses = [criterion(outputs, targets) for criterion in criteria]
+            loss = losses[0]
 
             # Update running loss and calculate average loss
             running_loss += loss.item()
@@ -125,7 +126,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
                 output_dir = os.path.join(experiment_dir, "eval")
                 os.makedirs(output_dir, exist_ok=True)
 
-                target_heatmap = targets[0]              # Assuming batch size of 1   
+                target_heatmap = targets[0] # {!} Assuming batch size of 1   
                 for i, lmk in enumerate(lmks):
                     heatmap_scores = compute_heatmap_metrics(output_heatmap[i], 
                                                              target_heatmap[i]
@@ -141,7 +142,7 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
                     )
 
                 for i, lmk in enumerate(lmks):
-                    output_heatmap_i = torch.nn.functional.sigmoid(output_heatmap[i])            # Assuming batch size of 1   
+                    output_heatmap_i = torch.nn.functional.sigmoid(output_heatmap[i]) # {!} Assuming batch size of 1 
 
                     if check_visibility:
                         if lmk in visibles:
@@ -188,11 +189,10 @@ def infer_one_ep(model, loader, criterion, device, wandb_steps, use_wandb, detec
                             target_heatmap[i].cpu().numpy(),
                             header=template_header
                         )
-
                     # plot_histograms_and_stats(output_heatmap, target_heatmap, save_path = os.path.join(output_dir, f"{name}_"))
                     gc.collect()
             ep_scores.append(row)
-            # if ind > 100: break      # For debugging, remove this line in production 
+            # if ind > 100: break      # {!} For debugging, remove this line in production 
     if eval:
         for i, lmk in enumerate(lmks):
             # Save the ep_scores_curve as CSV, including lmk info in the filename

@@ -6,7 +6,6 @@
   "batch_size_val": 1,
   "check_visibility": true,
   "checkpoint_dir": "",
-  "coord_reg": false,
   "desired_size": [128, 128, 128],
   "desired_spacings": [1.0, 1.0, 1.0],
   "detector": "argmax",
@@ -14,7 +13,6 @@
   "epochs": 50,
   "g_alpha": 3,
   "g_eps": 1e-6,
-  "generate": "gaussian",
   "iter_folds": [],
   "learning_rate": 0.0001,
   "lmks": [
@@ -38,8 +36,10 @@
     "exL",
     "exR"
   ],  
-  "loss": "emd",
-  "lossw_abc": [1.0, 1.0, 1.0],
+  "loss": ["emd"],
+  "loss_params": {"eps": 1e-30, 
+                  "sigmoid": false, 
+                  "w": 2},
   "lr_momentum": 0.9,
   "master_df": "testOnCasosMarReally",
   "mdir": "DATA/",
