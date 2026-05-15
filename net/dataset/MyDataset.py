@@ -14,7 +14,7 @@ class MyDataset(Dataset):
     Custom dataset class for handling 3D NIfTI images and their ground truth (GT) heatmaps.
     """
 
-    def __init__(self, dataframe, root, target_mode, target_params, lmks, transformations=None):
+    def __init__(self, dataframe, root, target_params, lmks, transformations=None):
         """
         Initializes the MyDataset class for loading and processing 3D medical imaging data.
 
@@ -22,7 +22,6 @@ class MyDataset(Dataset):
             dataframe (pd.DataFrame): A pandas DataFrame containing metadata for the scans, 
             such as file paths and associated labels.
             root (str): The root directory where the image files and landmark files are stored.
-            target_mode (str): The mode for generating target outputs. Supported modes are 
             'gaussian' and 'distance' for generating heatmaps or similar targets.
             target_params (tuple): A tuple containing parameters (alpha, eps) used for generating 
             the target outputs. 'alpha' controls the spread of the target distribution, 
@@ -39,8 +38,6 @@ class MyDataset(Dataset):
             raise TypeError("dataframe must be a pandas DataFrame.")
         if not os.path.isdir(root):
             raise ValueError(f"Root directory '{root}' does not exist.")
-        if target_mode not in ['gaussian', 'distance']:
-            raise ValueError("target_mode must be either 'gaussian' or 'distance'.")
         if not isinstance(target_params, tuple) or len(target_params) != 2:
             raise ValueError("target_params must be a tuple of length 2 (alpha, eps).")
         if not isinstance(lmks, list) or not all(isinstance(lmk, str) for lmk in lmks):
@@ -50,7 +47,6 @@ class MyDataset(Dataset):
         
         self.dataframe = dataframe
         self.root = root
-        self.target_mode = target_mode
         self.alpha, self.eps = target_params
         self.lmks = lmks
         self.transformations = transformations
