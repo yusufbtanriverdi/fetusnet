@@ -82,6 +82,7 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--lr_momentum', '-m', type=int, default=defaults.get('lr_momentum'), help=parameters_help['lr_momentum'])
     subparser.add_argument('--master_df', type=str, default=defaults.get('master_df'), help=parameters_help['master_df'])
     subparser.add_argument('--mdir', type=str, default=defaults.get('mdir'), help=parameters_help['mdir'])
+    subparser.add_argument('--mode', type=str)
     subparser.add_argument('--n_split', '-n', type=int, default=defaults.get('n_split'), help=parameters_help['n_split'])
     subparser.add_argument('--num_fts', type=int, default=defaults.get('num_fts'), help=parameters_help['num_fts'])
     subparser.add_argument('--num_workers', type=int, default=defaults.get('num_workers'), help=parameters_help['num_workers'])
