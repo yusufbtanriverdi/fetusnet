@@ -43,7 +43,6 @@ def get_fresh_model(params):
     # === Loss Function Selection ===
     reduction = getattr(params, "reduction", 'mean')
     loss_dict = {
-        'mse': MSELoss,
         'sse': SSELoss,
         'softmaxce': SoftmaxCELoss,
         'eucEMD': EucEMDLoss,

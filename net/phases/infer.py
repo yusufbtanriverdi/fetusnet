@@ -17,6 +17,7 @@ from net.postprocess.utility.save_fscv_csv import save_fscv_csv
 from net.postprocess.utility.where_is_landmark import get_peak_location
 from net.dataset.utility.rotation import extract_image
 from net.plot.heatmaps import plot_heatmaps_slices_from_coord # To debug.
+from net.loss.losses import *
 
 def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detector, progress_bar,
                  lmks, experiment_dir, check_visibility, eval, **kwargs):
@@ -31,13 +32,11 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
         wandb_steps (dict): Dictionary to track Weights & Biases (wandb) steps.
         use_wandb (bool, optional): Whether to log metrics to Weights & Biases. Default is False.
         detector (str, optional): Method to detect peaks in heatmaps ('argmax', etc.). Default is 'argmax'.
-        eval (bool, optional): Whether to compute evaluation metrics and save outputs. Default is False.
-        experiment_dir (str, optional): Directory to save outputs if eval=True. Default is None.
-        radius_eval (int, optional): Maximum radius for AELA evaluation. Default is 40.
-        radius_num (int, optional): Number of radius steps for AELA evaluation. Default is 100.
-        lmks (list, optional): List of landmark names. Default is None.
         progress_bar (bool, optional): Whether to display a progress bar. Default is True.
-
+        experiment_dir (str, optional): Directory to save outputs if eval=True. Default is None.         
+        lmks (list, optional): List of landmark names. Default is None.
+        eval (bool, optional): Whether to compute evaluation metrics and save outputs. Default is False.
+        
     Returns:
         float: Average validation loss for the epoch.
         dict: Updated wandb_steps.
@@ -121,8 +120,8 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                 radius_eval = kwargs.get('radius_eval', 40)
                 save_targets = kwargs.get('save_targets', False)
                 save_outputs = kwargs.get('save_outputs', False)
+                save_errormaps = kwargs.get('save_errormaps', False)
                 show_figures = kwargs.get('show_figures', False)
-
                 output_dir = os.path.join(experiment_dir, "eval")
                 os.makedirs(output_dir, exist_ok=True)
 
@@ -168,10 +167,31 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                         
                     distance_curves[i, ind, :] = scores_v3_distances  # Store the distance curves for each landmark and batch index
 
+                    if save_errormaps:
+                        sse = SSELoss()
+                        sce = SoftmaxCELoss()
+                        emd = EucEMDLoss()
+                        sse_error = sse.forward(outputs, targets).squeeze(0)
+                        sce_error = sce.forward(outputs, targets).squeeze(0)
+                        emd_error = emd.forward(outputs, targets).squeeze(0)
+
                     if show_figures:
                         _ = plot_histograms_and_stats(output_heatmap_i, target_heatmap[i])
                         plot_3d_matrices(output_heatmap_i, target_heatmap[i])
-                        plot_heatmaps_slices_from_coord([output_heatmap_i, target_heatmap[i]], coord_tensor=target_coord_tensor[i].cpu().numpy(), titles=[f"{lmk} Output", f"{lmk} Target"])
+                        plot_heatmaps_slices_from_coord([
+                            output_heatmap_i, 
+                            target_heatmap[i],
+                            sse_error[i],
+                            sce_error[i],
+                            emd_error[i]
+                            ], 
+                            coord_tensor=target_coord_tensor[i].cpu().numpy(), 
+                            titles=[f"{lmk} Output", 
+                                    f"{lmk} Target",
+                                    f"{lmk} SSE Map",
+                                    f"{lmk} Softmax CE Map",
+                                    f"{lmk} Distance Penalty",
+                                    ])
 
                     # Save the predicted output as an NRRD file in the subdirectory
                     if save_outputs:
@@ -189,7 +209,7 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                             target_heatmap[i].cpu().numpy(),
                             header=template_header
                         )
-                    # plot_histograms_and_stats(output_heatmap, target_heatmap, save_path = os.path.join(output_dir, f"{name}_"))
+                        
                     gc.collect()
             ep_scores.append(row)
             # if ind > 100: break      # {!} For debugging, remove this line in production 
