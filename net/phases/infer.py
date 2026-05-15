@@ -171,9 +171,9 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                         sse = SSELoss()
                         sce = SoftmaxCELoss()
                         emd = EucEMDLoss()
-                        sse_error = sse.forward(outputs, targets).squeeze(0)
-                        sce_error = sce.forward(outputs, targets).squeeze(0)
-                        emd_error = emd.forward(outputs, targets).squeeze(0)
+                        sse_error = sse.formula(outputs, targets).squeeze(0)
+                        sce_error = sce.formula(outputs, targets).squeeze(0)
+                        emd_error = emd.formula(outputs, targets).squeeze(0)
 
                     if show_figures:
                         _ = plot_histograms_and_stats(output_heatmap_i, target_heatmap[i])

@@ -74,7 +74,7 @@ class SoftmaxCELoss(baseLoss):
         return loss
 
 class EucEMDLoss(baseLoss):
-    def __init__(self, reduction: str = 'mean', w: int = 2, eps: float = 1e-20, **args) -> torch.Tensor:
+    def __init__(self, reduction: str = 'mean', w: int = 2, **args) -> torch.Tensor:
         super(EucEMDLoss, self).__init__()
         # Ensure the reduction method is valid
         assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
