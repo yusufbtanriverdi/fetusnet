@@ -76,7 +76,7 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
 
             # Compute the losses
             losses = [criterion(outputs, targets) for criterion in criteria]
-            loss = losses[0]
+            loss = losses[0] # {!!} Supporting only one loss temporarily.  
 
             # Update running loss and calculate average loss
             running_loss += loss.item()
@@ -167,10 +167,13 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                     distance_curves[i, ind, :] = scores_v3_distances  # Store the distance curves for each landmark and batch index
 
                     if show_figures:
-                        sse = SSELoss()
-                        emd = EucEMDLoss()
+                        loss_params = kwargs['loss_params']
+                        sse = SSELoss(**loss_params)
+                        sce = SoftmaxCELoss(**loss_params)
+                        emd = EucEMDLoss(**loss_params)
+                        print(sse, sce, emd)
                         euc_distance = sse.formula(outputs, targets).squeeze(0)
-                        sce_contribution = -torch.log(outputs + 1e-10).squeeze(0)
+                        sce_contribution = (sce.formula(outputs, targets) / targets).squeeze(0)
                         distance_penalty = emd.formula(outputs, targets).squeeze(0)
                         
                         _ = plot_histograms_and_stats(output_heatmap_i, target_heatmap[i][0])

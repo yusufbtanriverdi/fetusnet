@@ -42,7 +42,7 @@ def train_one_ep(model, loader, criteria, optimizer, device, wandb_steps, use_wa
         outputs = model(images)
         # Compute the losses
         losses = [criterion(outputs, targets) for criterion in criteria]
-        loss = losses[0]
+        loss = losses[0] # {!!} Supporting only one loss temporarily.  
         # Compute the mean loss
         # Backward pass: compute gradients
         loss.backward()

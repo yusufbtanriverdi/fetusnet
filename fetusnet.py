@@ -428,7 +428,8 @@ if params.mode == 'test':
             radius_num=params.radius_num,
             save_targets=params.save_targets, 
             save_outputs=params.save_outputs,
-            show_figures = True
+            show_figures=True,
+            loss_params=params.loss_params
             )
     
     for lmk in params.lmks:

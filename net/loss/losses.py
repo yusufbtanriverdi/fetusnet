@@ -2,17 +2,28 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-def apply_softmax(volume):
+def _softmax(volume):
     B, C, D, H, W = volume.shape
     # Apply softmax over voxel domain.
     voxels = volume.reshape(B, C, -1) # {!} Reshape to voxels (Assumption: B=1 & C=1)
     probs = F.softmax(voxels, dim=-1).view(B, C, D, H, W)
     return probs
 
+def _log_softmax(volume):
+    B, C, D, H, W = volume.shape
+    # Apply softmax over voxel domain.
+    voxels = volume.reshape(B, C, -1) # {!} Reshape to voxels (Assumption: B=1 & C=1)
+    probs = F.log_softmax(voxels, dim=-1).view(B, C, D, H, W)
+    return probs
+
 class baseLoss(nn.Module):
     def __init__(self, **args):
         super(baseLoss, self).__init__()
-    
+
+    def __str__(self):
+        args = ", ".join(f"{k}={v!r}" for k, v in self.__dict__.items())
+        return f"{self.__class__.__name__}({args})"
+        
     def forward(self, outputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         loss = self.formula(outputs, targets)
         # {?} Average, instead of sum. Let's see what happens.
@@ -48,7 +59,7 @@ class SSELoss(baseLoss):
         return loss
 
 class SoftmaxCELoss(baseLoss):
-    def __init__(self, reduction: str = 'mean', eps: float = 1e-30, normalize_targets: bool = True, **args) -> torch.Tensor:
+    def __init__(self, reduction: str = 'mean', eps: float = 1e-15, normalize_targets: bool = True, **args) -> torch.Tensor:
         super(SoftmaxCELoss, self).__init__()
         # Ensure the reduction method is valid
         assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
@@ -67,10 +78,9 @@ class SoftmaxCELoss(baseLoss):
         # {?} Should we only apply softmax to outputs? 
         # {!} Normalized target → distribution matching, where as unnormalized target → weighted penalty field.
         if self.normalize_targets:
-            targets = targets / (targets.sum(dim=(-1,-2,-3), keepdim=True) + self.eps)
-        outputs = apply_softmax(outputs)
+            targets = _softmax(targets)
         # Compute cross entropy regularization.
-        loss = - targets * torch.log(outputs + self.eps)
+        loss = - targets * _log_softmax(outputs + self.eps)
         return loss
 
 class EucEMDLoss(baseLoss):
@@ -91,7 +101,7 @@ class EucEMDLoss(baseLoss):
         # {!} The purpose of softmax is to ensure sum(n)_N=1 condition for EMD to hold. 
         # {?} There shouldn't be a need to normalize, but let's try.
         # targets = targets / (targets.sum(dim=(-1,-2,-3), keepdim=True) + self.eps)
-        outputs = apply_softmax(outputs)
         # Compute Euclidean distance-based EMD regularization.
-        loss = outputs * (targets > 0) * distance.pow(self.w)  # {!} Multiply by non-zero 'targets' mask.
+        # {?} Should we multiply by non-zero 'targets' mask?
+        loss = _softmax(outputs) * distance.pow(self.w)  
         return loss

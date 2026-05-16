@@ -13,6 +13,8 @@
   "epochs": "Total number of training epochs",
   "g_alpha": "Alpha parameter for Gaussian heatmap spread",
   "g_eps": "Threshold for Gaussian peak detection",
+  "g_clip": "Whether to clip low values in Gaussian heatmaps",
+  "g_mask": "Whether to mask Gaussian heatmaps by volume information",
   "iter_folds": "Selected cross-validation folds (optional)",
   "learning_rate": "Learning rate for optimizer",
   "lmks": "List of landmarks to detect",

@@ -47,7 +47,7 @@ class MyDataset(Dataset):
         
         self.dataframe = dataframe
         self.root = root
-        self.alpha, self.eps = target_params
+        self.alpha, self.eps, self.mask, self.clip = target_params
         self.lmks = lmks
         self.transformations = transformations
 
@@ -116,7 +116,7 @@ class MyDataset(Dataset):
             coord_tensor[i] = coord  # Store the coordinates in the tensor
             # Coords are in voxel coordinates, now. 
             heatmap, distance = gaussian_heatmap.create_gaussian_heatmap(
-                        coord, volume, alpha=self.alpha, eps=self.eps
+                        coord, volume, alpha=self.alpha, eps=self.eps, clip=self.clip, mask=self.mask
                 )  # Add dimension e.g, L, T, D, H, W
             
             target[i][0], target[i][1] = heatmap, distance  # Assign the generated target to the corresponding landmark index
