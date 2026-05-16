@@ -181,9 +181,9 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                         plot_heatmaps_slices_from_coord([
                             output_heatmap_i, 
                             target_heatmap[i],
-                            euc_distance,
-                            sce_contribution,
-                            distance_penalty,
+                            euc_distance[i],
+                            sce_contribution[i],
+                            distance_penalty[i],
                             ], 
                             coord_tensor=target_coord_tensor[i].cpu().numpy(), 
                             argmax_tensor=output_coord_tensor[i].cpu().numpy(),
