@@ -46,6 +46,7 @@
   "use_wandb": "Enable Weights & Biases logging",
   "wandbpro": "Weights & Biases project name for logging",
 
+  "mode": "Please select a mode.",
   "train": "Train the model",
   "test": "Test the model",
   "prepare": "Prepare the dataset",

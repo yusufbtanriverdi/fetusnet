@@ -3,7 +3,7 @@ import numpy as np
 # from mpl_toolkits.mplot3d import Axes3D  # Required for 3D plotting
 from matplotlib.patches import Circle
 
-def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, titles=None):
+def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, argmax_tensor, titles=None):
     """
     Plot 2D heatmaps and 3D surfaces for slices along each axis.
     Columns = axes (0,1,2), Rows = 2D heatmap / 3D surface.
@@ -18,6 +18,7 @@ def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, titles=None):
     n = len(heatmaps)
     axes = [0, 1, 2]  # Columns = axes
     coord_idx = tuple(int(round(c)) for c in coord_tensor)
+    argmax_idx = tuple(int(round(c)) for c in argmax_tensor)
 
     if titles is None:
         titles = [f"Heatmap {i+1}" for i in range(n)]
@@ -31,16 +32,22 @@ def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, titles=None):
             ax2d = axs[0, j]
             if ax == 0:
                 slice_data = heatmap[coord_idx[0], :, :]
-                patch = Circle((coord_idx[2], coord_idx[1]), radius=1, color='white')
-                ax2d.add_patch(patch)
+                patch1 = Circle((coord_idx[2], coord_idx[1]), radius=1, color='white')
+                patch2 = Circle((argmax_idx[2], argmax_idx[1]), radius=1, color='black')
+                ax2d.add_patch(patch1)
+                ax2d.add_patch(patch2)
             elif ax == 1:
                 slice_data = heatmap[:, coord_idx[1], :]                
-                patch = Circle((coord_idx[2], coord_idx[0]), radius=1, color='white')
-                ax2d.add_patch(patch)
+                patch1 = Circle((coord_idx[2], coord_idx[0]), radius=1, color='white')
+                patch2 = Circle((argmax_idx[2], argmax_idx[0]), radius=1, color='black')
+                ax2d.add_patch(patch1)
+                ax2d.add_patch(patch2)
             else:
                 slice_data = heatmap[:, :, coord_idx[2]]
-                patch = Circle((coord_idx[1], coord_idx[0]), radius=1, color='white')
-                ax2d.add_patch(patch)
+                patch1 = Circle((coord_idx[1], coord_idx[0]), radius=1, color='white')
+                patch2 = Circle((argmax_idx[1], argmax_idx[0]), radius=1, color='black')
+                ax2d.add_patch(patch1)
+                ax2d.add_patch(patch2)
             
             # 2D heatmap (top row)
             im = ax2d.imshow(slice_data, cmap='jet', origin='lower')
