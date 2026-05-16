@@ -135,7 +135,10 @@ def parameters_parsing() -> argparse.Namespace:
 
     # Final parse using updated parser and remaining args
     args = parser.parse_args(remaining_argv)
-    args.loss_params = parse_loss_params(args.loss_params)
+    print(args)
+    if not isinstance(args.loss_params, dict):
+        args.loss_params = parse_loss_params(args.loss_params)
+    else: pass
     args.config_dir = early_args.config
     # Handle 'help' mode
     if args.mode == 'help':

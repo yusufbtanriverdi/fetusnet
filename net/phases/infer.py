@@ -120,7 +120,6 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                 radius_eval = kwargs.get('radius_eval', 40)
                 save_targets = kwargs.get('save_targets', False)
                 save_outputs = kwargs.get('save_outputs', False)
-                save_errormaps = kwargs.get('save_errormaps', False)
                 show_figures = kwargs.get('show_figures', False)
                 output_dir = os.path.join(experiment_dir, "eval")
                 os.makedirs(output_dir, exist_ok=True)
@@ -167,20 +166,19 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                         
                     distance_curves[i, ind, :] = scores_v3_distances  # Store the distance curves for each landmark and batch index
 
-
-
                     if show_figures:
                         sse = SSELoss()
                         emd = EucEMDLoss()
                         euc_distance = sse.formula(outputs, targets).squeeze(0)
-                        sce_contribution = torch.log(outputs + 1e-30)
+                        sce_contribution = -torch.log(outputs + 1e-10).squeeze(0)
                         distance_penalty = emd.formula(outputs, targets).squeeze(0)
                         
-                        _ = plot_histograms_and_stats(output_heatmap_i, target_heatmap[i])
-                        plot_3d_matrices(output_heatmap_i, target_heatmap[i])
+                        _ = plot_histograms_and_stats(output_heatmap_i, target_heatmap[i][0])
+                        plot_3d_matrices(output_heatmap_i, target_heatmap[i][0])
                         plot_heatmaps_slices_from_coord([
                             output_heatmap_i, 
-                            target_heatmap[i],
+                            target_heatmap[i][0],
+                            target_heatmap[i][1],
                             euc_distance[i],
                             sce_contribution[i],
                             distance_penalty[i],
