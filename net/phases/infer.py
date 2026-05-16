@@ -169,11 +169,10 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
 
                     if save_errormaps:
                         sse = SSELoss()
-                        sce = SoftmaxCELoss()
                         emd = EucEMDLoss()
-                        sse_error = sse.formula(outputs, targets).squeeze(0)
-                        sce_error = sce.formula(outputs, targets).squeeze(0)
-                        emd_error = emd.formula(outputs, targets).squeeze(0)
+                        euc_distance = sse.formula(outputs, targets).squeeze(0)
+                        sce_contribution = torch.log(outputs + 1e-30)
+                        distance_penalty = emd.formula(outputs, targets).squeeze(0)
 
                     if show_figures:
                         _ = plot_histograms_and_stats(output_heatmap_i, target_heatmap[i])
@@ -181,9 +180,9 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                         plot_heatmaps_slices_from_coord([
                             output_heatmap_i, 
                             target_heatmap[i],
-                            sse_error[i],
-                            sce_error[i],
-                            emd_error[i]
+                            euc_distance[i],
+                            sce_contribution[i],
+                            distance_penalty[i]
                             ], 
                             coord_tensor=target_coord_tensor[i].cpu().numpy(), 
                             titles=[f"{lmk} Output", 
