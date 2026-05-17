@@ -77,6 +77,7 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--g_clip', action='store_true', default=defaults.get('g_clip'), help=parameters_help['g_clip'])
     subparser.add_argument('--g_mask', action='store_true', default=defaults.get('g_mask'), help=parameters_help['g_mask'])
     subparser.add_argument('--iter_folds', '-ifs', nargs='+', type=int, default=defaults.get('iter_folds'), help=parameters_help['iter_folds'])
+    subparser.add_argument('--lambdas', '-w', nargs='+', type=int, help=parameters_help['lambdas'])
     subparser.add_argument('--learning_rate', '-lr', type=float, default=defaults.get('learning_rate'), help=parameters_help['learning_rate'])
     subparser.add_argument('--lmks', type=str, nargs='+', default=defaults.get('lmks'), help=parameters_help['lmks'])
     subparser.add_argument('--loss', '-l', nargs='+', type=str, default=defaults.get('loss'), help=parameters_help['loss'])

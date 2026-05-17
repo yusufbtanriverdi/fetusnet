@@ -28,6 +28,7 @@ class baseLoss(nn.Module):
         loss = self.formula(outputs, targets)
         # {?} Average, instead of sum. Let's see what happens.
         loss = loss.view(loss.size(0), -1).sum(dim=-1)  # Sum over spatial dimensions.
+        loss *= self.lambda_
         # Apply the specified reduction method.
         if self.reduction == 'mean':
             # Compute the mean loss over the batch.

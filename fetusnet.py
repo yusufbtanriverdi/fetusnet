@@ -101,7 +101,8 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
     # Initialize model, loss, optimizer
     model, criteria, optimizer, best_val_loss = get_fresh_model(params)
     logger.info(optimizer)
-    logger.info(criteria)
+    for criterion in criteria:
+        logger.info(criterion)
 
     train_losses = []
     val_losses = []
