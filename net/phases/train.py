@@ -64,6 +64,4 @@ def train_one_ep(model, loader, criteria, optimizer, device, wandb_steps, use_wa
             # Increment the wandb step counter
             wandb_steps['train_loss'] += 1
         
-        break
-
     return avg_loss, wandb_steps
