@@ -57,8 +57,7 @@ def get_fresh_model(params):
         # Dynamically instantiate the loss function with parameters.
         loss_cls = loss_dict[lk]
         loss_params = getattr(params, 'loss_params', {}) # Additional parameters for the loss function.
-        loss_params['lambda_'] = lambdas[i]
-        criterion = loss_cls(reduction=reduction, **loss_params)
+        criterion = loss_cls(reduction=reduction, _lambda=lambdas[i], **loss_params)
         criteria.append(criterion)
 
     # === Optimizer Selection ===

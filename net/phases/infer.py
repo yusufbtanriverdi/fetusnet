@@ -75,8 +75,7 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
             outputs = model(images)
 
             # Compute the losses
-            losses = [criterion(outputs, targets) for criterion in criteria]
-            loss = losses[0] # {!!} Supporting only one loss temporarily.  
+            loss = sum(criterion(outputs, targets) for criterion in criteria)
 
             # Update running loss and calculate average loss
             running_loss += loss.item()
@@ -217,7 +216,7 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                     gc.collect()
             
             ep_scores.append(row)
-            # if ind > 100: break      # {!} For debugging, remove this line in production 
+            if ind < 100: break      # {!} For debugging, remove this line in production 
     if eval:
         for i, lmk in enumerate(lmks):
             # Save the ep_scores_curve as CSV, including lmk info in the filename

@@ -37,12 +37,10 @@ def train_one_ep(model, loader, criteria, optimizer, device, wandb_steps, use_wa
 
         # Zero the parameter gradients
         optimizer.zero_grad()
-
         # Forward pass: compute model predictions
         outputs = model(images)
         # Compute the losses
-        losses = [criterion(outputs, targets) for criterion in criteria]
-        loss = losses[0] # {!!} Supporting only one loss temporarily.  
+        loss = sum(criterion(outputs, targets) for criterion in criteria)
         # Compute the mean loss
         # Backward pass: compute gradients
         loss.backward()
@@ -66,5 +64,6 @@ def train_one_ep(model, loader, criteria, optimizer, device, wandb_steps, use_wa
             # Increment the wandb step counter
             wandb_steps['train_loss'] += 1
         
+        break
 
     return avg_loss, wandb_steps

@@ -5,20 +5,24 @@ import torch.nn.functional as F
 def _softmax(volume):
     B, C, D, H, W = volume.shape
     # Apply softmax over voxel domain.
-    voxels = volume.reshape(B, C, -1) # {!} Reshape to voxels (Assumption: B=1 & C=1)
+    voxels = volume.reshape(B, C, -1) # Reshape to voxels
     probs = F.softmax(voxels, dim=-1).view(B, C, D, H, W)
     return probs
 
 def _log_softmax(volume):
     B, C, D, H, W = volume.shape
     # Apply softmax over voxel domain.
-    voxels = volume.reshape(B, C, -1) # {!} Reshape to voxels (Assumption: B=1 & C=1)
+    voxels = volume.reshape(B, C, -1) # Reshape to voxels
     probs = F.log_softmax(voxels, dim=-1).view(B, C, D, H, W)
     return probs
 
 class baseLoss(nn.Module):
-    def __init__(self, **args):
+    def __init__(self, _lambda, reduction: str = 'mean',**args):
         super(baseLoss, self).__init__()
+        # Ensure the reduction method is valid
+        assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
+        self.reduction = reduction
+        self._lambda = _lambda
 
     def __str__(self):
         args = ", ".join(f"{k}={v!r}" for k, v in self.__dict__.items())
@@ -28,7 +32,7 @@ class baseLoss(nn.Module):
         loss = self.formula(outputs, targets)
         # {?} Average, instead of sum. Let's see what happens.
         loss = loss.view(loss.size(0), -1).sum(dim=-1)  # Sum over spatial dimensions.
-        loss *= self.lambda_
+        loss *= self._lambda
         # Apply the specified reduction method.
         if self.reduction == 'mean':
             # Compute the mean loss over the batch.
@@ -42,11 +46,12 @@ class baseLoss(nn.Module):
 
 
 class SSELoss(baseLoss):
-    def __init__(self, reduction: str = 'mean', sigmoid: bool = False, **args):
-        super(SSELoss, self).__init__()
-        # Ensure the reduction method is valid
-        assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
-        self.reduction = reduction
+    def __init__(self, reduction: str = 'mean', _lambda: float = 1.0, sigmoid: bool = False, **args):
+        super(SSELoss, self).__init__(
+            _lambda=_lambda,
+            reduction=reduction,
+            **args
+        )
         self.sigmoid = sigmoid
 
     def formula(self, outputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
@@ -60,11 +65,12 @@ class SSELoss(baseLoss):
         return loss
 
 class SoftmaxCELoss(baseLoss):
-    def __init__(self, reduction: str = 'mean', eps: float = 1e-15, normalize_targets: bool = True, **args) -> torch.Tensor:
-        super(SoftmaxCELoss, self).__init__()
-        # Ensure the reduction method is valid
-        assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
-        self.reduction = reduction
+    def __init__(self, reduction: str = 'mean', _lambda: float = 1.0, eps: float = 1e-15, normalize_targets: bool = True, **args) -> torch.Tensor:
+        super(SoftmaxCELoss, self).__init__(
+            _lambda=_lambda,
+            reduction=reduction,
+            **args
+        )
         self.eps = eps
         self.normalize_targets = normalize_targets
 
@@ -85,11 +91,12 @@ class SoftmaxCELoss(baseLoss):
         return loss
 
 class EucEMDLoss(baseLoss):
-    def __init__(self, reduction: str = 'mean', w: int = 2, **args) -> torch.Tensor:
-        super(EucEMDLoss, self).__init__()
-        # Ensure the reduction method is valid
-        assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
-        self.reduction = reduction
+    def __init__(self, reduction: str = 'mean', _lambda: float = 1.0, w: int = 2, **args) -> torch.Tensor:
+        super(EucEMDLoss, self).__init__(
+            _lambda=_lambda,
+            reduction=reduction,
+            **args
+        )
         self.w = w # {!} This adjusts the sensitivity of distance matrix.
 
     def formula(self, outputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
