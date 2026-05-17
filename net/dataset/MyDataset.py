@@ -38,8 +38,8 @@ class MyDataset(Dataset):
             raise TypeError("dataframe must be a pandas DataFrame.")
         if not os.path.isdir(root):
             raise ValueError(f"Root directory '{root}' does not exist.")
-        if not isinstance(target_params, tuple) or len(target_params) != 2:
-            raise ValueError("target_params must be a tuple of length 2 (alpha, eps).")
+        if not isinstance(target_params, tuple) or len(target_params) != 4:
+            raise ValueError("target_params must be a tuple of length 4 (alpha, eps, mask, clip).")
         if not isinstance(lmks, list) or not all(isinstance(lmk, str) for lmk in lmks):
             raise TypeError("lmk must be a list of strings.")
         if transformations is not None and not callable(transformations):

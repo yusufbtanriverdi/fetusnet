@@ -141,7 +141,6 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
 
                 for i, lmk in enumerate(lmks):
                     output_heatmap_i = torch.nn.functional.sigmoid(output_heatmap[i]) # {!} Assuming batch size of 1 
-
                     if check_visibility:
                         if lmk in visibles:
                             # Extract the landmark coordinates for the current landmark
@@ -151,7 +150,7 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                                                                                 radius_num=radius_num, 
                                                                                 save_dir=None,
                                                                                 detector='argmax',
-                                                                                show=show_figures)
+                                                                                show=False)
                         else:  
                             scores_v3_distances = torch.full((radius_num,), torch.nan)  # Placeholder value (currently set to `torch.nan`).
                     else:
@@ -162,22 +161,22 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                                                                             radius_num=radius_num, 
                                                                             save_dir=None,
                                                                             detector='argmax',
-                                                                            show=show_figures)
-                        
+                                                                            show=False)     
                     distance_curves[i, ind, :] = scores_v3_distances  # Store the distance curves for each landmark and batch index
 
-                    if show_figures:
+                    if show_figures and lmk in visibles and torch.rand(1).item() < 0.02:
                         loss_params = kwargs['loss_params']
                         sse = SSELoss(**loss_params)
                         sce = SoftmaxCELoss(**loss_params)
                         emd = EucEMDLoss(**loss_params)
-                        print(sse, sce, emd)
+                        # print(sse)
                         euc_distance = sse.formula(outputs, targets).squeeze(0)
-                        sce_contribution = (sce.formula(outputs, targets) / targets).squeeze(0)
+                        sce_contribution = (sce.formula(outputs, targets) / targets[:, :, 0]).squeeze(0)
                         distance_penalty = emd.formula(outputs, targets).squeeze(0)
                         
-                        _ = plot_histograms_and_stats(output_heatmap_i, target_heatmap[i][0])
-                        plot_3d_matrices(output_heatmap_i, target_heatmap[i][0])
+                        # _ = plot_histograms_and_stats(output_heatmap_i, target_heatmap[i][0])
+                        # plot_3d_matrices(output_heatmap_i, target_heatmap[i][0])
+                        score = row[f'dmean_{lmk}']
                         plot_heatmaps_slices_from_coord([
                             output_heatmap_i, 
                             target_heatmap[i][0],
@@ -188,13 +187,16 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                             ], 
                             coord_tensor=target_coord_tensor[i].cpu().numpy(), 
                             argmax_tensor=output_coord_tensor[i].cpu().numpy(),
-                            titles=[f"{lmk} Output", 
+                            titles=[f"{lmk} Output (d_mean = {score})", 
                                     f"{lmk} Target",
                                     f"{lmk} Distance Matrix",
                                     f"{lmk} SSE Map",
                                     f"{lmk} Softmax CE Map",
                                     f"{lmk} Distance Penalty",
-                                    ])
+                                    ],
+                            save_figs=True,
+                            save_path = os.path.join(output_dir, f"{nsid}_{lmk}_fig")
+                        )
 
                     # Save the predicted output as an NRRD file in the subdirectory
                     if save_outputs:
@@ -212,8 +214,8 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                             target_heatmap[i].cpu().numpy(),
                             header=template_header
                         )
-                        
                     gc.collect()
+            
             ep_scores.append(row)
             # if ind > 100: break      # {!} For debugging, remove this line in production 
     if eval:

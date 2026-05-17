@@ -3,7 +3,7 @@ import numpy as np
 # from mpl_toolkits.mplot3d import Axes3D  # Required for 3D plotting
 from matplotlib.patches import Circle
 
-def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, argmax_tensor, titles=None):
+def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, argmax_tensor, titles=None, save_figs=False, save_path=None):
     """
     Plot 2D heatmaps and 3D surfaces for slices along each axis.
     Columns = axes (0,1,2), Rows = 2D heatmap / 3D surface.
@@ -65,10 +65,14 @@ def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, argmax_tensor, title
             # ax3d.set_axis_off()
             ax3d.plot_surface(X, Y, slice_data, cmap='jet', edgecolor='k', linewidth=0.2)
             ax3d.set_title(f"{titles[i]} Surface - Axis {ax}")
-
         plt.tight_layout()
         
-    plt.show()
+        if save_figs:
+            save_here = save_path + '_' + titles[i] + '.png'
+            print(save_here)
+            fig.savefig(save_here)
+        
+    # plt.show()
     plt.close()  # Free memory
 
 if __name__ == "__main__":
