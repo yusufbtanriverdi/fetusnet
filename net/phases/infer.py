@@ -186,7 +186,7 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
                             ], 
                             coord_tensor=target_coord_tensor[i].cpu().numpy(), 
                             argmax_tensor=output_coord_tensor[i].cpu().numpy(),
-                            titles=[f"{lmk} Output (d_mean = {score})", 
+                            titles=[f"{lmk} Output (d_mean = {score:.2f})", 
                                     f"{lmk} Target",
                                     f"{lmk} Distance Matrix",
                                     f"{lmk} SSE Map",
