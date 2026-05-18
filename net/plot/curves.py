@@ -92,7 +92,7 @@ def compute_aela(
             # Calculate Euclidean distance
             distances[ind] = torch.norm((output_coord - target_coord).to(float))
 
-    # Plot AELA curve
-    plot_aela_figure(mm_radii, distances.tolist(), save_dir=save_dir, show=show)
+    if show: 
+        plot_aela_figure(mm_radii, distances.tolist(), save_dir=save_dir, show=True)
 
     return distances

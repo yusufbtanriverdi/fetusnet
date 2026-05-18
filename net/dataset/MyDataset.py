@@ -38,8 +38,8 @@ class MyDataset(Dataset):
             raise TypeError("dataframe must be a pandas DataFrame.")
         if not os.path.isdir(root):
             raise ValueError(f"Root directory '{root}' does not exist.")
-        if not isinstance(target_params, tuple) or len(target_params) != 2:
-            raise ValueError("target_params must be a tuple of length 2 (alpha, eps).")
+        if not isinstance(target_params, tuple) or len(target_params) != 4:
+            raise ValueError("target_params must be a tuple of length 4 (alpha, eps, mask, clip).")
         if not isinstance(lmks, list) or not all(isinstance(lmk, str) for lmk in lmks):
             raise TypeError("lmk must be a list of strings.")
         if transformations is not None and not callable(transformations):
@@ -47,7 +47,7 @@ class MyDataset(Dataset):
         
         self.dataframe = dataframe
         self.root = root
-        self.alpha, self.eps = target_params
+        self.alpha, self.eps, self.mask, self.clip = target_params
         self.lmks = lmks
         self.transformations = transformations
 
@@ -116,7 +116,7 @@ class MyDataset(Dataset):
             coord_tensor[i] = coord  # Store the coordinates in the tensor
             # Coords are in voxel coordinates, now. 
             heatmap, distance = gaussian_heatmap.create_gaussian_heatmap(
-                        coord, volume, alpha=self.alpha, eps=self.eps
+                        coord, volume, alpha=self.alpha, eps=self.eps, clip=self.clip, mask=self.mask
                 )  # Add dimension e.g, L, T, D, H, W
             
             target[i][0], target[i][1] = heatmap, distance  # Assign the generated target to the corresponding landmark index

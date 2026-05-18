@@ -1,6 +1,6 @@
 import torch 
 
-def create_gaussian_heatmap(coord, template, alpha = 3, eps=1e-6, **args):
+def create_gaussian_heatmap(coord, template, alpha = 3, eps=1e-6, clip=False, mask=False):
 
     """
     Compute the Gaussian distribution value based on distance from a landmark.
@@ -46,9 +46,11 @@ def create_gaussian_heatmap(coord, template, alpha = 3, eps=1e-6, **args):
     else:
         heatmap = torch.exp(-distance / (2 * alpha**2)) 
         # {!} Clip very low values. 
-        # {?} 0 values might produce underflowing ın softmax CE.
-        heatmap[heatmap < eps] = 0
-        # Find indices where `template` is 0 and set corresponding heatmap values to 0
-        heatmap[template == 0] = 0
+        # {?} 0 values might produce underflowing in softmax CE and may not be desirable. We want high penalties in the zero-information area!
+        if clip:
+            heatmap[heatmap < eps] = 0
+        if mask:
+            # Find indices where `template` is 0 and set corresponding heatmap values to 0
+            heatmap[template == 0] = 0
 
     return heatmap, distance

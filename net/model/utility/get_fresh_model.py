@@ -47,16 +47,17 @@ def get_fresh_model(params):
         'softmaxce': SoftmaxCELoss,
         'eucEMD': EucEMDLoss,
     }
-    loss_keys = getattr(params, 'loss', 'mse')  # Default to 'mse' if not specified.
+    loss_keys = getattr(params, 'loss', ['softmaxce'])  # Default to 'mse' if not specified.
+    lambdas = getattr(params, 'lambdas', [1.0]) 
     criteria = []
-    for lk in loss_keys:
+    for i, lk in enumerate(loss_keys):
         if lk not in loss_dict:
             raise ValueError(f"Unsupported loss function '{lk}'. Choose from: {list(loss_dict.keys())}.")
 
         # Dynamically instantiate the loss function with parameters.
         loss_cls = loss_dict[lk]
         loss_params = getattr(params, 'loss_params', {}) # Additional parameters for the loss function.
-        criterion = loss_cls(reduction=reduction, **loss_params)
+        criterion = loss_cls(reduction=reduction, _lambda=lambdas[i], **loss_params)
         criteria.append(criterion)
 
     # === Optimizer Selection ===

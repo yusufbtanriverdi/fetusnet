@@ -40,7 +40,7 @@ def get_train_val_dl(splitted_dataframe, params, transformations):
     train_ds = MyDataset(
         splitted_dataframe[splitted_dataframe['set'] == 0].reset_index(drop=True), # Subset for training
         params.sys + params.root,                     # Root directory
-        (params.g_alpha, params.g_eps),                   # Additional parameters
+        (params.g_alpha, params.g_eps, params.g_clip, params.g_mask),                  # Additional parameters
         params.lmks,                                          # Landmark information
         transformations,                              # Preprocessing transformations
 
@@ -48,7 +48,7 @@ def get_train_val_dl(splitted_dataframe, params, transformations):
     val_ds = MyDataset(
         splitted_dataframe[splitted_dataframe['set'] == 1].reset_index(drop=True),   # Subset for validation
         params.sys + params.root,                     # Root directory
-        (params.g_alpha, params.g_eps),                   # Additional parameters
+        (params.g_alpha, params.g_eps, params.g_clip, params.g_mask),                  # Additional parameters
         params.lmks,                                          # Landmark information
         transformations,                              # Preprocessing transformations
     )
@@ -101,7 +101,7 @@ def get_test_dl(splitted_dataframe, params, transformations):
     test_ds = MyDataset(
         splitted_dataframe[splitted_dataframe['set'] == 2].reset_index(drop=True), # Subset for test
         params.sys + params.root,                    # Root directory
-        (params.g_alpha, params.g_eps),                  # Additional parameters
+        (params.g_alpha, params.g_eps, params.g_clip, params.g_mask),                  # Additional parameters
         params.lmks,                                         # Landmark information
         transformations,                             # Preprocessing transformations
 

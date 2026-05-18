@@ -53,7 +53,7 @@ def perform_generate(sinfo, exp_dir, params):
             coord_tensor = torch.abs(torch.tensor(coord, dtype=torch.float32))
 
             # Generate the target (heatmap or distance matrix)
-            target, distance = create_gaussian_heatmap(coord_tensor, volume, alpha=params.g_alpha, eps=params.g_eps)
+            target, distance = create_gaussian_heatmap(coord_tensor, volume, alpha=params.g_alpha, eps=params.g_eps, clip=params.clip, mask=params.mask)
  
             end_time = time.time()  # End timing
             elapsed_time = end_time - start_time  # Compute elapsed time

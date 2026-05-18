@@ -2,7 +2,7 @@
   "architecture": ["resunet3d"],
   "detector": ["dsnt", "com", "argmax"],
   "generate": ["gaussian"],
-  "loss": ["crossentropy", "distmatrix", "emd", "kld", "mse"],
+  "loss": ["sse", "softmaxce", "eucEMD"],
   "mode": ["help", "prepare", "presplit", "rotate", "test", "train"],
   "optimizer": ["adam", "sgd"],
   "reduction": ["mean", "none", "sum"],
