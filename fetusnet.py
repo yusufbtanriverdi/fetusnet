@@ -99,7 +99,7 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
     if len(val_dl) == 0: val_dl = get_test_dl(dataframe, params, transformations=transformations)
     logger.info(f"Training - validation subset sizes: {len(train_dl.dataset), len(val_dl.dataset)}")
     # Initialize model, loss, optimizer
-    model, criteria, optimizer, best_val_loss = get_fresh_model(params)
+    model, criteria, optimizer, multi_noise_loss, best_val_loss = get_fresh_model(params)
     logger.info(optimizer)
     for criterion in criteria:
         logger.info(criterion)
@@ -116,6 +116,7 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
             model, 
             train_dl, 
             criteria, 
+            multi_noise_loss if params.mnl else None,
             optimizer, 
             params.device, 
             global_wandb_steps,
@@ -128,6 +129,7 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
                 model, 
                 val_dl, 
                 criteria, 
+                multi_noise_loss if params.mnl else None,
                 params.device, 
                 global_wandb_steps, 
                 params.use_wandb,
@@ -321,7 +323,7 @@ if params.mode == 'train':
     if params.use_wandb: initialize_wandb(params, experiment_name+'_'+params.split)
     logger.info(f"\n--- Training {params.split} --- \n")
     # Initialize model, loss, optimizer
-    model, criteria, optimizer, _ = get_fresh_model(params)
+    model, criteria, optimizer, multi_noise_loss, _ = get_fresh_model(params)
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     epoch = 0
     if params.resume:
@@ -356,6 +358,7 @@ if params.mode == 'train':
             model, 
             test_dl, 
             criteria, 
+            multi_noise_loss if params.mnl else None,
             params.device, 
             global_wandb_steps, 
             params.use_wandb, 
@@ -390,7 +393,7 @@ if params.mode == 'test':
     # if params.use_wandb: initialize_wandb(params, experiment_name+'_'+params.split)
     logger.info(f"\n--- Testing {params.split} --- \n")
     # Initialize model, loss, optimizer
-    model, criteria, optimizer, _ = get_fresh_model(params)
+    model, criteria, optimizer, multi_noise_loss, _ = get_fresh_model(params)
     # train_losses, val_losses = pipe(splitted_dataframe, experiment_dir, params, transformations, global_wandb_steps)
 
     experiment_dir = params.checkpoint_dir
@@ -419,6 +422,7 @@ if params.mode == 'test':
             test_dl, 
             criteria, 
             params.device, 
+            multi_noise_loss if params.mnl else None,
             global_wandb_steps, 
             params.use_wandb, 
             params.detector, 

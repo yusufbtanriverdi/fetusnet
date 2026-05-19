@@ -1,7 +1,7 @@
 from tqdm import tqdm
 import wandb
 
-def train_one_ep(model, loader, criteria, optimizer, device, wandb_steps, use_wandb, progress_bar):
+def train_one_ep(model, loader, criteria, multi_loss, optimizer, device, wandb_steps, use_wandb, progress_bar):
     """
     Train the model for one epoch.
 
@@ -40,7 +40,11 @@ def train_one_ep(model, loader, criteria, optimizer, device, wandb_steps, use_wa
         # Forward pass: compute model predictions
         outputs = model(images)
         # Compute the losses
-        loss = sum(criterion(outputs, targets) for criterion in criteria)
+        losses = [criterion(outputs, targets) for criterion in criteria]
+        if multi_loss:
+            loss = multi_loss(losses)
+        else: 
+            loss = sum(losses)
         # Compute the mean loss
         # Backward pass: compute gradients
         loss.backward()

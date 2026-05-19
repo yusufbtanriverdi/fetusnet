@@ -19,7 +19,7 @@ from net.dataset.utility.rotation import extract_image
 from net.plot.heatmaps import plot_heatmaps_slices_from_coord # To debug.
 from net.loss.losses import *
 
-def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detector, progress_bar,
+def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_wandb, detector, progress_bar,
                  lmks, experiment_dir, check_visibility, eval, **kwargs):
     """
     Perform inference for one epoch with additional functionality.
@@ -75,8 +75,11 @@ def infer_one_ep(model, loader, criteria, device, wandb_steps, use_wandb, detect
             outputs = model(images)
 
             # Compute the losses
-            loss = sum(criterion(outputs, targets) for criterion in criteria)
-
+            losses = [criterion(outputs, targets) for criterion in criteria]
+            if multi_loss:
+                loss = multi_loss(losses)
+            else: 
+                loss = sum(losses)
             # Update running loss and calculate average loss
             running_loss += loss.item()
             avg_loss = running_loss / (ind + 1)
