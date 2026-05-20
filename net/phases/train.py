@@ -64,8 +64,9 @@ def train_one_ep(model, loader, criteria, multi_loss, optimizer, device, wandb_s
             # Log step loss and mean loss to Weights & Biases (wandb)
             wandb.log({'train/step_loss': loss.item(), 'train/step': wandb_steps['train_loss']})
             wandb.log({'train/mean_loss': avg_loss, 'train/step': wandb_steps['train_loss']})
-
+            for i in range(len(losses)):
+                wandb.log({f'train/noise_params_{i}': multi_loss.noise_params[i], 'train/step': wandb_steps['train_loss']})
             # Increment the wandb step counter
             wandb_steps['train_loss'] += 1
-        
+
     return avg_loss, wandb_steps
