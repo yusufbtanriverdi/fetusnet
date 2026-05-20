@@ -71,8 +71,8 @@ def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, argmax_tensor, title
             save_here = save_path + '_' + titles[i] + '.png'
             fig.savefig(save_here)
         
-    # plt.show()
-    plt.close()  # Free memory
+        # plt.show()
+        plt.close()  # Free memory
 
 if __name__ == "__main__":
     # Dummy 3D heatmaps

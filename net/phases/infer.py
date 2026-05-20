@@ -182,7 +182,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                         plot_heatmaps_slices_from_coord([
                             output_heatmap_i, 
                             target_heatmap[i][0],
-                            target_heatmap[i][1],
+                            target_heatmap[i][1].pow(loss_params['w']),
                             euc_distance[i],
                             sce_contribution[i],
                             distance_penalty[i],

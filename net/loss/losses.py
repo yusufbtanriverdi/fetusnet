@@ -91,7 +91,7 @@ class SoftmaxCELoss(baseLoss):
         return loss
 
 class EucEMDLoss(baseLoss):
-    def __init__(self, reduction: str = 'mean', _lambda: float = 1.0, w: int = 2, **args) -> torch.Tensor:
+    def __init__(self, reduction: str = 'mean', _lambda: float = 1.0, w: float = 2, **args) -> torch.Tensor:
         super(EucEMDLoss, self).__init__(
             _lambda=_lambda,
             reduction=reduction,
