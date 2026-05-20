@@ -24,6 +24,7 @@
   "lr_momentum": "Momentum parameter for SGD optimizer",
   "master_df": "Filename of the master dataframe CSV",
   "mdir": "Directory to move raw images after processing",
+  "mnl": "Whether to use Kendall's loss (multinoise implementation)",
   "n_split": "Number of splits for cross-validation",
   "num_fts": "Number of feature channels for the backbone",
   "num_workers": "Number of worker threads for data loading",

@@ -47,6 +47,7 @@
   "lr_momentum": 0.9,
   "master_df": "testOnCasosMarReally",
   "mdir": "DATA/",
+  "mnl": false,
   "n_split": 4,
   "num_fts": 32,
   "num_workers": 1,

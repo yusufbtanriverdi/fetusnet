@@ -60,6 +60,11 @@ def get_fresh_model(params):
         criterion = loss_cls(reduction=reduction, _lambda=lambdas[i], **loss_params)
         criteria.append(criterion)
 
+    # === Multinoise Loss Initialisation === 
+    if params.mnl:
+        multi_loss = MultiNoiseLoss(n_losses=len(criteria)).to(device)
+    else:
+        multi_loss = None
     # === Optimizer Selection ===
     m = getattr(params, 'lr_momentum', 0.9)
     optim_dict = {
@@ -72,6 +77,11 @@ def get_fresh_model(params):
         raise ValueError(f"Unsupported optimizer '{optim_name}'. Choose from: {list(optim_dict.keys())}.")
     # Set learning rate.
     learning_rate = getattr(params, 'learning_rate', 1e-3)
-    optimizer = optimizer_cls(model.parameters(), lr=learning_rate)
+    if params.mnl:
+        optimizer = optimizer_cls([
+                                    {'params': model.parameters()},
+                                    {'params': multi_loss.noise_params}], lr=learning_rate)
+    else:
+        optimizer = optimizer_cls(model.parameters(), lr=learning_rate)
     
-    return model, criteria, optimizer, torch.inf
+    return model, criteria, optimizer, multi_loss, torch.inf

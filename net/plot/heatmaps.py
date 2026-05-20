@@ -69,7 +69,6 @@ def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, argmax_tensor, title
         
         if save_figs:
             save_here = save_path + '_' + titles[i] + '.png'
-            print(save_here)
             fig.savefig(save_here)
         
     # plt.show()
