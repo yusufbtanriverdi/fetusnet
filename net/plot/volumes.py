@@ -227,7 +227,7 @@ def start_game_3d(df, experiment_dir, params):
     pl = pv.Plotter(window_size=[800, 600])
     pl.add_mesh(mesh, color="#E9A76E", show_edges=False)
     pl.add_title(f"Landmarking Game: Tap the {lmk} landmark!", font_size=12)
-    pl.add_text(f"The landmark you need to find: {lmk}", position='lower_right')
+    pl.add_text(f"The landmark you need to find: {lmk}. Tip: Check the normative figure on the poster.", position='lower_right')
     # Define tap callback logic for iPad
     def game_callback(picked_point):
         if picked_point is None:
