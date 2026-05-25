@@ -54,7 +54,7 @@ parameters_choices = load_json_config(CHOICES_CONFIG_PATH)
 
 def print_help(*args, **kwargs):
     print("Available modes:")
-    for mode in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d']:
+    for mode in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d', "game_3d"]:
         print(f"  {mode:16} {parameters_help.get(mode, '')}")
 
 def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
@@ -132,9 +132,10 @@ def parameters_parsing() -> argparse.Namespace:
     generate_parser = subparsers.add_parser('generate', help=parameters_help['generate'])
     pipe_parser = subparsers.add_parser('test_loaders', help=parameters_help['test_loaders'])
     plot_parser = subparsers.add_parser('plot_3d', help=parameters_help['plot_3d'])
+    game_parser = subparsers.add_parser('game_3d', help=parameters_help['game_3d'])
     help_parser.set_defaults(func=print_help)
     # Add arguments with JSON-loaded defaults
-    for sub in [train_parser, test_parser, prep_parser, presplit_parser, rotate_parser, generate_parser, pipe_parser, plot_parser]:
+    for sub in [train_parser, test_parser, prep_parser, rotate_parser, presplit_parser, generate_parser, pipe_parser, plot_parser, game_parser]:
         add_common_args(sub, defaults)
 
     # Final parse using updated parser and remaining args

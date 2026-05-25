@@ -59,5 +59,6 @@
   "help": "Display help message",
   "generate": "Generate new data or augmentations",
   "test_loaders": "Test the data loaders for consistency",
-  "plot_3d": "Plots a 3D scene with evaluation."
+  "plot_3d": "Plots a 3D scene with evaluation.",
+  "game_3d": "Game mode!"
 }

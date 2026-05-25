@@ -23,7 +23,7 @@ from net.phases.train import train_one_ep
 from net.phases.infer import infer_one_ep
 from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.config.wandb import initialize_wandb
-from net.plot.volumes import perform_plot_3d
+from net.plot.volumes import perform_plot_3d, start_game_3d
 
 def save_experiment_parameters(experiment_directory, experiment_id, params, date):
     """
@@ -221,13 +221,13 @@ torch.backends.cudnn.benchmark = False  # Disable auto-tuning (slower but reprod
 # torch.use_deterministic_algorithms(True)  # Force deterministic behavior globally
 
 
-if params.mode not in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d']:
-    raise ValueError(f"Invalid mode: {params.mode}. Choose from 'train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d'.")
+if params.mode not in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d', 'game_3d']:
+    raise ValueError(f"Invalid mode: {params.mode}. Choose from 'train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d', 'game_3d'.")
 
 # Convert to dictionary (if Namespace or similar)
 params_dict = vars(params)  # or: params.__dict__ if vars() doesn't work
 
-if params.mode in ['test', 'plot_3d'] or params.resume:
+if params.mode in ['test', 'plot_3d', 'game_3d'] or params.resume:
     experiment_dir = params.checkpoint_dir
 else:
     experiment_dir, experiment_name = create_experiment_id(params, create_directory=True)
@@ -315,6 +315,13 @@ if params.mode == 'plot_3d':
     if len(splitted_dataframe) == 0:
         raise KeyError("No test patient is given. Aborting mission...")
     perform_plot_3d(splitted_dataframe, experiment_dir, params)
+
+if params.mode == 'game_3d':
+    splitted_dataframe = splitted_dataframe.loc[splitted_dataframe['npid'].isin(params.test_patients)]
+    if len(splitted_dataframe) == 0:
+        raise KeyError("No test patient is given. Aborting mission...")
+    start_game_3d(splitted_dataframe, experiment_dir, params)
+
 
 if params.mode == 'train':
     logger.info("I am starting to train")

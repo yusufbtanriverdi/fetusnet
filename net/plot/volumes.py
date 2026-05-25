@@ -1,9 +1,14 @@
 import os
 import nrrd
 import numpy as np
-import pyvista as pv
 import pandas as pd
 import ast
+import numpy as np
+import numpy as np
+import pyvista as pv
+from pyvista.trame.ui import plotter_ui
+from trame.app import get_server
+from trame.ui.vuetify3 import SinglePageLayout
 
 def numpy_sigmoid(arr: np.ndarray) -> np.ndarray:
     """Apply the sigmoid function element-wise to a 3D array."""
@@ -146,10 +151,92 @@ def perform_plot_3d(df, experiment_dir, params):
     pl.export_html(out_html)
     pl.show()
 
-
     # --- Distance calculation ---
     gt_point = np.array(point_cloud.points[labels == lmk])
     pred_point = np.array(pred_points.points[preds == lmk])
     distance = np.linalg.norm(gt_point - pred_point)
     print(f"[{nsid} - {lmk}] Distance: {distance:.4f}")
     return distance
+
+def start_game_3d(df, experiment_dir, params):
+
+    pv.global_theme.font.family = 'arial'
+
+    df['lmks_array'] = df['visibles'].apply(ast.literal_eval)
+    print(df)
+    row = df.iloc[0] # for now
+
+    nsid = row["nsid"]
+    if params.lmks[0] in row['lmks_array']:
+        lmk = params.lmks[0]
+        pass
+    else:
+        lmk = row["lmks_array"][0] # visibles? then loop 
+    
+    # --- Load inputs ---
+    point_cloud, labels = load_landmarks_as_point_cloud(os.path.join(params.sys + params.root, row['mcsv']))
+    pred_points, preds = load_landmarks_as_point_cloud(os.path.join(experiment_dir, 'eval', str(nsid) + '.csv'))
+    gt_point = np.array(point_cloud.points[labels == lmk])
+    pred_point = np.array(pred_points.points[preds == lmk])
+    distance = np.linalg.norm(gt_point - pred_point)
+    print(f"[{nsid} - {lmk}] Distance: {distance:.4f}")
+
+    # Initialize Trame Server
+    server = get_server()
+    state, ctrl = server.state, server.controller
+    # Keep track of user attempts
+    attempts = []
+    pl = pv.Plotter()
+    if row['plys_found']:
+        mesh = pv.read(row["fply"].replace(".ply", "_rotated.ply"))
+    # Setup Plotter for Web
+    pl = pv.Plotter(window_size=[800, 600])
+    pl.add_mesh(mesh, color="#E9A76E", show_edges=False)
+    pl.add_title(f"Landmarking Game: Tap the {lmk} landmark!", font_size=12)
+    pl.add_text(f"The landmark you need to find: {lmk}", position='lower_right')
+    # Define tap callback logic for iPad
+    def game_callback(picked_point):
+        if picked_point is None:
+            return
+        
+        distance_u = np.linalg.norm(picked_point - gt_point)
+        attempts.append(picked_point)
+            
+        if distance_u < distance:
+            color = "green"
+            msg = f"🎯 Better than the model! Error: {distance_u:.2f} mm.\n{len(attempts)} attempts!"
+        elif distance_u < 5:
+            color = "yellow"
+            msg = f"🎯 Good! Error: {distance_u:.2f} mm.\nBeat the model error: {distance:.2f} mm! \n{len(attempts)} attempts!"
+        else:
+            color = "red"
+            msg = f"❌ Missed! Error: {distance_u:.2f} mm. Try again! \n{len(attempts)} attempts!"
+            
+        marker = pv.Sphere(radius=0.3, center=picked_point)
+        pl.add_mesh(marker, color=color, name=f"attempt_{len(attempts)}")
+        pl.add_title(msg, font_size=12)
+        
+        # Force the web view to update/re-render immediately on the iPad screen
+        ctrl.view_update()
+
+    # Build Trame Web Layout
+    with SinglePageLayout(server) as layout:
+        layout.title.text = "3D Landmarking Challenge"
+        with layout.content:
+            # FIX: Set mode to "server" to bypass the early local geometry update crash
+            view = plotter_ui(pl, mode="server")
+            ctrl.view_update = view.update
+
+    # Wait until the server protocol officially exists to set up the picker callback
+    @ctrl.add("on_server_ready")
+    def setup_picking(**kwargs):
+        pl.enable_point_picking(
+            callback=game_callback, 
+            show_message=False, 
+            color="blue",
+            picker='cell', 
+            pickable_window=True
+        )
+
+    server.start(host="0.0.0.0", port=8080)
+    pass
