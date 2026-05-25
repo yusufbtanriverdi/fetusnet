@@ -8,6 +8,7 @@ import numpy as np
 import pyvista as pv
 from pyvista.trame.ui import plotter_ui
 from trame.app import get_server
+from trame.widgets import vuetify3 as v
 from trame.ui.vuetify3 import SinglePageLayout
 
 def numpy_sigmoid(arr: np.ndarray) -> np.ndarray:
@@ -184,11 +185,44 @@ def start_game_3d(df, experiment_dir, params):
     # Initialize Trame Server
     server = get_server()
     state, ctrl = server.state, server.controller
+
+    # 1. Setup a default state variable for the active mode
+    state.active_mode = "navigate"
+
+    # Define the toggle helper function
+    def update_interaction_mode(mode_name):
+        if mode_name == "select":
+            # Turn on picking so clicks register points
+            pl.enable_point_picking(
+                callback=game_callback, 
+                show_message=False, 
+                color="blue",
+                picker='cell', 
+                pickable_window=True,
+                left_clicking=True
+            )
+        elif mode_name == "zoom":
+            # Completely disable picking so standard multi-touch zoom/rotate gestures work perfectly
+            pl.disable_picking()
+            pl.enable_zoom_style()
+        else:
+            # Completely disable picking so standard multi-touch zoom/rotate gestures work perfectly
+            pl.disable_picking()
+        
+        # Force the UI to refresh the 3D frame context
+        ctrl.view_update()
+
+    # Watch for when the iPad user changes the mode selection via the button group
+    @state.change("active_mode")
+    def on_mode_change(active_mode, **kwargs):
+        update_interaction_mode(active_mode)
+
     # Keep track of user attempts
     attempts = []
     pl = pv.Plotter()
     if row['plys_found']:
-        mesh = pv.read(row["fply"].replace(".ply", "_rotated.ply"))
+        # mesh = pv.read(row["fply"].replace(".ply", "_rotated.ply"))
+        mesh = pv.read("C:/Users/user/Projeler/Ph.D/Research/source/fetusnet/runs/2026-05-20/kendall6_f3/6_29s_06_rotated.ply")
     # Setup Plotter for Web
     pl = pv.Plotter(window_size=[800, 600])
     pl.add_mesh(mesh, color="#E9A76E", show_edges=False)
@@ -218,25 +252,124 @@ def start_game_3d(df, experiment_dir, params):
         
         # Force the web view to update/re-render immediately on the iPad screen
         ctrl.view_update()
+# --- RESET GAME ACTION DEFINITION ---
+    def reset_game():
+        # Clean out meshes matching our active counter string names from the viewport scene layout
+        for i in range(1, len(attempts) + 1):
+            pl.remove_actor(f"attempt_{i}")
+            
+        # Wipe backend data storage references clean
+        attempts.clear()
+        # Re-initialize baseline strings back to zero states
+        pl.add_title(f"Landmarking Game: Tap the {lmk} landmark!", font_size=12)
+        
+        # Re-render web display container output instantly
+        ctrl.view_update()
+
+    # Bind layout listener to global controller instance
+    ctrl.reset_game = reset_game
 
     # Build Trame Web Layout
     with SinglePageLayout(server) as layout:
         layout.title.text = "3D Landmarking Challenge"
+        # Add the tool selection mode buttons directly into the top toolbar
+        with layout.toolbar:
+            v.VSpacer() # Pushes the buttons to the right side of the toolbar
+            with v.VBtnToggle(v_model=("active_mode", "navigate"), mandatory=True, theme="dark"):
+                v.VBtn("🧭", value="navigate", icon="mdi-move-resize")
+                v.VBtn("🎯", value="select", icon="mdi-crosshairs-gps")
+                v.VBtn("🔍", value="zoom", icon="mdi-magnify-minus")
+            # Integrated Reset Game Button with structural color override context
+            v.VBtn("🔄 Reset", click=ctrl.reset_game, color="error", class_="ml-2")               
         with layout.content:
-            # FIX: Set mode to "server" to bypass the early local geometry update crash
-            view = plotter_ui(pl, mode="server")
-            ctrl.view_update = view.update
+             # FIX: Added 'touch-action: none;' to stop iOS from hijacking pinch gestures!
+            container_style = (
+                "width: 100%; "
+                "max-width: 800px; "
+                "margin: 0 auto; "
+                "aspect-ratio: 4/3; "
+                "padding: 0; "
+                "touch-action: none; "
+                "-webkit-user-select: none; "
+                "user-select: none;"
+            )
+            
+            with v.VContainer(style=container_style):
+                view = plotter_ui(pl, mode="server")
+                ctrl.view_update = view.update
 
-    # Wait until the server protocol officially exists to set up the picker callback
+    # Handle initial startup setup smoothly
     @ctrl.add("on_server_ready")
     def setup_picking(**kwargs):
-        pl.enable_point_picking(
-            callback=game_callback, 
-            show_message=False, 
-            color="blue",
-            picker='cell', 
-            pickable_window=True
-        )
+        # Start in navigation mode so they can orient the model before playing
+        update_interaction_mode("navigate")
 
-    server.start(host="0.0.0.0", port=8080)
-    pass
+    server.start(host="192.168.1.133", port=8080)
+
+def start_game_3d_local(df, experiment_dir, params):
+
+    pv.global_theme.font.family = 'arial'
+
+    df['lmks_array'] = df['visibles'].apply(ast.literal_eval)
+    print(df)
+    row = df.iloc[0] # for now
+
+    nsid = row["nsid"]
+    if params.lmks[0] in row['lmks_array']:
+        lmk = params.lmks[0]
+        pass
+    else:
+        lmk = row["lmks_array"][0] # visibles? then loop 
+    
+    # --- Load inputs ---
+    point_cloud, labels = load_landmarks_as_point_cloud(os.path.join(params.sys + params.root, row['mcsv']))
+    pred_points, preds = load_landmarks_as_point_cloud(os.path.join(experiment_dir, 'eval', str(nsid) + '.csv'))
+    gt_point = np.array(point_cloud.points[labels == lmk])
+    pred_point = np.array(pred_points.points[preds == lmk])
+    distance = np.linalg.norm(gt_point - pred_point)
+    print(f"[{nsid} - {lmk}] Distance: {distance:.4f}")
+
+    # Keep track of user attempts
+    attempts = []
+    pl = pv.Plotter()
+    if row['plys_found']:
+        # mesh = pv.read(row["fply"].replace(".ply", "_rotated.ply"))
+        mesh = pv.read("C:/Users/user/Projeler/Ph.D/Research/source/fetusnet/runs/2026-05-20/kendall6_f3/6_29s_06_rotated.ply")
+    # Setup Plotter for Web
+    pl = pv.Plotter(window_size=[800, 600])
+    pl.add_mesh(mesh, color="#E9A76E", show_edges=False)
+    pl.add_title(f"Landmarking Game: Tap the {lmk} landmark!", font_size=12)
+    pl.add_text(f"The landmark you need to find: {lmk}", position='lower_right')
+    # Define tap callback logic for iPad
+    def game_callback(picked_point):
+        if picked_point is None:
+            return
+        
+        distance_u = np.linalg.norm(picked_point - gt_point)
+        attempts.append(picked_point)
+            
+        if distance_u < distance:
+            color = "green"
+            msg = f"🎯 Better than the model! Error: {distance_u:.2f} mm.\n{len(attempts)} attempts!"
+        elif distance_u < 5:
+            color = "yellow"
+            msg = f"🔍 Good! Error: {distance_u:.2f} mm.\nBeat the model error: {distance:.2f} mm! \n{len(attempts)} attempts!"
+        else:
+            color = "red"
+            msg = f"❌ Missed! Error: {distance_u:.2f} mm. Try again! \n{len(attempts)} attempts!"
+            
+        marker = pv.Sphere(radius=0.3, center=picked_point)
+        pl.add_mesh(marker, color=color, name=f"attempt_{len(attempts)}")
+        pl.add_title(msg, font_size=12)
+    # Turn on picking so clicks register points
+    pl.enable_point_picking(
+        callback=game_callback, 
+        show_message=False, 
+        color="red",
+        picker='cell', 
+        pickable_window=True,
+        left_clicking=True
+    )
+
+    pl.add_text("⚠️ Reset Game", position="upper_right", font_size=10, color="crimson")
+    pl.show()
