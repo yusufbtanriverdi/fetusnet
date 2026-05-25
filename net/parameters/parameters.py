@@ -104,7 +104,7 @@ def add_common_args(subparser: argparse.ArgumentParser, defaults: dict):
     subparser.add_argument('--split', type=str, default=defaults.get('split'), help=parameters_help['split'])
     subparser.add_argument('--sys', type=str, default=defaults.get('sys'), help=parameters_help['sys'])
     subparser.add_argument('--test_ds', nargs='+', type=str, default=defaults.get('test_ds'), help=parameters_help['test_ds'])
-    subparser.add_argument('--test_patients', nargs='+', type=int, help=parameters_help['test_patients'])
+    subparser.add_argument('--test_patients', nargs='+', type=int, default=defaults.get('test_patients'), help=parameters_help['test_patients'])
     subparser.add_argument('--torch_seed', type=int, default=defaults.get('torch_seed'), help=parameters_help['torch_seed'])
     subparser.add_argument('--train_ds', nargs='+', type=str, default=defaults.get('train_ds'), help=parameters_help['train_val_ds'])
     subparser.add_argument('--use_model', type=str, default=defaults.get('use_model'), help=parameters_help['use_model'], choices=parameters_choices['use_model'])

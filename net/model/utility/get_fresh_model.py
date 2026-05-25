@@ -62,7 +62,7 @@ def get_fresh_model(params):
 
     # === Multinoise Loss Initialisation === 
     if params.mnl:
-        multi_loss = MultiNoiseLoss(n_losses=len(criteria)).to(device)
+        multi_loss = MultiNoiseLoss(n_losses=len(criteria), device=device).to(device)
     else:
         multi_loss = None
     # === Optimizer Selection ===

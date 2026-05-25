@@ -224,16 +224,14 @@ torch.backends.cudnn.benchmark = False  # Disable auto-tuning (slower but reprod
 if params.mode not in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d']:
     raise ValueError(f"Invalid mode: {params.mode}. Choose from 'train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d'.")
 
+# Convert to dictionary (if Namespace or similar)
+params_dict = vars(params)  # or: params.__dict__ if vars() doesn't work
+
 if params.mode in ['test', 'plot_3d'] or params.resume:
     experiment_dir = params.checkpoint_dir
 else:
     experiment_dir, experiment_name = create_experiment_id(params, create_directory=True)
-
-# Convert to dictionary (if Namespace or similar)
-params_dict = vars(params)  # or: params.__dict__ if vars() doesn't work
-
-# Write to JSON
-if params.mode != 'test':
+    # Write to JSON
     with open(os.path.join(experiment_dir, 'params.json'), 'w') as f:
         json.dump(params_dict, f, indent=6)
 
@@ -387,6 +385,7 @@ if params.mode == 'train':
     if params.use_wandb: wandb.finish()
 
 
+
 if params.mode == 'test':
     params.use_wandb = False
     logger.info("I am starting to test")
@@ -406,6 +405,7 @@ if params.mode == 'test':
     
     # test_patients = getattr(params, 'test_patients', [''])
     print(params.test_patients)
+    splitted_dataframe.loc[splitted_dataframe['npid'].isin(params.test_patients), "set"] = 2
     # Filter test patients first
     test_dl = get_test_dl(splitted_dataframe.loc[splitted_dataframe['npid'].isin(params.test_patients)], params, transformations=transformations)
     logger.info(f"!__[U]__! Test subset size: {len(test_dl)}")
@@ -421,8 +421,8 @@ if params.mode == 'test':
             model, 
             test_dl, 
             criteria, 
-            params.device, 
             multi_noise_loss if params.mnl else None,
+            params.device, 
             global_wandb_steps, 
             params.use_wandb, 
             params.detector, 
@@ -448,3 +448,5 @@ if params.mode == 'test':
             logger.warning(f"Key dmean_{lmk} not found in test_scores.")
 
     if params.use_wandb: wandb.finish()
+
+

@@ -142,11 +142,10 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                     )
 
                 for i, lmk in enumerate(lmks):
-                    output_heatmap_i = torch.nn.functional.sigmoid(output_heatmap[i]) # {!} Assuming batch size of 1 
                     if check_visibility:
                         if lmk in visibles:
                             # Extract the landmark coordinates for the current landmark
-                            scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i].cpu(), 
+                            scores_v3_distances = compute_aela(output_heatmap[i].unsqueeze(0), target_coord_tensor[i].cpu(), 
                                                                                 spacing=spacing, 
                                                                                 radius_eval=radius_eval, 
                                                                                 radius_num=radius_num, 
@@ -157,7 +156,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                             scores_v3_distances = torch.full((radius_num,), torch.nan)  # Placeholder value (currently set to `torch.nan`).
                     else:
                         # Extract the landmark coordinates for the current landmark
-                        scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i].cpu(), 
+                        scores_v3_distances = compute_aela(output_heatmap[i].unsqueeze(0), target_coord_tensor[i].cpu(), 
                                                                             spacing=spacing, 
                                                                             radius_eval=radius_eval, 
                                                                             radius_num=radius_num, 
@@ -165,7 +164,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                                                                             detector='argmax',
                                                                             show=False)     
                     distance_curves[i, ind, :] = scores_v3_distances  # Store the distance curves for each landmark and batch index
-
+                    output_heatmap_i = torch.nn.functional.sigmoid(output_heatmap[i]) # {!} Assuming batch size of 1 
                     if show_figures and lmk in visibles and torch.rand(1).item() < 0.02:
                         loss_params = kwargs['loss_params']
                         sse = SSELoss(**loss_params)
@@ -213,7 +212,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                         template_header = extract_image('templates/1.nrrd')[1]
                         nrrd.write(
                             os.path.join(output_dir, f"{nsid}_{lmk}_target.nrrd"),
-                            target_heatmap[i].cpu().numpy(),
+                            target_heatmap[i][0].cpu().numpy(),
                             header=template_header
                         )
                     gc.collect()
@@ -225,7 +224,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
             # Save the ep_scores_curve as CSV, including lmk info in the filename
             curve_csv_path = os.path.join(output_dir, f"{lmk}_curve_mean.csv") 
             np.savetxt(curve_csv_path, distance_curves[i].nanmean(dim=0), delimiter=",")
-            plot_aela_figure(torch.linspace(0, radius_eval, radius_num), distance_curves[i].mean(dim=0), save_dir=os.path.join(output_dir, f"{lmk}_curve_mean.png") )
+            plot_aela_figure(torch.linspace(0, radius_eval, radius_num), distance_curves[i].nanmean(dim=0), save_dir=os.path.join(output_dir, f"{lmk}_curve_mean.png") )
             gc.collect()
         
         
