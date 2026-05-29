@@ -71,8 +71,7 @@ def compute_aela(
     target_coord,
     distance_map,
     spacing,
-    radius_eval,
-    radius_num,
+    radii,
     save_dir='curve.png',
     detector='argmax',
     show=False
@@ -93,7 +92,6 @@ def compute_aela(
         torch.Tensor: Average expected local accuracy for each radius.
     """
     # Define radii
-    radii = torch.linspace(1, radius_eval, radius_num)
     mm_radii = radii.clone()  # Store original radii in mm
     vo_radii = [r / spacing for r in radii]  # Convert mm to voxel units
     radii = [int(r / 2) for r in vo_radii]  # Round to integer voxel radius
@@ -109,7 +107,7 @@ def compute_aela(
             mask = (distance_map <= radius).float()
             roi = mask * output
             # Extract peak location in ROI
-            output_coord = get_peak_location(roi, method=detector)
+            output_coord = get_peak_location(roi, method=detector, eval=True, target_coord=target_coord)
             if roi[:, output_coord[0][0].int(), output_coord[0][1].int(), output_coord[0][2].int()] == 0:
                 # If the predicted coordinate is outside the mask (i.e., no valid prediction), set distance to radius
                 distances[ind+1] = radius * spacing  # Convert back to mm for distance

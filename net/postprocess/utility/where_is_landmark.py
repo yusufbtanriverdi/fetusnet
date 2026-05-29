@@ -3,7 +3,7 @@ from net.model.modules.dsnt import dsnt_3d_separable
 from net.evaluation.similarity_scores import to_probability_distributions
 from net.plot.matrices_3d import plot_3d_matrices
 
-def get_peak_location(heatmap, method):
+def get_peak_location(heatmap, method, eval=False, **args):
     """Extracts peak location from a heatmap."""
     N_landmarks = heatmap.shape[0]  # Number of landmarks
     coords = torch.zeros((N_landmarks, 3), dtype=torch.float32)  # Initialize coordinates tensor

@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import gc 
 import nrrd 
-
+import random
 from net.metrics.metrics_eval import compute_heatmap_metrics, compute_landmark_metrics
 from net.plot.curves import compute_aela, plot_aela_figure
 from net.plot.histograms import plot_histograms_and_stats
@@ -54,12 +54,19 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
     t = tqdm(loader, desc="Validating...", total=len(loader)) if progress_bar else loader
 
     ep_scores = []  # List to store scores for each epoch    
-    if eval: 
+    if eval:
         radius_num = kwargs.get('radius_num', 100)
         distance_curves = torch.zeros((len(lmks), len(t), radius_num), dtype=torch.float32)  # Initialize distance curves tensor
-    
+        radius_eval = kwargs.get('radius_eval', 40)
+        save_targets = kwargs.get('save_targets', False)
+        save_outputs = kwargs.get('save_outputs', False)
+        show_figures = kwargs.get('show_figures', False)
+        output_dir = os.path.join(experiment_dir, "eval")
+        os.makedirs(output_dir, exist_ok=True)
+        radii = torch.linspace(1, radius_eval, radius_num)
+        template_header = extract_image('templates/1.nrrd')[1]
     # Disable gradient computation for validation
-    with torch.no_grad():
+    with torch.inference_mode():
         # Iterate over the DataLoader
         for ind, batch in enumerate(t): 
             if len(batch['image']['data']) != 1:
@@ -84,10 +91,10 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
             running_loss += loss.item()
             avg_loss = running_loss / (ind + 1)
 
-            # output_heatmap = sigmoid(output_heatmap[0])             # Assuming batch size of 1   
             output_heatmap = outputs[0]            # Assuming batch size of 1   
-            output_coord_tensor = get_peak_location(output_heatmap, detector).to(device)  # Ensure peak locations are computed
+            output_coord_tensor = get_peak_location(output_heatmap, detector, eval=False).to(device)  # Ensure peak locations are computed
             target_coord_tensor = batch['coords'][0].to(device)   # Get the voxel coordinates of the target landmark, assuming batch size of 1            
+            ################### OUTSIDE OF EVAL PIPE #########################
             # Compute metrics for each landmark
             landmark_scores = {}
             for i, lmk in enumerate(lmks):
@@ -109,46 +116,41 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
             
             if use_wandb:
                 # Log step loss and mean loss to Weights & Biases (wandb)
-                wandb.log({'val/step_loss': loss.item(), 'val/step': wandb_steps['val_loss']})
-                wandb.log({'val/mean_loss': avg_loss, 'val/step': wandb_steps['val_loss']})
-                wandb.log({'val/dmean': dmean, 'val/step': wandb_steps['val_loss']})
+                wandb.log({'val/step_loss': loss.item(), 
+                           'val/mean_loss': avg_loss, 
+                           'val/dmean': dmean, 
+                           'val/step': wandb_steps['val_loss']
+                           })
                 # Increment the wandb step counter
                 wandb_steps['val_loss'] += 1 
 
             row = {'nsid': nsid, 'loss': loss.item(), 'dmean': dmean}
             row.update(landmark_scores)
-            
-            if eval:
-                radius_eval = kwargs.get('radius_eval', 40)
-                save_targets = kwargs.get('save_targets', False)
-                save_outputs = kwargs.get('save_outputs', False)
-                show_figures = kwargs.get('show_figures', False)
-                output_dir = os.path.join(experiment_dir, "eval")
-                os.makedirs(output_dir, exist_ok=True)
 
+            ################### EVALUATION PIPE #########################
+            if eval:
                 target_heatmap = targets[0, :, 0] # {!} Assuming batch size of 1   
                 distance_map = targets[0, :, 1] # {!} Assuming batch size of 1   
-
-                for i, lmk in enumerate(lmks):
-                    heatmap_scores = compute_heatmap_metrics(output_heatmap[i], 
-                                                             target_heatmap[i]
-                                                            )
-                    
-                    row.update({f"{lmk}_{k}": v for k, v in heatmap_scores.items()})
-
                 save_fscv_csv(
                         out=os.path.join(output_dir, f"{nsid}"),
                         coords=output_coord_tensor.cpu().numpy(),
                         selected_lmks=lmks,  
                         spacing=spacing,
-                    )
-                output_heatmap_i = output_heatmap[i]
+                    ) 
                 for i, lmk in enumerate(lmks):
+                    ##### DEVRE DIŞI #####
+                    # heatmap_scores = compute_heatmap_metrics(output_heatmap[i], 
+                    #                                          target_heatmap[i]
+                    #                                         )
+                    # row.update({f"{lmk}_{k}": v for k, v in heatmap_scores.items()})
+                    ##### ########## ######
+                    output_heatmap_i = output_heatmap[i]
                     if check_visibility:
                         if lmk in visibles:
                             # Extract the landmark coordinates for the current landmark
-                            scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i].cpu(), distance_map[i],
+                            scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i], distance_map[i],
                                                                                 spacing=spacing, 
+                                                                                radii=radii,
                                                                                 radius_eval=radius_eval, 
                                                                                 radius_num=radius_num, 
                                                                                 save_dir=None,
@@ -156,11 +158,13 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                                                                                 show=False
                                                                                 )
                         else:  
+                            # Set to NaN values.
                             scores_v3_distances = torch.full((radius_num,), torch.nan)  # Placeholder value (currently set to `torch.nan`).
                     else:
                         # Extract the landmark coordinates for the current landmark
-                        scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i].cpu(), distance_map[i],
+                        scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i], distance_map[i],
                                                                             spacing=spacing, 
+                                                                            radii=radii,
                                                                             radius_eval=radius_eval, 
                                                                             radius_num=radius_num, 
                                                                             save_dir=None,
@@ -168,19 +172,21 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                                                                             show=False
                                                                             )     
                     distance_curves[i, ind, :] = scores_v3_distances  # Store the distance curves for each landmark and batch index
+                    
+                    ### COMPUTE LOSS CURVES ###
                     output_heatmap_i = torch.nn.functional.sigmoid(output_heatmap[i]) # {!} Assuming batch size of 1 
-                    if show_figures and lmk in visibles and torch.rand(1).item() < 0.02:
+                    if show_figures and lmk in visibles and random.random() < 0.02:
                         loss_params = kwargs['loss_params']
                         sse = SSELoss(**loss_params)
                         sce = SoftmaxCELoss(**loss_params)
                         emd = EucEMDLoss(**loss_params)
-                        # print(sse)
                         euc_distance = sse.formula(outputs, targets).squeeze(0)
                         sce_contribution = (sce.formula(outputs, targets) / targets[:, :, 0]).squeeze(0)
                         distance_penalty = emd.formula(outputs, targets).squeeze(0)
-                        
+                        ##### DEVRE DIŞI ######
                         # _ = plot_histograms_and_stats(output_heatmap_i, target_heatmap[i][0])
                         # plot_3d_matrices(output_heatmap_i, target_heatmap[i][0])
+                        ##### ########## ######
                         score = row[f'dmean_{lmk}']
                         plot_heatmaps_slices_from_coord([
                             output_heatmap_i, 
@@ -205,7 +211,6 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
 
                     # Save the predicted output as an NRRD file in the subdirectory
                     if save_outputs:
-                        template_header = extract_image('templates/1.nrrd')[1]
                         nrrd.write(
                             os.path.join(output_dir, f"{nsid}_{lmk}.nrrd"),
                             output_heatmap_i.cpu().numpy(),
@@ -213,16 +218,15 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                         )
                     
                     if save_targets:   
-                        template_header = extract_image('templates/1.nrrd')[1]
                         nrrd.write(
                             os.path.join(output_dir, f"{nsid}_{lmk}_target.nrrd"),
                             target_heatmap[i].cpu().numpy(),
                             header=template_header
                         )
-                    gc.collect()
-            
             ep_scores.append(row)
-            # break      # {!} For debugging, remove this line in production 
+            if ind % 50:
+                gc.collect()
+        # break      # {!} For debugging, remove this line in production 
     if eval:
         for i, lmk in enumerate(lmks):
             # Save the ep_scores_curve as CSV, including lmk info in the filename
