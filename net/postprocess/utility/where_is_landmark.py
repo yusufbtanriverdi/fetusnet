@@ -12,7 +12,7 @@ def get_peak_location(heatmap, method):
     
     for i in range(N_landmarks):
         heatmap_i = heatmap[i]  # Extract the heatmap for the i-th landmark
-        probs = to_probability_distributions(heatmap_i)  # Convert to probability distribution
+        probs = to_probability_distributions(heatmap_i)  # Convert to probability distribution {?} Why?
         coords[i] = get_peak_location_single(probs, method)  # Get peak location for each landmark
     return coords  # Return the coordinates of the peaks for all landmarks
 
@@ -20,8 +20,14 @@ def get_peak_location(heatmap, method):
 def get_peak_location_single(probs, method):
     """Extracts peak location from a single heatmap."""
     if method == 'argmax':
-        peak = torch.nonzero(probs == probs.max(), as_tuple=False).float()
-        return peak[0] if peak.numel() > 0 else None
+        # Find all peak locations (handles ties) and return their mean as a single float coordinate
+        max_val = probs.max()
+        peaks = torch.nonzero(probs == max_val, as_tuple=False).float()
+        if peaks.numel() == 0:
+            # fallback: return zeros if something unexpected happens
+            raise ValueError("No peaks found in the heatmap. Check the input probabilities.")
+        # If multiple voxels share the max value, average their coordinates for a stable center
+        return peaks[0].float()
 
     if method == 'com':
         D, H, W = probs.shape

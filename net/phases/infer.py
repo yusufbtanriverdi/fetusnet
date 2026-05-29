@@ -126,7 +126,9 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                 output_dir = os.path.join(experiment_dir, "eval")
                 os.makedirs(output_dir, exist_ok=True)
 
-                target_heatmap = targets[0] # {!} Assuming batch size of 1   
+                target_heatmap = targets[0, :, 0] # {!} Assuming batch size of 1   
+                distance_map = targets[0, :, 1] # {!} Assuming batch size of 1   
+
                 for i, lmk in enumerate(lmks):
                     heatmap_scores = compute_heatmap_metrics(output_heatmap[i], 
                                                              target_heatmap[i]
@@ -140,29 +142,31 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                         selected_lmks=lmks,  
                         spacing=spacing,
                     )
-
+                output_heatmap_i = output_heatmap[i]
                 for i, lmk in enumerate(lmks):
                     if check_visibility:
                         if lmk in visibles:
                             # Extract the landmark coordinates for the current landmark
-                            scores_v3_distances = compute_aela(output_heatmap[i].unsqueeze(0), target_coord_tensor[i].cpu(), 
+                            scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i].cpu(), distance_map[i],
                                                                                 spacing=spacing, 
                                                                                 radius_eval=radius_eval, 
                                                                                 radius_num=radius_num, 
                                                                                 save_dir=None,
-                                                                                detector='argmax',
-                                                                                show=False)
+                                                                                detector=detector,
+                                                                                show=False
+                                                                                )
                         else:  
                             scores_v3_distances = torch.full((radius_num,), torch.nan)  # Placeholder value (currently set to `torch.nan`).
                     else:
                         # Extract the landmark coordinates for the current landmark
-                        scores_v3_distances = compute_aela(output_heatmap[i].unsqueeze(0), target_coord_tensor[i].cpu(), 
+                        scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i].cpu(), distance_map[i],
                                                                             spacing=spacing, 
                                                                             radius_eval=radius_eval, 
                                                                             radius_num=radius_num, 
                                                                             save_dir=None,
-                                                                            detector='argmax',
-                                                                            show=False)     
+                                                                            detector=detector,
+                                                                            show=False
+                                                                            )     
                     distance_curves[i, ind, :] = scores_v3_distances  # Store the distance curves for each landmark and batch index
                     output_heatmap_i = torch.nn.functional.sigmoid(output_heatmap[i]) # {!} Assuming batch size of 1 
                     if show_figures and lmk in visibles and torch.rand(1).item() < 0.02:
@@ -180,8 +184,8 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                         score = row[f'dmean_{lmk}']
                         plot_heatmaps_slices_from_coord([
                             output_heatmap_i, 
-                            target_heatmap[i][0],
-                            target_heatmap[i][1].pow(loss_params['w']),
+                            target_heatmap[i],
+                            distance_map[i].pow(loss_params['w']),
                             euc_distance[i],
                             sce_contribution[i],
                             distance_penalty[i],
@@ -212,7 +216,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                         template_header = extract_image('templates/1.nrrd')[1]
                         nrrd.write(
                             os.path.join(output_dir, f"{nsid}_{lmk}_target.nrrd"),
-                            target_heatmap[i][0].cpu().numpy(),
+                            target_heatmap[i].cpu().numpy(),
                             header=template_header
                         )
                     gc.collect()
@@ -232,7 +236,15 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
     avg_loss = running_loss / len(loader) 
     # Save ep_scores to a CSV file in the experiment directory and also save the mean scores across all samples.
     ep_scores = pd.DataFrame.from_records(ep_scores)
+    counter = 1
+    save_scores = os.path.join(experiment_dir, "test_scores.csv")
+    while os.path.exists(save_scores):
+        test_ct = f"test_scores_{counter}.csv"
+        save_scores = os.path.join(experiment_dir, test_ct)
+        counter += 1
     ep_scores.to_csv(os.path.join(experiment_dir, "test_scores.csv"), index=False)
-    ep_scores.drop(['nsid'], axis=1).mean().to_csv(os.path.join(experiment_dir, "test_scores_mean.csv"))
+    save_mean_scores =os.path.join(experiment_dir, "test_scores_mean.csv")
+    if not os.path.exists(save_mean_scores):
+        ep_scores.drop(['nsid'], axis=1).mean().to_csv(os.path.join(experiment_dir, "test_scores_mean.csv"))
 
     return avg_loss, wandb_steps, ep_scores
