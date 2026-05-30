@@ -145,17 +145,17 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                     # row.update({f"{lmk}_{k}": v for k, v in heatmap_scores.items()})
                     ##### ########## ######
                     output_heatmap_i = output_heatmap[i]
+                    # output_heatmap_i = torch.nn.functional.sigmoid(output_heatmap[i]) # {!} Assuming batch size of 1 
                     if check_visibility:
                         if lmk in visibles:
                             # Extract the landmark coordinates for the current landmark
                             scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i], distance_map[i],
                                                                                 spacing=spacing, 
                                                                                 radii=radii,
-                                                                                radius_eval=radius_eval, 
-                                                                                radius_num=radius_num, 
                                                                                 save_dir=None,
                                                                                 detector=detector,
-                                                                                show=False
+                                                                                show=False,
+                                                                                device=device
                                                                                 )
                         else:  
                             # Set to NaN values.
@@ -165,11 +165,10 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                         scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i], distance_map[i],
                                                                             spacing=spacing, 
                                                                             radii=radii,
-                                                                            radius_eval=radius_eval, 
-                                                                            radius_num=radius_num, 
                                                                             save_dir=None,
                                                                             detector=detector,
-                                                                            show=False
+                                                                            show=False,
+                                                                            device=device
                                                                             )     
                     distance_curves[i, ind, :] = scores_v3_distances  # Store the distance curves for each landmark and batch index
                     
@@ -212,7 +211,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                     # Save the predicted output as an NRRD file in the subdirectory
                     if save_outputs:
                         nrrd.write(
-                            os.path.join(output_dir, f"{nsid}_{lmk}.nrrd"),
+                            os.path.join(output_dir, f"{nsid}_{lmk}_output.nrrd"),
                             output_heatmap_i.cpu().numpy(),
                             header=template_header
                         )
@@ -226,7 +225,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
             ep_scores.append(row)
             if ind % 50:
                 gc.collect()
-        # break      # {!} For debugging, remove this line in production 
+            # break      # {!} For debugging, remove this line in production 
     if eval:
         for i, lmk in enumerate(lmks):
             # Save the ep_scores_curve as CSV, including lmk info in the filename
@@ -240,15 +239,4 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
     avg_loss = running_loss / len(loader) 
     # Save ep_scores to a CSV file in the experiment directory and also save the mean scores across all samples.
     ep_scores = pd.DataFrame.from_records(ep_scores)
-    counter = 1
-    save_scores = os.path.join(experiment_dir, "test_scores.csv")
-    while os.path.exists(save_scores):
-        test_ct = f"test_scores_{counter}.csv"
-        save_scores = os.path.join(experiment_dir, test_ct)
-        counter += 1
-    ep_scores.to_csv(os.path.join(experiment_dir, "test_scores.csv"), index=False)
-    save_mean_scores =os.path.join(experiment_dir, "test_scores_mean.csv")
-    if not os.path.exists(save_mean_scores):
-        ep_scores.drop(['nsid'], axis=1).mean().to_csv(os.path.join(experiment_dir, "test_scores_mean.csv"))
-
     return avg_loss, wandb_steps, ep_scores

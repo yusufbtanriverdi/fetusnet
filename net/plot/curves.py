@@ -72,6 +72,7 @@ def compute_aela(
     distance_map,
     spacing,
     radii,
+    device,
     save_dir='curve.png',
     detector='argmax',
     show=False
@@ -107,7 +108,7 @@ def compute_aela(
             mask = (distance_map <= radius).float()
             roi = mask * output
             # Extract peak location in ROI
-            output_coord = get_peak_location(roi, method=detector, eval=True, target_coord=target_coord)
+            output_coord = get_peak_location(roi, method=detector, eval=True, target_coord=target_coord).to(device)
             if roi[:, output_coord[0][0].int(), output_coord[0][1].int(), output_coord[0][2].int()] == 0:
                 # If the predicted coordinate is outside the mask (i.e., no valid prediction), set distance to radius
                 distances[ind+1] = radius * spacing  # Convert back to mm for distance

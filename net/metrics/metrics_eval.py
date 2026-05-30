@@ -1,5 +1,4 @@
 from net.evaluation.dMean import d_mean_mm
-from net.evaluation.similarity_scores import kullback_leibler_divergence
 
 def compute_metrics(outputs, targets, spacings):
     """

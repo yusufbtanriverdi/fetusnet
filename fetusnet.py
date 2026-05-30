@@ -156,7 +156,7 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
         train_losses.append(train_loss)
         val_losses.append(val_loss)
         global_wandb_steps = log_epoch_to_wandb(train_loss, val_loss, ep_scores, params, global_wandb_steps)
-    
+
     return train_losses, val_losses
 
 def update_dataframe(dataframe, params):
@@ -381,13 +381,21 @@ if params.mode == 'train':
             loss_params=params.loss_params
             )
     
-    for lmk in params.lmks:
-        try: 
-            mean = test_scores[f"dmean_{lmk}"].mean()
-            std = test_scores[f"dmean_{lmk}"].std()
-            logger.info(f"Test d-mean Score for {lmk}: {mean} +/- {std}")
-        except KeyError:
-            logger.warning(f"Key dmean_{lmk} not found in test_scores.")
+    logger.info(f"Test loss: {test_loss}")
+    logger.info(f"Test scores: \n {test_scores.drop(['nsid'], axis=1).mean()}")
+    counter = 1
+    save_scores = os.path.join(experiment_dir, "test_scores.csv")
+    while os.path.exists(save_scores):
+        save_scores = os.path.join(experiment_dir, f"test_scores_{counter}.csv")
+        counter += 1
+    test_scores.to_csv(save_scores, index=False)
+
+    counter = 1
+    save_mean_scores =os.path.join(experiment_dir, "test_scores_mean.csv")
+    while os.path.exists(save_mean_scores):
+        save_mean_scores = os.path.join(experiment_dir, f"test_scores_mean_{counter}.csv")
+        counter += 1
+    test_scores.drop(['nsid'], axis=1).mean().to_csv(save_mean_scores)
 
     if params.use_wandb: wandb.finish()
 
@@ -446,14 +454,18 @@ if params.mode == 'test':
             loss_params=params.loss_params
             )
     
-    for lmk in params.lmks:
-        try: 
-            mean = test_scores[f"dmean_{lmk}"].mean()
-            std = test_scores[f"dmean_{lmk}"].std()
-            logger.info(f"Test d-mean Score for {lmk}: {mean} +/- {std}")
-        except KeyError:
-            logger.warning(f"Key dmean_{lmk} not found in test_scores.")
+    logger.info(f"Test loss: {test_loss}")
+    logger.info(f"Test scores: \n {test_scores.drop(['nsid'], axis=1).mean()}")
+    counter = 1
+    save_scores = os.path.join(experiment_dir, "test_scores.csv")
+    while os.path.exists(save_scores):
+        save_scores = os.path.join(experiment_dir, f"test_scores_{counter}.csv")
+        counter += 1
+    test_scores.to_csv(save_scores, index=False)
 
-    if params.use_wandb: wandb.finish()
-
-
+    counter = 1
+    save_mean_scores =os.path.join(experiment_dir, "test_scores_mean.csv")
+    while os.path.exists(save_mean_scores):
+        save_mean_scores = os.path.join(experiment_dir, f"test_scores_mean_{counter}.csv")
+        counter += 1
+    test_scores.drop(['nsid'], axis=1).mean().to_csv(save_mean_scores)
