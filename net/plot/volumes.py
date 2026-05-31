@@ -84,10 +84,11 @@ def perform_plot_3d(df, experiment_dir, params):
     point_cloud, labels = load_landmarks_as_point_cloud(os.path.join(params.sys + params.root, row['mcsv']))
     pred_points, preds = load_landmarks_as_point_cloud(os.path.join(experiment_dir, 'eval', str(nsid) + '.csv'))
     grid_gt = load_heatmap_as_grid(os.path.join(experiment_dir, 'eval', str(nsid)+'_'+lmk+'_target.nrrd')) 
-    grid_pred = load_heatmap_as_grid(os.path.join(experiment_dir, 'eval', str(nsid)+'_'+lmk+'.nrrd')) 
+    grid_pred = load_heatmap_as_grid(os.path.join(experiment_dir, 'eval', str(nsid)+'_'+lmk+'_output.nrrd')) 
 
     if row['plys_found']:
         mesh = pv.read(row["fply"].replace(".ply", "_rotated.ply"))
+        # mesh = pv.read(row["fply"].replace(".ply", "_rotated_to_raw.ply"))
 
     # --- Sample heatmaps on surface ---
     mesh_pred = mesh.sample(grid_pred)
@@ -222,7 +223,8 @@ def start_game_3d(df, experiment_dir, params):
     pl = pv.Plotter()
     if row['plys_found']:
         # mesh = pv.read(row["fply"].replace(".ply", "_rotated.ply"))
-        mesh = pv.read("C:/Users/user/Projeler/Ph.D/Research/source/fetusnet/runs/2026-05-20/kendall6_f3/6_29s_06_rotated.ply")
+        mesh = pv.read(row["fply"])
+        # mesh = pv.read("C:/Users/user/Projeler/Ph.D/Research/source/fetusnet/runs/2026-05-20/kendall6_f3/6_29s_06_rotated.ply")
     # Setup Plotter for Web
     pl = pv.Plotter(window_size=[800, 600])
     pl.add_mesh(mesh, color="#E9A76E", show_edges=False)
