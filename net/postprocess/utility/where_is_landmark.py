@@ -13,7 +13,7 @@ def _softmax(volume):
 def _sigmoid(volume):
     return F.sigmoid(volume)
 
-def get_peak_location(heatmap, method, eval=False, **args):
+def get_peak_location(heatmap, method, **args):
     """Extracts peak location from a heatmap."""
     N_landmarks = heatmap.shape[0]  # Number of landmarks
     coords = torch.zeros((N_landmarks, 3), dtype=torch.float32)  # Initialize coordinates tensor
@@ -21,10 +21,10 @@ def get_peak_location(heatmap, method, eval=False, **args):
         raise ValueError(f"Unsupported method: {method}. Use 'argmax', 'com' or 'dsnt'.")
     probs = _sigmoid(heatmap)  # Convert to probability distribution.
     for i in range(N_landmarks):
-        coords[i] = get_peak_location_single(probs[i], method)  # Get peak location for each landmark
+        coords[i] = get_peak_location_single(probs[i], method, mean_multi_peak=args.get('mean_multi_peak', True))  # Get peak location for each landmark
     return coords  # Return the coordinates of the peaks for all landmarks
     
-def get_peak_location_single(probs, method):
+def get_peak_location_single(probs, method, mean_multi_peak=True):
     """Extracts peak location from a single heatmap."""
     if method == 'argmax':
         # Find all peak locations (handles ties) and return their mean as a single float coordinate
@@ -35,8 +35,13 @@ def get_peak_location_single(probs, method):
             raise ValueError("No peaks found in the heatmap. Check the input probabilities.")
         if peaks.shape[0] > 1:
             # If multiple voxels share the max value, average their coordinates for a stable center
-            print(f"Warning: Multiple peaks found with the same max value. Averaging their coordinates for stability \b.", peaks.shape, peaks[0])
-            return peaks.mean(dim=0)
+            # print(f"Warning: Multiple peaks found with the same max value.")
+            if mean_multi_peak:
+                # print("Averaging their coordinates for stability \b.", peaks.shape, peaks[0])
+                return peaks.mean(dim=0)
+            else:                
+                # print("Returning the first peak found \b.", peaks.shape, peaks[0])
+                return peaks[0].float()
         # If multiple voxels share the max value, average their coordinates for a stable center
         return peaks[0].float()
 

@@ -92,7 +92,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
             avg_loss = running_loss / (ind + 1)
 
             output_heatmap = outputs[0]            # Assuming batch size of 1   
-            output_coord_tensor = get_peak_location(output_heatmap, detector, eval=False).to(device)  # Ensure peak locations are computed
+            output_coord_tensor = get_peak_location(output_heatmap, detector).to(device)  # Ensure peak locations are computed
             target_coord_tensor = batch['coords'][0].to(device)   # Get the voxel coordinates of the target landmark, assuming batch size of 1            
             ################### OUTSIDE OF EVAL PIPE #########################
             # Compute metrics for each landmark
