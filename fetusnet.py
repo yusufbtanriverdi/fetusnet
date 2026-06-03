@@ -220,10 +220,6 @@ torch.backends.cudnn.deterministic = True  # Use deterministic CUDA algorithms
 torch.backends.cudnn.benchmark = False  # Disable auto-tuning (slower but reproducible)
 # torch.use_deterministic_algorithms(True)  # Force deterministic behavior globally
 
-
-if params.mode not in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d', 'game_3d']:
-    raise ValueError(f"Invalid mode: {params.mode}. Choose from 'train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d', 'game_3d'.")
-
 # Convert to dictionary (if Namespace or similar)
 params_dict = vars(params)  # or: params.__dict__ if vars() doesn't work
 

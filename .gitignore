@@ -174,8 +174,8 @@ wandb/
 graveyard/
 mock.py
 tmps/
+tmp/
 cluster.sh
-tmps/
 
 .vscode
 configs

@@ -31,7 +31,7 @@ week_counts = (
 )
 
 print(week_counts)
-plt.figure(figsize=(12, 6))
+fig = plt.figure(figsize=(12, 6))
 
 week_counts['label'] = (
     week_counts['week'].astype(str)
@@ -50,3 +50,4 @@ plt.xlabel('Gestational Age (weeks)', labelpad=15)
 plt.ylabel('Count', labelpad=15)
 plt.tight_layout()
 plt.show()  
+fig.savefig('figures/weeks.svg', format='svg')

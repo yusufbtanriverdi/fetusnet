@@ -121,6 +121,7 @@ def parameters_parsing() -> argparse.Namespace:
     # Load config if provided.
     defaults = load_config(user_path=early_args.config if early_args.config else None)
     parser = argparse.ArgumentParser(description='FetusNet CLI', parents=[early_parser])
+    
     # Get subcommands
     subparsers = parser.add_subparsers(dest='mode', metavar='mode', title=parameters_help['mode'])
     train_parser = subparsers.add_parser('train', help=parameters_help['train'])
@@ -140,6 +141,10 @@ def parameters_parsing() -> argparse.Namespace:
 
     # Final parse using updated parser and remaining args
     args = parser.parse_args(remaining_argv)
+    
+    if args.mode not in parameters_choices['mode']:
+        raise ValueError(f"Invalid mode: {args.mode}. Choose from {parameters_choices['mode']}")
+
     print(args)
     if not isinstance(args.loss_params, dict):
         args.loss_params = parse_loss_params(args.loss_params)
