@@ -24,6 +24,7 @@ from net.phases.infer import infer_one_ep
 from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.config.wandb import initialize_wandb
 from net.plot.volumes import perform_plot_3d, start_game_3d
+from scripts import script_concept_fig
 
 def save_experiment_parameters(experiment_directory, experiment_id, params, date):
     """
@@ -318,6 +319,22 @@ if params.mode == 'game_3d':
         raise KeyError("No test patient is given. Aborting mission...")
     start_game_3d(splitted_dataframe, experiment_dir, params)
 
+if params.mode == 'script_concept':
+    logger.info("Running script_concept_fig.py")
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # test_patients = getattr(params, 'test_patients', [''])
+    print(params.test_patients)
+    splitted_dataframe.loc[splitted_dataframe['npid'].isin(params.test_patients), "set"] = 2
+    # Filter test patients first
+    test_dl = get_test_dl(splitted_dataframe.loc[splitted_dataframe['npid'].isin(params.test_patients)], params, transformations=transformations)
+    logger.info(f"!__[U]__! Test subset size: {len(test_dl)}")
+    if len(test_dl) == 0: 
+        test_dl = get_test_dl(splitted_dataframe, params, transformations)
+        logger.info(f"!__[U]__! Couldn't find test patients, switch to entire test subset. Subset size: {len(test_dl)}")
+
+        if len(test_dl) == 0:         
+                _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
+    script_concept_fig.create_disc_figure(test_dl, params.loss_params['w'], save_dir='figures/')
 
 if params.mode == 'train':
     logger.info("I am starting to train")

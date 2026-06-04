@@ -138,3 +138,4 @@ wslink==2.3.4
 xyzservices==2026.3.0
 yarl==1.15.2
 zipp==3.20.2
+cairosvg==2.7.1

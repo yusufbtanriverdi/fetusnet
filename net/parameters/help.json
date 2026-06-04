@@ -60,5 +60,6 @@
   "generate": "Generate new data or augmentations",
   "test_loaders": "Test the data loaders for consistency",
   "plot_3d": "Plots a 3D scene with evaluation.",
-  "game_3d": "Game mode!"
+  "game_3d": "Game mode!",
+  "script_concept": "Run the script_concept_fig.py for generating a specific figure for a concept demonstration."
 }
