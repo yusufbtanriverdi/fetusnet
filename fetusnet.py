@@ -14,7 +14,7 @@ from net.parameters.parameters import parameters_parsing
 from net.config.create_experiment_id import create_experiment_id
 from net.dataset.statistics.split import perform_split
 from net.dataset.statistics.prepare import perform_prepare
-from net.dataset.rotate import perform_rotate
+from net.dataset.preprocess import perform_preprocessing
 from net.dataset.generate_targets import perform_generate
 from logger_setup import setup_logger
 from net.dataset.utility.loaders import get_train_val_dl, get_test_dl
@@ -257,8 +257,8 @@ else:
     raise FileNotFoundError("Master dataframe not found.")
 
 # Rotate/alignment step
-if params.mode == 'rotate':
-    perform_rotate(master_dataframe, params)
+if params.mode == 'preprocess':
+    perform_preprocessing(master_dataframe, params, logger)
 
 # Split into subsets
 if params.split != 'crossfold':
@@ -411,8 +411,6 @@ if params.mode == 'train':
     test_scores.drop(['nsid'], axis=1).mean().to_csv(save_mean_scores)
 
     if params.use_wandb: wandb.finish()
-
-
 
 if params.mode == 'test':
     params.use_wandb = False

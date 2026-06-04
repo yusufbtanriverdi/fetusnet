@@ -1,0 +1,223 @@
+{
+  "train": 0,
+  "test": 1,
+  "prepare": 2,
+  "preprocess": 3,
+  "rotate": 4,
+  "presplit": 5,
+  "help": 6,
+  "generate": 7,
+  "script_conceptual": 8,
+  "script_stats": 9,
+  "script_ELA": 10,
+  "test_loaders": 11,
+  "test_pipe": 12,
+  "interactive_plot": 13,
+  "interactive_game": 14,
+
+  "loss_": {"eps": 1e-15, 
+            "sigmoid": true, 
+            "w": 2,
+            "normalize_targets": true,
+            "reduction": "mean"},
+  
+  "optimizer_": {
+    "adam": {"lr": 0.0001},
+    "sgd": {"lr": 0.0001, "momentum": 0.9}
+  },
+
+  "prepocessing_": {
+    "skip": false,
+    "filter": true,
+    "bspline": true,
+    "swap": true,
+    "affine": true,
+    "gt++": true,
+    "rotate": false,
+    "params": {
+      "filter": {"filter_size": 3, "mode": "reflect"},
+      "bspline": {"spacing_": [1.0, 1.0, 1.0], "size_": [128, 128, 128]},
+      "gt++": {
+        "model_dir": "", 
+        "file_paths": {
+        "data_dir": "/gpfs/projects/imva/Ultrasound_data",
+        "ddir": "/gpfs/projects/imva/Ultrasound_data/Pre_process_ST_s256_yusuf/",
+        "label_dir":"/New_allplanes.txt",
+        "out_dir_pre_pross": "/gpfs/projects/imva/Ultrasound_data/Pre_process_ST_s256_yusuf/",
+        "samples":
+            {
+              "train_samples": "",
+              "val_samples": "",
+              "test_samples": ""
+            },
+        "list_files": {
+              "train_list_file": "/train_list_ga.txt",
+              "val_list_file": "/val_list_ga.txt",
+              "test_list_file": "/test_list_ga.txt"
+        },
+        "params": {
+            "desired_size": [256, 256, 256],
+            "save_jpg" : false,
+            "save_nrrd" : false,
+            "downsampling_factor" : 2,
+            "spacing" : 0.3,
+            "permute" : true,
+            "input_plane": 3,                             
+            "resume": true,                               
+            "learning_rate": 0.0001,
+            "test_it": 3,
+            "int_rad": false,
+            "epochs": 100000,
+            "save_interval": 1,                       
+            "batch_size": 12,
+            "debug": false,
+            "normalize_quaternion": "None",
+            "seed_val": 42,
+            "num_output_tr": 3,      
+            "num_output_rr": 4,      
+            "ViT_model": "vit_small", 
+            "classification": false,
+            "perceptual_loss": false,
+            "limit_translation": 0.5,
+            "euler": false,
+            "vgg": "11",  
+            "image_loss": true ,
+            "instance_norm": false,
+            "data_augment_close": true,
+            "net": "SN16",
+            "latent": 128,
+            "latent2": 64,
+            "last_bn": false,
+            "name_model_old": false,
+            "grid_loss": true,
+            "only_grid_loss": true, 
+            "dropout": 0.5
+        }
+        },
+        "dic_name": "dictionary_transform_yusuf"
+    },
+    "save_dir": "DATA/"
+  },
+
+  "reproducibility_": {
+    "model_seed": 42,
+    "generator_seed": 42,
+    "deterministic": true,
+    "benchmark": false
+  },
+
+  "train_": {
+    "architecture": "resunet3d",
+    "batch_size_train": 2,
+    "epochs": 50,
+    "optimizer": "adam",
+    "loss": ["softmaxce"],
+    "mnl": false,
+    "lambdas": [0.5],
+    "num_workers": 1,
+    "progress_bar": false,
+    "resume": false,
+    "rescale_inputs": true,
+    "num_fts": 32
+  },
+
+  "val_": {
+    "batch_size_val": 1,
+    "check_visibility": true,
+    "detector": "argmax",
+    "progress_bar": false,
+    "save_outputs": false,
+    "save_targets": false
+  },
+
+  "gaussian_heatmap_": {
+    "alpha": 3,
+    "eps": 1e-6,
+    "mask": false,
+    "clip": false
+  },
+
+  "eval_": {
+    "batch_size_test": 1,
+    "use_model": "last",
+    "radius_eval": 40,
+    "radius_num": 40,
+    "save_outputs": false,
+    "save_targets": false,
+    "progress_bar": false
+  },
+
+  "wandb_": {
+    "log": false,
+    "wandbpro": "fetusnetv3"
+  },
+
+  "dataset_": {
+    "dataframe": "testOnCasosMarReally",
+    "root": "DATA/",
+    "sys": "/media/yusuf/HDD 4TB/"
+  },
+
+  "target_": {
+    "lmks": [
+      "prn",
+      "enL",
+      "enR",
+      "pg",
+      "n",
+      "sn",
+      "sl",
+      "li",
+      "ls",
+      "acL", 
+      "acR",
+      "cphL",
+      "cphR",
+      "chR",
+      "chL",
+      "aR",
+      "aL",
+      "exL",
+      "exR"
+    ]
+  },
+
+  "loaders_": {
+    "num_workers": 1
+  },
+
+  "device": "cuda",
+  "prefix": "v2",
+  "resume": false,
+  "checkpoint_": "",
+
+  "split_": {
+    "n_split": 4,
+    "test_ds": ["Casos Mar"],
+    "test_patients": [],
+    "train_val_ds": ["Estudio Dexeus"]
+  },
+
+  "script_": {
+    "fig_size": [15, 10],
+    "save_dir": "figures/",
+    "temp_dir": "temp/",
+    "sampling": {
+      "num_samples": 128,
+      "max_shift": 0.1,
+      "alpha": 0.5
+    },
+
+    "ela_": {
+      "marker_size": 5,
+      "line_width": 1,
+      "show": true,
+      "savefig": true,
+      "directories": []
+    }
+  }
+}
+
+}
+
+

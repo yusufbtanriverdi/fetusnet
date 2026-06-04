@@ -54,7 +54,7 @@
   "train": "Train the model",
   "test": "Test the model",
   "prepare": "Prepare the dataset",
-  "rotate": "Rotate the dataset or images",
+  "preprocess": "Preprocess the dataset or images",
   "presplit": "Presplit the dataset",
   "help": "Display help message",
   "generate": "Generate new data or augmentations",

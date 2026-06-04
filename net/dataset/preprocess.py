@@ -13,7 +13,7 @@ except ModuleNotFoundError:
 import SimpleITK as sitk
 
 
-def perform_rotate(dataframe, params):
+def perform_preprocessing(dataframe, params, logger=None):
     """
     Processes ultrasound data by loading images and applying transformations to produce 
     pre-processed, rotated, and translated ultrasound images along with associated landmark points.
@@ -25,7 +25,8 @@ def perform_rotate(dataframe, params):
     Returns:
         None. Saves processed images and landmarks in specified `out_dir`.
     """
-    logger = logging.getLogger('my_project_logger') 
+    if logger is None:
+        logger = logging.getLogger('my_project_logger') 
     # Extract all filenames from the dataframe for processing
     filenames = list(dataframe['fcaso'].values)
 
@@ -189,7 +190,7 @@ def perform_rotate(dataframe, params):
 
 # def test_main():
 #     """
-#     Basic test function to validate perform_rotate() runs without errors on a sample dataset.
+#     Basic test function to validate perform_preprocessing() runs without errors on a sample dataset.
 #     """
 
 #     class Params:
@@ -210,7 +211,7 @@ def perform_rotate(dataframe, params):
 #     print(f"Number of rows in dataframe: {len(dataframe)}")
 
 #     try:
-#         perform_rotate(dataframe, params)
+#         perform_preprocessing(dataframe, params)
 #         print("Test passed: main function executed without errors.")
 #     except Exception as e:
 #         print(f"Test failed: {str(e)}")

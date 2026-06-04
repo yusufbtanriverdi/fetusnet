@@ -16,7 +16,7 @@ def _softmax_numpy(volume):
     exp_volume = np.exp(volume - np.max(volume))
     return exp_volume / np.sum(exp_volume)
 
-def create_disc_figure(test_dl, w, save_dir='figures/', show=False):
+def create_disc_figure(test_dl, w, save_dir='figures/'):
     """
     Create a figure showing the optimal transport distance on a moving disc in a 50x50 grid.
 
@@ -24,7 +24,6 @@ def create_disc_figure(test_dl, w, save_dir='figures/', show=False):
         test_dl (DataLoader): DataLoader containing the test dataset.
         w (float): Weight for the distance penalty.
         save_dir (str): Directory to save the generated figure.
-        show (bool): Whether to display the figure after saving.
     """ 
     batch = next(iter(test_dl)) # Get the first batch from the DataLoader
     # Move input data and targets to the specified device
@@ -33,9 +32,6 @@ def create_disc_figure(test_dl, w, save_dir='figures/', show=False):
     target_heatmap = targets[0, 0, 0].cpu().numpy() # {!} Assuming batch size of 1, using the first landmark
     target_coords = batch['coords'][0][0].cpu().numpy().ravel()[:3].astype(int)  # Get the voxel coordinates of the target landmark, assuming batch size of 1            
     distance_map = targets[0, 0, 1].cpu().numpy() # {!} Assuming batch size of 1   
-    spacing = batch['spacings'][0][0] # Assuming ISO spacing for simplicity
-    nsid = batch['name'][0]
-    visibles = batch['visibles'][0]  # Assuming batch size of 1
     D, H, W = target_heatmap.shape
     max_shift = np.array([D, H, W], dtype=float) * 0.1
     ts = [target_coords] + [target_coords + max_shift * t for t in np.linspace(0, 1, 128)]  # Create a series of shifted coordinates for testing
