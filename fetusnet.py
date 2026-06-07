@@ -334,7 +334,7 @@ if params.mode == 'script_concept':
 
         if len(test_dl) == 0:         
                 _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
-    script_concept_fig.create_disc_figure(test_dl, params.loss_params['w'], save_dir='figures/')
+    script_concept_fig.create_disc_figure(params.loss_params['w'], save_dir='figures/')
 
 if params.mode == 'train':
     logger.info("I am starting to train")
