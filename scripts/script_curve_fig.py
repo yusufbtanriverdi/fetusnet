@@ -86,7 +86,7 @@ def average_edr_per_experiment(directory):
 
 if __name__ == '__main__':
     radii = np.linspace(1, 100, 100)
-    experiment_means = average_edr_per_experiment('C:/Users/user/Projeler/Ph.D/Research/source/plot_')
+    experiment_means = average_edr_per_experiment('assets/_plot/')
     dict = {'kendall1': 'Softmax CE', 
             'kendall2_1': 'EMD Penalty (w=2)', 
             'kendall2_2': 'EMD Penalty (w=0.5)', 
