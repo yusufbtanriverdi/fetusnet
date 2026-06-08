@@ -1,27 +1,49 @@
 import torch
 from net.model.modules.dsnt import dsnt_3d_separable
-from net.evaluation.similarity_scores import to_probability_distributions
 from net.plot.matrices_3d import plot_3d_matrices
+from torch.nn import functional as F
 
-def get_peak_location(heatmap, method):
+def _softmax(volume):
+    C, D, H, W = volume.shape
+    # Apply softmax over voxel domain.
+    voxels = volume.reshape(C, -1) # Reshape to voxels
+    probs = F.softmax(voxels, dim=-1).view(C, D, H, W)
+    return probs
+
+def _sigmoid(volume):
+    return F.sigmoid(volume)
+
+def get_peak_location(heatmap, method, **args):
     """Extracts peak location from a heatmap."""
     N_landmarks = heatmap.shape[0]  # Number of landmarks
     coords = torch.zeros((N_landmarks, 3), dtype=torch.float32)  # Initialize coordinates tensor
     if method not in ['argmax', 'com', 'dsnt']:    
         raise ValueError(f"Unsupported method: {method}. Use 'argmax', 'com' or 'dsnt'.")
-    
+    probs = _sigmoid(heatmap)  # Convert to probability distribution.
     for i in range(N_landmarks):
-        heatmap_i = heatmap[i]  # Extract the heatmap for the i-th landmark
-        probs = to_probability_distributions(heatmap_i)  # Convert to probability distribution
-        coords[i] = get_peak_location_single(probs, method)  # Get peak location for each landmark
+        coords[i] = get_peak_location_single(probs[i], method, mean_multi_peak=args.get('mean_multi_peak', True))  # Get peak location for each landmark
     return coords  # Return the coordinates of the peaks for all landmarks
-
     
-def get_peak_location_single(probs, method):
+def get_peak_location_single(probs, method, mean_multi_peak=True):
     """Extracts peak location from a single heatmap."""
     if method == 'argmax':
-        peak = torch.nonzero(probs == probs.max(), as_tuple=False).float()
-        return peak[0] if peak.numel() > 0 else None
+        # Find all peak locations (handles ties) and return their mean as a single float coordinate
+        max_val = probs.max()
+        peaks = torch.nonzero(probs == max_val, as_tuple=False).float()
+        if peaks.numel() == 0:
+            # fallback: return zeros if something unexpected happens
+            raise ValueError("No peaks found in the heatmap. Check the input probabilities.")
+        if peaks.shape[0] > 1:
+            # If multiple voxels share the max value, average their coordinates for a stable center
+            # print(f"Warning: Multiple peaks found with the same max value.")
+            if mean_multi_peak:
+                # print("Averaging their coordinates for stability \b.", peaks.shape, peaks[0])
+                return peaks.mean(dim=0)
+            else:                
+                # print("Returning the first peak found \b.", peaks.shape, peaks[0])
+                return peaks[0].float()
+        # If multiple voxels share the max value, average their coordinates for a stable center
+        return peaks[0].float()
 
     if method == 'com':
         D, H, W = probs.shape

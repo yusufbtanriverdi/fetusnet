@@ -14,7 +14,7 @@ from net.parameters.parameters import parameters_parsing
 from net.config.create_experiment_id import create_experiment_id
 from net.dataset.statistics.split import perform_split
 from net.dataset.statistics.prepare import perform_prepare
-from net.dataset.rotate import perform_rotate
+from net.dataset.preprocess import perform_preprocessing
 from net.dataset.generate_targets import perform_generate
 from logger_setup import setup_logger
 from net.dataset.utility.loaders import get_train_val_dl, get_test_dl
@@ -23,7 +23,8 @@ from net.phases.train import train_one_ep
 from net.phases.infer import infer_one_ep
 from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.config.wandb import initialize_wandb
-from net.plot.volumes import perform_plot_3d
+from net.plot.volumes import perform_plot_3d, start_game_3d
+from scripts import script_concept_fig
 
 def save_experiment_parameters(experiment_directory, experiment_id, params, date):
     """
@@ -99,9 +100,10 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
     if len(val_dl) == 0: val_dl = get_test_dl(dataframe, params, transformations=transformations)
     logger.info(f"Training - validation subset sizes: {len(train_dl.dataset), len(val_dl.dataset)}")
     # Initialize model, loss, optimizer
-    model, criterion, optimizer, best_criteria = get_fresh_model(params)
+    model, criteria, optimizer, multi_noise_loss, best_val_loss = get_fresh_model(params)
     logger.info(optimizer)
-    logger.info(criterion)
+    for criterion in criteria:
+        logger.info(criterion)
 
     train_losses = []
     val_losses = []
@@ -114,7 +116,8 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
         train_loss, global_wandb_steps = train_one_ep(
             model, 
             train_dl, 
-            criterion, 
+            criteria, 
+            multi_noise_loss if params.mnl else None,
             optimizer, 
             params.device, 
             global_wandb_steps,
@@ -126,7 +129,8 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
             val_loss, global_wandb_steps, ep_scores = infer_one_ep(
                 model, 
                 val_dl, 
-                criterion, 
+                criteria, 
+                multi_noise_loss if params.mnl else None,
                 params.device, 
                 global_wandb_steps, 
                 params.use_wandb,
@@ -139,8 +143,8 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
             )
         
             # Save best model
-            if val_loss < best_criteria:
-                best_criteria = val_loss
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
                 save_checkpoint(model, optimizer, epoch, val_loss, 
                                 os.path.join(experiment_dir, f'best.pt'))
 
@@ -153,7 +157,7 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
         train_losses.append(train_loss)
         val_losses.append(val_loss)
         global_wandb_steps = log_epoch_to_wandb(train_loss, val_loss, ep_scores, params, global_wandb_steps)
-    
+
     return train_losses, val_losses
 
 def update_dataframe(dataframe, params):
@@ -217,20 +221,14 @@ torch.backends.cudnn.deterministic = True  # Use deterministic CUDA algorithms
 torch.backends.cudnn.benchmark = False  # Disable auto-tuning (slower but reproducible)
 # torch.use_deterministic_algorithms(True)  # Force deterministic behavior globally
 
-
-if params.mode not in ['train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d']:
-    raise ValueError(f"Invalid mode: {params.mode}. Choose from 'train', 'test', 'prepare', 'rotate', 'presplit', 'help', 'generate', 'test_loaders', 'plot_3d'.")
-
-if params.mode in ['test', 'plot_3d'] or params.resume:
-    experiment_dir = params.checkpoint_dir
-else:
-    experiment_dir, experiment_name = create_experiment_id(params, create_directory=True)
-
 # Convert to dictionary (if Namespace or similar)
 params_dict = vars(params)  # or: params.__dict__ if vars() doesn't work
 
-# Write to JSON
-if params.mode != 'test':
+if params.mode in ['test', 'plot_3d', 'game_3d'] or params.resume:
+    experiment_dir = params.checkpoint_dir
+else:
+    experiment_dir, experiment_name = create_experiment_id(params, create_directory=True)
+    # Write to JSON
     with open(os.path.join(experiment_dir, 'params.json'), 'w') as f:
         json.dump(params_dict, f, indent=6)
 
@@ -259,8 +257,8 @@ else:
     raise FileNotFoundError("Master dataframe not found.")
 
 # Rotate/alignment step
-if params.mode == 'rotate':
-    perform_rotate(master_dataframe, params)
+if params.mode == 'preprocess':
+    perform_preprocessing(master_dataframe, params, logger)
 
 # Split into subsets
 if params.split != 'crossfold':
@@ -315,12 +313,35 @@ if params.mode == 'plot_3d':
         raise KeyError("No test patient is given. Aborting mission...")
     perform_plot_3d(splitted_dataframe, experiment_dir, params)
 
+if params.mode == 'game_3d':
+    splitted_dataframe = splitted_dataframe.loc[splitted_dataframe['npid'].isin(params.test_patients)]
+    if len(splitted_dataframe) == 0:
+        raise KeyError("No test patient is given. Aborting mission...")
+    start_game_3d(splitted_dataframe, experiment_dir, params)
+
+if params.mode == 'script_concept':
+    logger.info("Running script_concept_fig.py")
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # test_patients = getattr(params, 'test_patients', [''])
+    print(params.test_patients)
+    splitted_dataframe.loc[splitted_dataframe['npid'].isin(params.test_patients), "set"] = 2
+    # Filter test patients first
+    test_dl = get_test_dl(splitted_dataframe.loc[splitted_dataframe['npid'].isin(params.test_patients)], params, transformations=transformations)
+    logger.info(f"!__[U]__! Test subset size: {len(test_dl)}")
+    if len(test_dl) == 0: 
+        test_dl = get_test_dl(splitted_dataframe, params, transformations)
+        logger.info(f"!__[U]__! Couldn't find test patients, switch to entire test subset. Subset size: {len(test_dl)}")
+
+        if len(test_dl) == 0:         
+                _, test_dl = get_train_val_dl(splitted_dataframe, params, transformations=transformations)
+    script_concept_fig.create_disc_figure(params.loss_params['w'], save_dir='figures/')
+
 if params.mode == 'train':
     logger.info("I am starting to train")
     if params.use_wandb: initialize_wandb(params, experiment_name+'_'+params.split)
     logger.info(f"\n--- Training {params.split} --- \n")
     # Initialize model, loss, optimizer
-    model, criterion, optimizer, best_criteria = get_fresh_model(params)
+    model, criteria, optimizer, multi_noise_loss, _ = get_fresh_model(params)
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     epoch = 0
     if params.resume:
@@ -354,7 +375,8 @@ if params.mode == 'train':
     test_loss, global_wandb_steps, test_scores  = infer_one_ep(
             model, 
             test_dl, 
-            criterion, 
+            criteria, 
+            multi_noise_loss if params.mnl else None,
             params.device, 
             global_wandb_steps, 
             params.use_wandb, 
@@ -367,19 +389,28 @@ if params.mode == 'train':
             radius_eval=params.radius_eval,
             radius_num=params.radius_num,
             save_targets=params.save_targets, 
-            save_outputs=params.save_outputs
+            save_outputs=params.save_outputs,
+            show_figures=True,
+            loss_params=params.loss_params
             )
     
-    for lmk in params.lmks:
-        try: 
-            mean = test_scores[f"dmean_{lmk}"].mean()
-            std = test_scores[f"dmean_{lmk}"].std()
-            logger.info(f"Test d-mean Score for {lmk}: {mean} +/- {std}")
-        except KeyError:
-            logger.warning(f"Key dmean_{lmk} not found in test_scores.")
+    logger.info(f"Test loss: {test_loss}")
+    logger.info(f"Test scores: \n {test_scores.drop(['nsid'], axis=1).mean()}")
+    counter = 1
+    save_scores = os.path.join(experiment_dir, "test_scores.csv")
+    while os.path.exists(save_scores):
+        save_scores = os.path.join(experiment_dir, f"test_scores_{counter}.csv")
+        counter += 1
+    test_scores.to_csv(save_scores, index=False)
+
+    counter = 1
+    save_mean_scores =os.path.join(experiment_dir, "test_scores_mean.csv")
+    while os.path.exists(save_mean_scores):
+        save_mean_scores = os.path.join(experiment_dir, f"test_scores_mean_{counter}.csv")
+        counter += 1
+    test_scores.drop(['nsid'], axis=1).mean().to_csv(save_mean_scores)
 
     if params.use_wandb: wandb.finish()
-
 
 if params.mode == 'test':
     params.use_wandb = False
@@ -387,7 +418,7 @@ if params.mode == 'test':
     # if params.use_wandb: initialize_wandb(params, experiment_name+'_'+params.split)
     logger.info(f"\n--- Testing {params.split} --- \n")
     # Initialize model, loss, optimizer
-    model, criterion, optimizer, best_criteria = get_fresh_model(params)
+    model, criteria, optimizer, multi_noise_loss, _ = get_fresh_model(params)
     # train_losses, val_losses = pipe(splitted_dataframe, experiment_dir, params, transformations, global_wandb_steps)
 
     experiment_dir = params.checkpoint_dir
@@ -400,6 +431,7 @@ if params.mode == 'test':
     
     # test_patients = getattr(params, 'test_patients', [''])
     print(params.test_patients)
+    splitted_dataframe.loc[splitted_dataframe['npid'].isin(params.test_patients), "set"] = 2
     # Filter test patients first
     test_dl = get_test_dl(splitted_dataframe.loc[splitted_dataframe['npid'].isin(params.test_patients)], params, transformations=transformations)
     logger.info(f"!__[U]__! Test subset size: {len(test_dl)}")
@@ -414,7 +446,8 @@ if params.mode == 'test':
     test_loss, global_wandb_steps, test_scores  = infer_one_ep(
             model, 
             test_dl, 
-            criterion, 
+            criteria, 
+            multi_noise_loss if params.mnl else None,
             params.device, 
             global_wandb_steps, 
             params.use_wandb, 
@@ -427,15 +460,23 @@ if params.mode == 'test':
             radius_eval=params.radius_eval,
             radius_num=params.radius_num,
             save_targets=params.save_targets, 
-            save_outputs=params.save_outputs
+            save_outputs=params.save_outputs,
+            show_figures=True,
+            loss_params=params.loss_params
             )
     
-    for lmk in params.lmks:
-        try: 
-            mean = test_scores[f"dmean_{lmk}"].mean()
-            std = test_scores[f"dmean_{lmk}"].std()
-            logger.info(f"Test d-mean Score for {lmk}: {mean} +/- {std}")
-        except KeyError:
-            logger.warning(f"Key dmean_{lmk} not found in test_scores.")
+    logger.info(f"Test loss: {test_loss}")
+    logger.info(f"Test scores: \n {test_scores.drop(['nsid'], axis=1).mean()}")
+    counter = 1
+    save_scores = os.path.join(experiment_dir, "test_scores.csv")
+    while os.path.exists(save_scores):
+        save_scores = os.path.join(experiment_dir, f"test_scores_{counter}.csv")
+        counter += 1
+    test_scores.to_csv(save_scores, index=False)
 
-    if params.use_wandb: wandb.finish()
+    counter = 1
+    save_mean_scores =os.path.join(experiment_dir, "test_scores_mean.csv")
+    while os.path.exists(save_mean_scores):
+        save_mean_scores = os.path.join(experiment_dir, f"test_scores_mean_{counter}.csv")
+        counter += 1
+    test_scores.drop(['nsid'], axis=1).mean().to_csv(save_mean_scores)

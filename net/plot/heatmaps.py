@@ -2,8 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 # from mpl_toolkits.mplot3d import Axes3D  # Required for 3D plotting
 from matplotlib.patches import Circle
+import seaborn as sns
 
-def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, titles=None):
+sns.set_style('whitegrid', {'font.family':'sans-serif', 'font.sans-serif': 'Verdana'})
+sns.set_theme('paper', 'whitegrid', font_scale=1.25, palette='husl')
+
+def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, argmax_tensor, titles=None, save_figs=False, save_path=None):
     """
     Plot 2D heatmaps and 3D surfaces for slices along each axis.
     Columns = axes (0,1,2), Rows = 2D heatmap / 3D surface.
@@ -18,6 +22,7 @@ def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, titles=None):
     n = len(heatmaps)
     axes = [0, 1, 2]  # Columns = axes
     coord_idx = tuple(int(round(c)) for c in coord_tensor)
+    argmax_idx = tuple(int(round(c)) for c in argmax_tensor)
 
     if titles is None:
         titles = [f"Heatmap {i+1}" for i in range(n)]
@@ -31,16 +36,22 @@ def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, titles=None):
             ax2d = axs[0, j]
             if ax == 0:
                 slice_data = heatmap[coord_idx[0], :, :]
-                patch = Circle((coord_idx[2], coord_idx[1]), radius=1, color='white')
-                ax2d.add_patch(patch)
+                patch1 = Circle((coord_idx[2], coord_idx[1]), radius=1, color='purple')
+                patch2 = Circle((argmax_idx[2], argmax_idx[1]), radius=1, color='black')
+                ax2d.add_patch(patch1)
+                ax2d.add_patch(patch2)
             elif ax == 1:
                 slice_data = heatmap[:, coord_idx[1], :]                
-                patch = Circle((coord_idx[2], coord_idx[0]), radius=1, color='white')
-                ax2d.add_patch(patch)
+                patch1 = Circle((coord_idx[2], coord_idx[0]), radius=1, color='purple')
+                patch2 = Circle((argmax_idx[2], argmax_idx[0]), radius=1, color='black')
+                ax2d.add_patch(patch1)
+                ax2d.add_patch(patch2)
             else:
                 slice_data = heatmap[:, :, coord_idx[2]]
-                patch = Circle((coord_idx[1], coord_idx[0]), radius=1, color='white')
-                ax2d.add_patch(patch)
+                patch1 = Circle((coord_idx[1], coord_idx[0]), radius=1, color='purple')
+                patch2 = Circle((argmax_idx[1], argmax_idx[0]), radius=1, color='black')
+                ax2d.add_patch(patch1)
+                ax2d.add_patch(patch2)
             
             # 2D heatmap (top row)
             im = ax2d.imshow(slice_data, cmap='jet', origin='lower')
@@ -58,11 +69,14 @@ def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, titles=None):
             # ax3d.set_axis_off()
             ax3d.plot_surface(X, Y, slice_data, cmap='jet', edgecolor='k', linewidth=0.2)
             ax3d.set_title(f"{titles[i]} Surface - Axis {ax}")
-
         plt.tight_layout()
         
-    plt.show()
-    plt.close()  # Free memory
+        if save_figs:
+            save_here = save_path + '_' + titles[i] + '.svg'
+            fig.savefig(save_here, format='svg')
+        
+        # plt.show()
+        plt.close()  # Free memory
 
 if __name__ == "__main__":
     # Dummy 3D heatmaps

@@ -2,9 +2,9 @@
   "architecture": ["resunet3d"],
   "detector": ["dsnt", "com", "argmax"],
   "generate": ["gaussian"],
-  "loss": ["crossentropy", "distmatrix", "emd", "kld", "mse"],
-  "mode": ["help", "prepare", "presplit", "rotate", "test", "train"],
+  "loss": ["sse", "softmaxce", "eucEMD"],
   "optimizer": ["adam", "sgd"],
   "reduction": ["mean", "none", "sum"],
-  "use_model": ["best", "last"]
+  "use_model": ["best", "last"],
+  "mode": ["train", "test", "prepare", "rotate", "presplit", "help", "generate", "test_loaders", "plot_3d", "game_3d", "script_concept"]
 }

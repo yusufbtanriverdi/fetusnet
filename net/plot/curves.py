@@ -1,7 +1,41 @@
 import torch
 import matplotlib.pyplot as plt
+from net.model.modules.dsnt import dsnt_3d_separable
 from net.postprocess.utility.where_is_landmark import get_peak_location
 
+
+# def get_peak_location_single_v2(probs, target_coords, method):
+#     """Extracts peak location from a single heatmap."""
+#     if method == 'argmax':
+#         # Find all peak locations (handles ties) and return the one closest to the target coordinate
+#         max_val = probs.max()
+#         peaks = torch.nonzero(probs == max_val, as_tuple=False).float()
+#         if peaks.numel() == 0:
+#             raise ValueError("No peaks found in the heatmap. Check the input probabilities.")
+#         if target_coords is not None:
+#             target = torch.tensor(target_coords, device=peaks.device, dtype=peaks.dtype)
+#             distances = torch.norm(peaks - target.unsqueeze(0), dim=1)
+#             return peaks[distances.argmin()]
+#         return peaks[0]
+
+#     if method == 'com':
+#         D, H, W = probs.shape
+#         # Compute soft center-of-mass for smoother localization
+#         grid = torch.meshgrid(torch.arange(D, device=probs.device),
+#                               torch.arange(H, device=probs.device),
+#                               torch.arange(W, device=probs.device), indexing='ij')
+#         grid = torch.stack(grid, dim=-1).float()  # Shape (D, H, W, 3)
+#         # softmax over voxel domain: do reshape softmax for stability & correctness
+#         weighted = probs.unsqueeze(-1) * grid
+#         # plot_3d_matrices(probs, weighted[: ,: ,: , 0], weighted[:, :, :, 1], weighted[:, :, :, 2], titles=['Probabilities', 'Weighted X', 'Weighted Y', 'Weighted Z'])
+#         # Weighted sum of coordinates by probability
+#         com = weighted.sum(dim=(0, 1, 2))
+#         return com
+
+#     if method == 'dsnt':
+#         # probs = to_probability_distributions(heatmap)
+#         coords = dsnt_3d_separable(probs, probs.device, probs.dtype)  # Use DSNT to get coordinates
+#         return coords
 
 def plot_aela_figure(radii, edr, save_dir='average_expected_local_accuracy.png', show=False):
     """
@@ -35,9 +69,10 @@ def plot_aela_figure(radii, edr, save_dir='average_expected_local_accuracy.png',
 def compute_aela(
     output,
     target_coord,
+    distance_map,
     spacing,
-    radius_eval,
-    radius_num,
+    radii,
+    device,
     save_dir='curve.png',
     detector='argmax',
     show=False
@@ -58,41 +93,36 @@ def compute_aela(
         torch.Tensor: Average expected local accuracy for each radius.
     """
     # Define radii
-    radii = torch.linspace(0, radius_eval, radius_num)
     mm_radii = radii.clone()  # Store original radii in mm
     vo_radii = [r / spacing for r in radii]  # Convert mm to voxel units
     radii = [int(r / 2) for r in vo_radii]  # Round to integer voxel radius
 
     # Initialize distances array
     distances = torch.zeros(len(radii), dtype=torch.float32)
-    C, D, H, W = output.shape
+    _, D, H, W = output.shape
 
     # Compute AELA for each radius
-    for ind, radius in enumerate(radii):
-        distances[ind] = 0
-
+    for ind, radius in enumerate(radii[:-1]):
         if radius != 0:
-            # Define bounding box around target
-
-            x_min = torch.clamp(target_coord[0] - radius, min=0).round().int().item()
-            x_max = torch.clamp(target_coord[0] + radius, max=D).round().int().item()
-            y_min = torch.clamp(target_coord[1] - radius, min=0).round().int().item()
-            y_max = torch.clamp(target_coord[1] + radius, max=H).round().int().item()
-            z_min = torch.clamp(target_coord[2] - radius, min=0).round().int().item()
-            z_max = torch.clamp(target_coord[2] + radius, max=W).round().int().item()
-
             # Mask region of interest
-            mask = torch.zeros_like(output, dtype=torch.float32)
-            mask[:, x_min:x_max, y_min:y_max, z_min:z_max] = 1
+            mask = (distance_map <= radius).float()
             roi = mask * output
-
             # Extract peak location in ROI
-            output_coord = get_peak_location(roi, method=detector)
-
+            output_coord = get_peak_location(roi, method=detector, target_coord=target_coord, mean_multi_peak=False).to(device)
+            if roi[:, output_coord[0][0].int(), output_coord[0][1].int(), output_coord[0][2].int()] == 0:
+                # If the predicted coordinate is outside the mask (i.e., no valid prediction), set distance to radius
+                distances[ind+1] = radius * spacing  # Convert back to mm for distance
+                # print("No valid prediction within radius. Setting distance to radius: ", distances[ind])
+                continue
             # Calculate Euclidean distance
-            distances[ind] = torch.norm((output_coord - target_coord).to(float))
-
-    # Plot AELA curve
-    plot_aela_figure(mm_radii, distances.tolist(), save_dir=save_dir, show=show)
+            distances[ind+1] = torch.norm((output_coord - target_coord).to(float))
+            # if lmk == 'enR':
+            #     print("Distance" , distances[ind], "Predicted: ", output_coord, "Target: ", target_coord, "Radius: ", radius, "Mask nonzero radius: ", mask.nonzero().shape)
+            if distances[ind+1] < distances[ind]:
+                print("Warning! Curren  distance is lower than previous one, which shouldnt be possible!")
+                print(f"Distance from radius {radius}: {distances[ind]} between predicted coord {output_coord} and target {target_coord}")            
+                print(f"Distance from radius {radii[ind-1]}: {distances[ind+1]} between predicted coord {output_coord} and target {target_coord}")            
+    if show: 
+        plot_aela_figure(mm_radii, distances.tolist(), save_dir=save_dir, show=True)
 
     return distances
