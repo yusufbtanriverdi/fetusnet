@@ -6,7 +6,6 @@ from types import SimpleNamespace
 # ==========================================
 # BASE STRUCTURE
 # ==========================================
-
 class RecursiveNamespace(SimpleNamespace):
     @staticmethod
     def map_entry(entry):
@@ -33,7 +32,6 @@ def load_yaml(filepath):
 # ==========================================
 # HELPER TO DYNAMICALLY UPDATE & PRINT HELP
 # ==========================================
-
 def update_nested_namespace(ns, key_path, value_str):
     """Traverses the RecursiveNamespace and overrides or injects a nested value."""
     # Convert incoming CLI strings to native Python types (e.g. "100" -> 100, "true" -> True)
@@ -93,7 +91,7 @@ def print_custom_help(config_ns, help_ns):
 # OVERWRITE & MODE SETUP FUNCTION
 # ==========================================
 
-def setup_config(default_path="default.yaml", help_path="help.yaml"):
+def setup_config(default_path="net/config/default.yaml", help_path="net/config/help.yaml"):
     # 1. Load initial configurations
     config = load_yaml(default_path)
     help_cfg = load_yaml(help_path)
@@ -147,22 +145,22 @@ def setup_config(default_path="default.yaml", help_path="help.yaml"):
 # RUN PIPELINE
 # ==========================================
 
-if __name__ == "__main__":
-    # Resolve values, handle help context, map modes
-    cfg = setup_config("default.yaml", "help.yaml")
+# if __name__ == "__main__":
+#     # Resolve values, handle help context, map modes
+#     cfg = setup_config()
     
-    # Execute with clean native dot-notation syntax!
-    print(f"\n🚀 Pipeline initialized successfully!")
-    print(f"Active Mode Name: {cfg.mode}")
-    print(f"Target Hardware:  {cfg.device}")
+#     # Execute with clean native dot-notation syntax!
+#     print(f"\n🚀 Pipeline initialized successfully!")
+#     print(f"Active Mode Name: {cfg.mode}")
+#     print(f"Target Hardware:  {cfg.device}")
     
-    if cfg.mode == "train":
-        print(f"Running training sequence on architecture: {cfg.train_.architecture}")
-        print(f"Epoch limit set to: {cfg.train_.epochs}")
+#     if cfg.mode == "train":
+#         print(f"Running training sequence on architecture: {cfg.train_.architecture}")
+#         print(f"Epoch limit set to: {cfg.train_.epochs}")
         
-    elif cfg.mode == "preprocess":
-        # Safe dot notation access, even down into sections containing symbols like 'gt++'
-        # Dict syntax fallback is avoided completely
-        tgt_dimensions = cfg.prepocessing_.params.__dict__['gt++'].params.desired_size
-        print(f"Executing Preprocessing sequence.")
-        print(f"Reshaping volume space to: {tgt_dimensions}")
+#     elif cfg.mode == "preprocess":
+#         # Safe dot notation access, even down into sections containing symbols like 'gt++'
+#         # Dict syntax fallback is avoided completely
+#         tgt_dimensions = cfg.prepocessing_.params.__dict__['gt++'].params.desired_size
+#         print(f"Executing Preprocessing sequence.")
+#         print(f"Reshaping volume space to: {tgt_dimensions}")
