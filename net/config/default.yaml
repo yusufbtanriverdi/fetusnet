@@ -32,14 +32,13 @@ optimizer_:
     lr: 0.0001
     momentum: 0.9
 
-prepocessing_:
+preprocessing_:
   skip: false
   filter: true
   bspline: true
   swap: true
   affine: true
-  gt++: true
-  rotate: false
+  gtpp: false
   params:
     filter:
       filter_size: 3
@@ -47,7 +46,7 @@ prepocessing_:
     bspline:
       spacing_: [1.0, 1.0, 1.0]
       size_: [128, 128, 128]
-    gt++:
+    gtpp:
       model_dir: ""
       file_paths:
         data_dir: "/gpfs/projects/imva/Ultrasound_data"
@@ -151,9 +150,10 @@ wandb_:
   wandbpro: "fetusnetv3"
 
 dataset_:
-  dataframe: "testOnCasosMarReally"
+  dataframe: "sinMaternitat__fold3"
   root: "DATA/"
   sys: "/media/yusuf/HDD 4TB/"
+  source: ""
 
 target_:
   lmks:

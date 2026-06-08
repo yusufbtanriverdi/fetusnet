@@ -88,8 +88,8 @@ if __name__ == '__main__':
     radii = np.linspace(1, 100, 100)
     experiment_means = average_edr_per_experiment('assets/_plot/')
     dict = {'kendall1': 'Softmax CE', 
-            'kendall2_1': 'EMD Penalty (w=2)', 
-            'kendall2_2': 'EMD Penalty (w=0.5)', 
+            'kendall2-1': 'EMD Penalty (w=2)', 
+            'kendall2-2': 'EMD Penalty (w=0.5)', 
             'kendall3': 'SSE', 
             'kendall4_2': 'EMD-regularized (w=2)',
             'kendall6': 'EMD-regularized (w=0.5)'

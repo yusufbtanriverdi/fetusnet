@@ -4,14 +4,10 @@ import logging
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-
-try:
-    from net.dataset.utility.rotation import *
-except ModuleNotFoundError:
-    from utility.rotation import *
-
 import SimpleITK as sitk
 
+from net.dataset.utility.rotation import *
+from net.dataset.utility.standardization import gtpp
 
 def perform_preprocessing(dataframe, params, logger=None):
     """
@@ -42,9 +38,9 @@ def perform_preprocessing(dataframe, params, logger=None):
         image_path = os.path.join(dataframe.loc[i, 'fscan'])
         name = dataframe.loc[i, 'osid']
 
-        save_im_path = params.sys + params.mdir + '/' + dataframe.loc[i, 'mscan']
-        save_csv_path = params.sys + params.mdir + '/' + dataframe.loc[i, 'mcsv']
-        save_lmk_path = params.sys + params.mdir + '/' + dataframe.loc[i, 'mlmk']
+        save_im_path = params.dataset_.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mscan']
+        save_csv_path = params.dataset_.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mcsv']
+        save_lmk_path = params.dataset_.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mlmk']
 
         # Skip processing if image already exists
         if os.path.exists(save_im_path):
@@ -81,141 +77,111 @@ def perform_preprocessing(dataframe, params, logger=None):
         # Determine pixel spacing information from header; fallback if keys missing
         try:
             p = header.get('spacings')[:3]
-            header['spacings'] = params.desired_spacings
-        except Exception:
+        except Exception as e:
             p = np.array([header['space directions'][0, 0],
                           header['space directions'][1, 1],
                           header['space directions'][2, 2]])
-            header['space directions'] = np.array([[params.desired_spacings[0], 0, 0],
-                                                   [0, params.desired_spacings[1], 0],
-                                                   [0, 0, params.desired_spacings[2]]])
 
         img_size = np.array(V.shape)
 
         # --------- #
         # STEP 1: Apply low-pass filter to the 3D ultrasound image volume
         # --------- #
-        V = filter_3d_image(V)  # type: ignore
+        if params.preprocessing_.filter:
+            V = filter_3d_image(V, 
+                                params.preprocessing_.params.filter.filter_size, 
+                                params.preprocessing_.params.filter.reflect ) 
 
         # ----------  #
         # STEP 2: Interpolate image to desired spacing and size
         # ----------  #
 
-        image = sitk.GetImageFromArray(V)
-        image.SetSpacing(p)  # Set original spacing
+        if params.preprocessing_.bspline:
+            image = sitk.GetImageFromArray(V)
+            image.SetSpacing(p)  # Set original spacing
 
-        new_spacing = params.desired_spacings
-        original_size = image.GetSize()
-        new_size = params.desired_size
+            new_spacing = params.preprocessing_.params.bspline.spacing_
+            new_size = params.preprocessing_.params.bspline.size_
 
-        # Configure the resampler filter for image interpolation
-        resampler = sitk.ResampleImageFilter()
-        resampler.SetOutputSpacing(new_spacing)
-        resampler.SetSize(new_size)
-        resampler.SetInterpolator(sitk.sitkBSpline)
-        resampler.SetOutputDirection(image.GetDirection())
-        resampler.SetOutputOrigin(image.GetOrigin())
+            # Configure the resampler filter for image interpolation
+            resampler = sitk.ResampleImageFilter()
+            resampler.SetOutputSpacing(new_spacing)
+            resampler.SetSize(new_size)
+            resampler.SetInterpolator(sitk.sitkBSpline)
+            resampler.SetOutputDirection(image.GetDirection())
+            resampler.SetOutputOrigin(image.GetOrigin())
 
-        resampled_image = resampler.Execute(image)
-        V = sitk.GetArrayFromImage(resampled_image)
-        header['sizes'] = params.desired_size
+            resampled_image = resampler.Execute(image)
+            V = sitk.GetArrayFromImage(resampled_image)
+            header['sizes'] = params.preprocessing_.params.bspline.size_
 
-        p = params.desired_spacings
-        img_size = np.array(V.shape)
-
-        # ----------  #
-        # STEP 3: Downsampling (commented out; kept for reference)
-        # ----------  #
-        # (Downsampling logic is commented out in original code)
-
-        # Retrieve ground truth plane data from dictionary for current image
-        plane = dicto.get(name)
-        if plane is None:
-            logger.warning(f"Ground truth for {name} not found!")
-            # ct_not_found += 1
-            dataframe.loc[i, 'rot_found'] = False
-            continue
-        ct += 1
-
+            p = new_spacing
+            # Determine pixel spacing information from header; fallback if keys missing
+            try:
+                header['spacings'] = p
+            except Exception:
+                header['space directions'] = np.array([ [p[0], 0, 0],
+                                                        [0, p[1], 0],
+                                                        [0, 0, p[2]]
+                                                        ]
+                                                    )
+                
         # Convert landmarks from mm to pixel units
         L_in_pix = L_in_mm / p
 
-        # Reorient image and landmarks as per processing assumptions
-        V = np.transpose(V, (2, 1, 0))
-        L_in_pix = swap_xz_coordinates(L_in_pix)
-
-        # Assumption: Centers are in RAS coordinate system
-        center_gt_in_pix = np.array([-1 * plane["center"][0], -1 * plane["center"][1], plane["center"][2]]) / p
-
-        # ------- #
-        # STEP 4: Padding (commented out; kept for reference)
-        # ------- #
-        # (Padding code commented out in original code)
+        if params.preprocessing_.swap:
+            # Reorient image and landmarks as per processing assumptions
+            V = np.transpose(V, (2, 1, 0))
+            L_in_pix = swap_xz_coordinates(L_in_pix)
 
         # ------ -------------- #
         # STEP 5: Apply affine transformation to image and landmarks
         # ------ -------------- #
+        if params.preprocessing_.affine:
+            # Retrieve ground truth plane data from dictionary for current image
+            plane = dicto.get(name)
+            if plane is None:
+                logger.warning(f"Ground truth for {name} not found!")
+                # ct_not_found += 1
+                dataframe.loc[i, 'rot_found'] = False
+                continue
+            ct += 1
+            # Assumption: Centers are in RAS coordinate system
+            center_gt_in_pix = np.array([-1 * plane["center"][0], -1 * plane["center"][1], plane["center"][2]]) / p
+            img_size = np.array(V.shape).astype(np.float32)
+            # Compute translation vector for affine transform
+            translation_vector = (center_gt_in_pix - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
+            # Compute rotation matrix from plane parameters
+            rotation_3x3 = affine3Dmatrix(plane)
 
-        img_size = np.array(V.shape).astype(np.float32)
+            # Construct full 3x4 affine transformation matrix
+            transform_matrix = np.zeros((3, 4))
+            transform_matrix[:3, :3] = rotation_3x3
+            transform_matrix[:3, 3] = translation_vector
 
-        # Compute translation vector for affine transform
-        translation_vector = (center_gt_in_pix - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
+            # Apply affine transformation to the image volume
+            Vhat = grid_transform_3d(V.astype(np.float32), transform_matrix.astype(np.float32))
+            
+            if params.preprocessing_.swap:
+                Vhat = np.transpose(Vhat, (2, 1, 0))
+                L_in_pix = swap_xz_coordinates(L_in_pix)
 
-        # Compute rotation matrix from plane parameters
-        rotation_3x3 = affine3Dmatrix(plane)
+            L_in_pix_norm = (L_in_pix - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
+            inv_translation_vector = -1 * translation_vector
 
-        # Construct full 3x4 affine transformation matrix
-        transform_matrix = np.zeros((3, 4))
-        transform_matrix[:3, :3] = rotation_3x3
-        transform_matrix[:3, 3] = translation_vector
+            Lhat_in_pix_norm = affine_transform(L_in_pix_norm, np.linalg.inv(rotation_3x3), inv_translation_vector)
+            Lhat_in_pix = (Lhat_in_pix_norm / (2.0 / img_size).astype(np.float32)) + img_size / 2.0
+            V = Vhat.copy()
+            L_in_pix = Lhat_in_pix
 
-        # Apply affine transformation to the image volume
-        Vhat = grid_transform_3d(V.astype(np.float32), transform_matrix.astype(np.float32))
-        Vhat = np.transpose(Vhat, (2, 1, 0))
-
-        # Transform landmarks accordingly
-        L_in_pix = swap_xz_coordinates(L_in_pix)
-        L_in_pix_norm = (L_in_pix - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
-        inv_translation_vector = -1 * translation_vector
-
-        Lhat_in_pix_norm = affine_transform(L_in_pix_norm, np.linalg.inv(rotation_3x3), inv_translation_vector)
-        Lhat_in_pix = (Lhat_in_pix_norm / (2.0 / img_size).astype(np.float32)) + img_size / 2.0
-
+        if params.preprocessing_.gtpp:
+            Vhat, Lhat_in_pix = gtpp(V, L_in_pix)
+            # Save processed image and transformed landmarks
+            V = Vhat.copy()
+            L_in_pix = Lhat_in_pix
         # Save processed image and transformed landmarks
-        save_3d_image(Vhat, header, img_size, save_im_path)
-        save_transformed_landmarks(Lhat_in_pix * p, lmk, save_csv_path, save_lmk_path)
+        save_3d_image(V, header, img_size, save_im_path)
+        save_transformed_landmarks(L_in_pix * p, lmk, save_csv_path, save_lmk_path)
 
     logger.info("Number of images with missing csvs: %d", ct_not_found)
     dataframe.to_csv('tmp.csv')
-
-# def test_main():
-#     """
-#     Basic test function to validate perform_preprocessing() runs without errors on a sample dataset.
-#     """
-
-#     class Params:
-#         root = "/media/yusuf/HDD 4TB/Casos Mar"
-#         save_dir = "/media/yusuf/HDD 4TB/Rotated/Processed"
-#         desired_spacings = [1.0, 1.0, 1.0]
-#         desired_size = [128, 128, 128]
-
-#     test_root = Params.root
-#     os.makedirs(test_root, exist_ok=True)
-
-#     params = Params()
-
-#     dataframe = pd.read_csv("/media/yusuf/HDD 4TB/Rotated/Processed/sinfo_new_all.csv")
-#     # dataframe = dataframe[dataframe['landmark_antonia_found'] == True].reset_index(drop=True)
-#     # dataframe = dataframe[:50]  # Limit to 50 rows for testing
-
-#     print(f"Number of rows in dataframe: {len(dataframe)}")
-
-#     try:
-#         perform_preprocessing(dataframe, params)
-#         print("Test passed: main function executed without errors.")
-#     except Exception as e:
-#         print(f"Test failed: {str(e)}")
-
-
-# if __name__ == "__main__":
-#     test_main()

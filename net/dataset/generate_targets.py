@@ -29,11 +29,11 @@ def perform_generate(sinfo, exp_dir, params):
             start_time = time.time()  # Start timing
 
             # Load the 3D volume
-            image_path = os.path.join(params.sys + params.root, sinfo.loc[i, 'mscan'])
+            image_path = os.path.join(params.dataset_.sys + params.dataset_.root, sinfo.loc[i, 'mscan'])
             volume, header = extract_image(image_path)
 
             # Load the landmark file
-            landmark_path = os.path.join(params.sys + params.root, sinfo.loc[i, 'mcsv'])
+            landmark_path = os.path.join(params.dataset_.sys + params.dataset_.root, sinfo.loc[i, 'mcsv'])
             landmark_df = pd.read_csv(landmark_path)
 
             # Extract coordinates for the selected landmark

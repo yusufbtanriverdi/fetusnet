@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import imageio.v2 as imageio
-from cairosvg import svg2png
 from tqdm import tqdm
 from matplotlib.ticker import NullFormatter
 
@@ -127,8 +126,8 @@ def create_disc_figure(test_dl, w, save_dir='figures/'):
     svg_files = [f"tmp/{i}.svg" for i in range(len(Images))]
     frames = []
     for svg_path in svg_files:
-        png_bytes = svg2png(url=svg_path)
-        frames.append(imageio.imread(io.BytesIO(png_bytes)))
+        # png_bytes = svg2png(url=svg_path)
+        frames.append(imageio.imread(io.BytesIO(...)))
 
     gif_path = os.path.join(save_dir, f"disc_concept_w{w:.2f}.gif")
     imageio.mimsave(gif_path, frames, duration=0.1)

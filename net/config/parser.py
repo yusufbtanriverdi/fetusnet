@@ -2,6 +2,13 @@ import sys
 import yaml
 import ast
 from types import SimpleNamespace
+from utils import flatten_namespace_to_dict
+
+# Hide the top-level mode mappings from the main options list
+skipped_keys = ["train", "test", "prepare", "preprocess", "rotate", "presplit", "help", "generate", 
+                "script_conceptual", "script_stats", "script_ELA", "test_loaders", "test_pipe", 
+                "interactive_plot", "interactive_game"
+                ]
 
 # ==========================================
 # BASE STRUCTURE
@@ -50,17 +57,6 @@ def update_nested_namespace(ns, key_path, value_str):
         
     setattr(current, parts[-1], value)
 
-def flatten_namespace_to_dict(ns, prefix=""):
-    """Recursively flattens a namespace tree to help match keys against help.yaml."""
-    flat = {}
-    if isinstance(ns, SimpleNamespace):
-        for k, v in ns.__dict__.items():
-            new_prefix = f"{prefix}.{k}" if prefix else k
-            flat.update(flatten_namespace_to_dict(v, new_prefix))
-    else:
-        flat[prefix] = ns
-    return flat
-
 def print_custom_help(config_ns, help_ns):
     """Generates a clean help overview mapping parameters to descriptions."""
     print("\n" + "="*60)
@@ -74,11 +70,6 @@ def print_custom_help(config_ns, help_ns):
     flat_config = flatten_namespace_to_dict(config_ns)
     flat_help = flatten_namespace_to_dict(help_ns)
     
-    # Hide the top-level mode mappings from the main options list
-    skipped_keys = ["train", "test", "prepare", "preprocess", "rotate", "presplit", "help", "generate", 
-                    "script_conceptual", "script_stats", "script_ELA", "test_loaders", "test_pipe", 
-                    "interactive_plot", "interactive_game"]
-
     for key, current_val in flat_config.items():
         if key in skipped_keys:
             continue
@@ -135,7 +126,7 @@ def setup_config(default_path="net/config/default.yaml", help_path="net/config/h
         config.mode = resolved_mode
     
     # 5. Route to Help Terminal Screen if active mode is resolved as 'help'
-    if config.mode == "help":
+    if config.mode == "help" or config.mode not in skipped_keys:
         print_custom_help(config, help_cfg)
         sys.exit(0)
         

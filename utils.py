@@ -2,13 +2,40 @@ import datetime
 import os
 import wandb
 import json
+from types import SimpleNamespace
 
-def create_experiment_id(params, create_directory=True):
+def flatten_namespace_to_dict(ns, prefix=""):
+    """Recursively flattens a namespace tree to help match keys against help.yaml."""
+    flat = {}
+    if isinstance(ns, SimpleNamespace):
+        for k, v in ns.__dict__.items():
+            new_prefix = f"{prefix}.{k}" if prefix else k
+            flat.update(flatten_namespace_to_dict(v, new_prefix))
+    else:
+        flat[prefix] = ns
+    return flat
+
+def namespace_to_dict(ns):
+    """
+    Recursively converts a RecursiveNamespace (or SimpleNamespace) 
+    back into a standard nested dictionary.
+    """
+    if isinstance(ns, SimpleNamespace):
+        result = {}
+        for key, value in ns.__dict__.items():
+            result[key] = namespace_to_dict(value)
+        return result
+    elif isinstance(ns, list):
+        return [namespace_to_dict(item) for item in ns]
+    else:
+        return ns
+
+def create_experiment_id(prefix, create_directory=True):
     """
     Creates a unique experiment directory under runs/YYYY-MM-DD/, named as prefix + counter suffix.
     
     Args:
-        params: Object with attribute `prefix` (experiment base name).
+        prefix: Experiment base name.
         create_directory (bool): If True, creates the directory.
     
     Returns:
@@ -22,7 +49,7 @@ def create_experiment_id(params, create_directory=True):
     base_dir = os.path.join("runs", date_str)
     os.makedirs(base_dir, exist_ok=True)
 
-    base_experiment_name = params.prefix
+    base_experiment_name = prefix
     experiment_name = base_experiment_name
     experiment_dir = os.path.join(base_dir, experiment_name)
     counter = 1
@@ -108,7 +135,7 @@ def log_epoch_to_wandb(train_loss, val_loss, ep_scores, params, global_wandb_ste
 
 def update_dataframe(dataframe, params):
     # Construct full file paths by joining base paths with relative paths
-    paths = dataframe['mscan'].apply(lambda x: os.path.join(params.sys + params.root, x))
+    paths = dataframe['mscan'].apply(lambda x: os.path.join(params.dataset_.sys + params.dataset_.root, x))
 
     # Create a boolean mask for existing files
     mask = paths.apply(os.path.exists)
