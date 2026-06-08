@@ -156,7 +156,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import imageio.v2 as imageio
-from cairosvg import svg2png
 from tqdm import tqdm
 from matplotlib.ticker import NullFormatter
 
@@ -285,17 +284,17 @@ def create_disc_figure(w=2, save_dir='figures/', num_steps=128):
             # Force the plot box to be a perfect square to match imshow
             # ax.set_box_aspect(1)
         plt.tight_layout()
-        fig.savefig(f"tmp/{i}.svg", format='svg')
+        fig.savefig(f"tmp/{i}.png", format='png')
 
     # Create GIF
     os.makedirs(save_dir, exist_ok=True)
-    svg_files = [f"tmp/{i}.svg" for i in range(len(Images))]
+    png_files = [f"tmp/{i}.png" for i in range(len(Images))]
     frames = []
     
     print("Compiling GIF...")
-    for svg_path in tqdm(svg_files):
-        png_bytes = svg2png(url=svg_path)
-        frames.append(imageio.imread(io.BytesIO(png_bytes)))
+    for png_path in tqdm(png_files):
+        # png_bytes = svg2png(url=svg_path)
+        frames.append(imageio.imread(png_path, format='png'))
 
     gif_path = os.path.join(save_dir, f"disc_concept_w{w:.2f}.gif")
     imageio.mimsave(gif_path, frames, duration=0.1)
