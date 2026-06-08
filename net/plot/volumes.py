@@ -11,15 +11,6 @@ from trame.app import get_server
 from trame.widgets import vuetify3 as v
 from trame.ui.vuetify3 import SinglePageLayout
 
-def numpy_sigmoid(arr: np.ndarray) -> np.ndarray:
-    """Apply the sigmoid function element-wise to a 3D array."""
-    if not isinstance(arr, np.ndarray):
-        raise TypeError("Input must be a NumPy array.")
-    if arr.ndim != 3:
-        raise ValueError("Input must be a 3D NumPy array.")
-    return 1 / (1 + np.exp(-arr))
-
-
 def load_landmarks_as_point_cloud(csv_path: str):
     """Load lmk coordinates from CSV → PyVista point cloud + labels."""
     df = pd.read_csv(csv_path)
@@ -99,14 +90,18 @@ def perform_plot_3d(df, experiment_dir, params):
     
     # Replaced point_size with a physical 3D radius for the HTML export
     sphere_radius = 2.0 
+    # Calculate global min and max across both heatmaps to lock the color scale
+    # global_min = min(mesh_pred["heatmap"].min(), mesh_gt["heatmap"].min())
+    # global_max = max(mesh_pred["heatmap"].max(), mesh_gt["heatmap"].max())
+    global_clim = [0., 1.]    
 
     # Prediction subplot
     sargs = dict(
     title_font_size=20,
     label_font_size=20,
     shadow=False,
-    n_labels=10,
-    vertical=True, position_x=0.05, position_y=0.05
+    n_labels=9,
+    vertical=True, position_x=0.05, position_y=0.05,
     )
     cloud_proj = project_landmarks_to_surface(point_cloud, mesh_gt)
     cloud_pred = project_landmarks_to_surface(pred_points, mesh_pred)
@@ -116,7 +111,7 @@ def perform_plot_3d(df, experiment_dir, params):
     pl.subplot(0, 0)
     pl.add_title("Prediction")
     # pl.add_mesh(surf, color=True, show_edges=True)
-    pl.add_mesh(mesh_pred, scalars="heatmap", cmap="hot", show_scalar_bar=True, scalar_bar_args=sargs)
+    pl.add_mesh(mesh_pred, scalars="heatmap", cmap="hot", clim=global_clim, show_scalar_bar=True, scalar_bar_args=sargs)
     
     # Convert points to physical sphere glyphs so they render perfectly round in HTML
     pts_pred_match = cloud_pred.points[preds == lmk]
@@ -133,8 +128,7 @@ def perform_plot_3d(df, experiment_dir, params):
     pl.subplot(0, 1)
     pl.add_title("Ground Truth")
     # pl.add_mesh(surf, color=True, show_edges=True)
-    pl.add_mesh(mesh_gt, scalars="heatmap", cmap="hot", show_scalar_bar=True, scalar_bar_args=sargs)
-    
+    pl.add_mesh(mesh_gt, scalars="heatmap", cmap="hot", clim=global_clim, show_scalar_bar=True, scalar_bar_args=sargs)
     # Convert points to physical sphere glyphs so they render perfectly round in HTML
     pts_gt_other = cloud_proj.points[labels != lmk]
     if len(pts_gt_other) > 0:
@@ -146,8 +140,6 @@ def perform_plot_3d(df, experiment_dir, params):
         glyph_gt_match = pv.PolyData(pts_gt_match).glyph(geom=pv.Sphere(radius=sphere_radius), scale=False)
         pl.add_mesh(glyph_gt_match, color="blue")
         
-    # pl.add_points(max_point_pred, color="blue", point_size=point_size, render_points_as_spheres=True)
-
     pl.link_views()
     out_html = os.path.join(os.path.join(experiment_dir, 'eval'), f"{nsid}_{lmk}.html")
     pl.export_html(out_html)

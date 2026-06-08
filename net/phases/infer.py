@@ -174,7 +174,8 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                     
                     ### COMPUTE LOSS CURVES ###
                     output_heatmap_i = torch.nn.functional.sigmoid(output_heatmap[i]) # {!} Assuming batch size of 1 
-                    if show_figures and lmk in visibles and random.random() < 0.02:
+                    if show_figures and lmk in visibles and (random.random() < 0.02 or batch['name'][0]==10032620):
+                        print(batch['name'][0])
                         loss_params = kwargs['loss_params']
                         sse = SSELoss(**loss_params)
                         sce = SoftmaxCELoss(**loss_params)
@@ -197,10 +198,10 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                             ], 
                             coord_tensor=target_coord_tensor[i].cpu().numpy(), 
                             argmax_tensor=output_coord_tensor[i].cpu().numpy(),
-                            titles=[f"{lmk} Output (d_mean = {score:.2f})", 
+                            titles=[f"{lmk} Predicted (d_mean = {score:.2f})", 
                                     f"{lmk} Target",
                                     f"{lmk} Distance Matrix",
-                                    f"{lmk} SSE Map",
+                                    f"{lmk} Squared Errors Map",
                                     f"{lmk} Softmax CE Map",
                                     f"{lmk} Distance Penalty",
                                     ],

@@ -159,8 +159,6 @@ import imageio.v2 as imageio
 from cairosvg import svg2png
 from tqdm import tqdm
 from matplotlib.ticker import NullFormatter
-import pyvista as pv
-
 
 sns.set_style('whitegrid', {'font.family':'sans-serif', 'font.sans-serif': 'Verdana'})
 sns.set_theme('paper', 'whitegrid', font_scale=1.25, palette='husl')
