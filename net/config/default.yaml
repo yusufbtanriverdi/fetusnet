@@ -144,6 +144,7 @@ eval_:
   save_outputs: false
   save_targets: false
   progress_bar: false
+  show_figures: false
 
 wandb_:
   log: false
