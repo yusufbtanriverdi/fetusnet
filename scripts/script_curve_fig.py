@@ -5,10 +5,11 @@ import os
 from glob import glob
 import numpy as np
 import seaborn as sns
+
 sns.set_style('whitegrid', {'font.family':'sans-serif', 'font.sans-serif': 'Verdana'})
 sns.set_theme('paper', 'whitegrid', font_scale=1.25, palette='husl')
 
-def plot_aela_figure(radii, edrs, titles, dict, save_dir='average_expected_local_accuracy.png', show=False):
+def plot_aela_figure(radii, edrs, titles, dict, save_dir='ela.svg', show=False):
     """
     Plot the average expected local accuracy (AELA) figure.
 
@@ -40,7 +41,7 @@ def plot_aela_figure(radii, edrs, titles, dict, save_dir='average_expected_local
     plt.grid(True)
     
     if save_dir:
-        plt.savefig(save_dir)
+        plt.savefig(save_dir, format='svg')
 
     if show:
         plt.show()
@@ -89,8 +90,8 @@ if __name__ == '__main__':
     dict = {'kendall1': 'Softmax CE', 
             'kendall2_1': 'EMD Penalty (w=2)', 
             'kendall2_2': 'EMD Penalty (w=0.5)', 
-            'kendall3': 'Sum of Squared Errors', 
-            'kendall4_2': 'EMD-reg. Softmax CE (w=2)',
-            'kendall6': 'EMD-reg. Softmax CE (w=0.5)'
+            'kendall3': 'SSE', 
+            'kendall4_2': 'EMD-regularized (w=2)',
+            'kendall6': 'EMD-regularized (w=0.5)'
             }
     plot_aela_figure(radii, experiment_means.values(), experiment_means.keys(), dict, show=True)
