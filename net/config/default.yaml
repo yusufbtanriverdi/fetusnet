@@ -47,6 +47,7 @@ preprocessing_:
       spacing_: [1.0, 1.0, 1.0]
       size_: [128, 128, 128]
     gtpp:
+      checkpoint_name: ""
       model_dir: ""
       file_paths:
         data_dir: "/gpfs/projects/imva/Ultrasound_data"
@@ -58,9 +59,9 @@ preprocessing_:
           val_samples: ""
           test_samples: ""
         list_files:
-          train_list_file: "/train_list_ga.txt"
-          val_list_file: "/val_list_ga.txt"
-          test_list_file: "/test_list_ga.txt"
+          train: "/train_list_ga.txt"
+          val: "/val_list_ga.txt"
+          test: "/test_list_ga.txt"
       params:
         desired_size: [256, 256, 256]
         save_jpg: false

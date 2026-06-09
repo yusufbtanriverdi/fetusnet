@@ -32,156 +32,154 @@ def perform_preprocessing(dataframe, params, logger=None):
     ct = 0
     ct_not_found = 0
     dataframe.loc[:, 'csvfound'] = True
-    # Iterate over each file for processing
-    for i, filename in tqdm(enumerate(filenames), total=len(filenames)):
-        # Prepare file paths and identifiers from dataframe row
-        image_path = os.path.join(dataframe.loc[i, 'fscan'])
-        name = dataframe.loc[i, 'osid']
 
-        save_im_path = params.dataset_.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mscan']
-        save_csv_path = params.dataset_.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mcsv']
-        save_lmk_path = params.dataset_.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mlmk']
+    if params.preprocessing_.gtpp:
+        gtpp(params.preprocessing_.gtpp)
+    else: # Usual routine
+        # Iterate over each file for processing
+        for i, filename in tqdm(enumerate(filenames), total=len(filenames)):
+            # Prepare file paths and identifiers from dataframe row
+            image_path = os.path.join(dataframe.loc[i, 'fscan'])
+            name = dataframe.loc[i, 'osid']
+            
+            save_im_path = params.dataset_.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mscan']
+            save_csv_path = params.dataset_.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mcsv']
+            save_lmk_path = params.dataset_.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mlmk']
 
-        # Skip processing if image already exists
-        if os.path.exists(save_im_path):
-            # logger.info('Image seems to be processed already!!!')
-            # logger.info(filename)
-            continue
+            # Skip processing if image already exists
+            if os.path.exists(save_im_path):
+                # logger.info('Image seems to be processed already!!!')
+                # logger.info(filename)
+                continue
 
-        # Load ultrasound image volume and header metadata
-        V, header = extract_image(image_path)
-        V = np.array(V)
+            # Load ultrasound image volume and header metadata
+            V, header = extract_image(image_path)
+            V = np.array(V)
 
-        lmk_path = dataframe.loc[i, '_fcsv']
+            lmk_path = dataframe.loc[i, '_fcsv']
 
-        # Attempt to load landmarks CSV file
-        try:
-            lmk = pd.read_csv(lmk_path)
-        except Exception as e:
-            logger.error(str(e))
-            ct_not_found += 1
-            logger.warning(f"Could not load landmarks from {lmk_path} for {name}! Skipping!! Count: {ct_not_found}")
-            dataframe.loc[i, 'csvfound'] = False
-            continue
+            # Attempt to load landmarks CSV file
+            try:
+                lmk = pd.read_csv(lmk_path)
+            except Exception as e:
+                logger.error(str(e))
+                ct_not_found += 1
+                logger.warning(f"Could not load landmarks from {lmk_path} for {name}! Skipping!! Count: {ct_not_found}")
+                dataframe.loc[i, 'csvfound'] = False
+                continue
 
-        # Verify landmarks count
-        if len(lmk) != 19:
-            logger.warning('Something wrong!! Landmark count mismatch: %s', filename)
+            # Verify landmarks count
+            if len(lmk) != 19:
+                logger.warning('Something wrong!! Landmark count mismatch: %s', filename)
 
-        # Convert landmark points to matrix format in millimeters
-        L_in_mm = get_matrix_of_lmks(lmk)
+            # Convert landmark points to matrix format in millimeters
+            L_in_mm = get_matrix_of_lmks(lmk)
 
-        # Log header info for debugging
-        # logger.info(header)
+            # Log header info for debugging
+            # logger.info(header)
 
-        # Determine pixel spacing information from header; fallback if keys missing
-        try:
-            p = header.get('spacings')[:3]
-        except Exception as e:
-            p = np.array([header['space directions'][0, 0],
-                          header['space directions'][1, 1],
-                          header['space directions'][2, 2]])
-
-        img_size = np.array(V.shape)
-
-        # --------- #
-        # STEP 1: Apply low-pass filter to the 3D ultrasound image volume
-        # --------- #
-        if params.preprocessing_.filter:
-            V = filter_3d_image(V, 
-                                params.preprocessing_.params.filter.filter_size, 
-                                params.preprocessing_.params.filter.reflect ) 
-
-        # ----------  #
-        # STEP 2: Interpolate image to desired spacing and size
-        # ----------  #
-
-        if params.preprocessing_.bspline:
-            image = sitk.GetImageFromArray(V)
-            image.SetSpacing(p)  # Set original spacing
-
-            new_spacing = params.preprocessing_.params.bspline.spacing_
-            new_size = params.preprocessing_.params.bspline.size_
-
-            # Configure the resampler filter for image interpolation
-            resampler = sitk.ResampleImageFilter()
-            resampler.SetOutputSpacing(new_spacing)
-            resampler.SetSize(new_size)
-            resampler.SetInterpolator(sitk.sitkBSpline)
-            resampler.SetOutputDirection(image.GetDirection())
-            resampler.SetOutputOrigin(image.GetOrigin())
-
-            resampled_image = resampler.Execute(image)
-            V = sitk.GetArrayFromImage(resampled_image)
-            header['sizes'] = params.preprocessing_.params.bspline.size_
-
-            p = new_spacing
             # Determine pixel spacing information from header; fallback if keys missing
             try:
-                header['spacings'] = p
-            except Exception:
-                header['space directions'] = np.array([ [p[0], 0, 0],
-                                                        [0, p[1], 0],
-                                                        [0, 0, p[2]]
-                                                        ]
-                                                    )
-                
-        # Convert landmarks from mm to pixel units
-        L_in_pix = L_in_mm / p
+                p = header.get('spacings')[:3]
+            except Exception as e:
+                p = np.array([header['space directions'][0, 0],
+                            header['space directions'][1, 1],
+                            header['space directions'][2, 2]])
 
-        if params.preprocessing_.swap:
-            # Reorient image and landmarks as per processing assumptions
-            V = np.transpose(V, (2, 1, 0))
-            L_in_pix = swap_xz_coordinates(L_in_pix)
+            img_size = np.array(V.shape)
 
-        # ------ -------------- #
-        # STEP 5: Apply affine transformation to image and landmarks
-        # ------ -------------- #
-        if params.preprocessing_.affine:
-            # Retrieve ground truth plane data from dictionary for current image
-            plane = dicto.get(name)
-            if plane is None:
-                logger.warning(f"Ground truth for {name} not found!")
-                # ct_not_found += 1
-                dataframe.loc[i, 'rot_found'] = False
-                continue
-            ct += 1
-            # Assumption: Centers are in RAS coordinate system
-            center_gt_in_pix = np.array([-1 * plane["center"][0], -1 * plane["center"][1], plane["center"][2]]) / p
-            img_size = np.array(V.shape).astype(np.float32)
-            # Compute translation vector for affine transform
-            translation_vector = (center_gt_in_pix - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
-            # Compute rotation matrix from plane parameters
-            rotation_3x3 = affine3Dmatrix(plane)
+            # --------- #
+            # STEP 1: Apply low-pass filter to the 3D ultrasound image volume
+            # --------- #
+            if params.preprocessing_.filter:
+                V = filter_3d_image(V, 
+                                    params.preprocessing_.params.filter.filter_size, 
+                                    params.preprocessing_.params.filter.reflect ) 
 
-            # Construct full 3x4 affine transformation matrix
-            transform_matrix = np.zeros((3, 4))
-            transform_matrix[:3, :3] = rotation_3x3
-            transform_matrix[:3, 3] = translation_vector
+            # ----------  #
+            # STEP 2: Interpolate image to desired spacing and size
+            # ----------  #
 
-            # Apply affine transformation to the image volume
-            Vhat = grid_transform_3d(V.astype(np.float32), transform_matrix.astype(np.float32))
-            
+            if params.preprocessing_.bspline:
+                image = sitk.GetImageFromArray(V)
+                image.SetSpacing(p)  # Set original spacing
+
+                new_spacing = params.preprocessing_.params.bspline.spacing_
+                new_size = params.preprocessing_.params.bspline.size_
+
+                # Configure the resampler filter for image interpolation
+                resampler = sitk.ResampleImageFilter()
+                resampler.SetOutputSpacing(new_spacing)
+                resampler.SetSize(new_size)
+                resampler.SetInterpolator(sitk.sitkBSpline)
+                resampler.SetOutputDirection(image.GetDirection())
+                resampler.SetOutputOrigin(image.GetOrigin())
+
+                resampled_image = resampler.Execute(image)
+                V = sitk.GetArrayFromImage(resampled_image)
+                header['sizes'] = params.preprocessing_.params.bspline.size_
+
+                p = new_spacing
+                # Determine pixel spacing information from header; fallback if keys missing
+                try:
+                    header['spacings'] = p
+                except Exception:
+                    header['space directions'] = np.array([ [p[0], 0, 0],
+                                                            [0, p[1], 0],
+                                                            [0, 0, p[2]]
+                                                            ]
+                                                        )
+                    
+            # Convert landmarks from mm to pixel units
+            L_in_pix = L_in_mm / p
+
             if params.preprocessing_.swap:
-                Vhat = np.transpose(Vhat, (2, 1, 0))
+                # Reorient image and landmarks as per processing assumptions
+                V = np.transpose(V, (2, 1, 0))
                 L_in_pix = swap_xz_coordinates(L_in_pix)
 
-            L_in_pix_norm = (L_in_pix - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
-            inv_translation_vector = -1 * translation_vector
+            # ------ -------------- #
+            # STEP 5: Apply affine transformation to image and landmarks
+            # ------ -------------- #
+            if params.preprocessing_.affine:
+                # Retrieve ground truth plane data from dictionary for current image
+                plane = dicto.get(name)
+                if plane is None:
+                    logger.warning(f"Ground truth for {name} not found!")
+                    # ct_not_found += 1
+                    dataframe.loc[i, 'rot_found'] = False
+                    continue
+                ct += 1
+                # Assumption: Centers are in RAS coordinate system
+                center_gt_in_pix = np.array([-1 * plane["center"][0], -1 * plane["center"][1], plane["center"][2]]) / p
+                img_size = np.array(V.shape).astype(np.float32)
+                # Compute translation vector for affine transform
+                translation_vector = (center_gt_in_pix - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
+                # Compute rotation matrix from plane parameters
+                rotation_3x3 = affine3Dmatrix(plane)
 
-            Lhat_in_pix_norm = affine_transform(L_in_pix_norm, np.linalg.inv(rotation_3x3), inv_translation_vector)
-            Lhat_in_pix = (Lhat_in_pix_norm / (2.0 / img_size).astype(np.float32)) + img_size / 2.0
-            V = Vhat.copy()
-            L_in_pix = Lhat_in_pix
+                # Construct full 3x4 affine transformation matrix
+                transform_matrix = np.zeros((3, 4))
+                transform_matrix[:3, :3] = rotation_3x3
+                transform_matrix[:3, 3] = translation_vector
 
-        if params.preprocessing_.gtpp:
-            Vhat, Lhat_in_pix = gtpp(V, L_in_pix)
+                # Apply affine transformation to the image volume
+                Vhat = grid_transform_3d(V.astype(np.float32), transform_matrix.astype(np.float32))
+                
+                if params.preprocessing_.swap:
+                    Vhat = np.transpose(Vhat, (2, 1, 0))
+                    L_in_pix = swap_xz_coordinates(L_in_pix)
+
+                L_in_pix_norm = (L_in_pix - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
+                inv_translation_vector = -1 * translation_vector
+
+                Lhat_in_pix_norm = affine_transform(L_in_pix_norm, np.linalg.inv(rotation_3x3), inv_translation_vector)
+                Lhat_in_pix = (Lhat_in_pix_norm / (2.0 / img_size).astype(np.float32)) + img_size / 2.0
+                V = Vhat.copy()
+                L_in_pix = Lhat_in_pix
             # Save processed image and transformed landmarks
-            V = Vhat.copy()
-            L_in_pix = Lhat_in_pix
-        # Save processed image and transformed landmarks
-        save_3d_image(V, header, img_size, save_im_path)
-        save_transformed_landmarks(L_in_pix * p, lmk, save_csv_path, save_lmk_path)
+            save_3d_image(V, header, img_size, save_im_path)
+            save_transformed_landmarks(L_in_pix * p, lmk, save_csv_path, save_lmk_path)
 
-    logger.info("Number of images with missing csvs: %d", ct_not_found)
-    dataframe.to_csv('tmp.csv')
+        logger.info("Number of images with missing csvs: %d", ct_not_found)
+        dataframe.to_csv('tmp.csv')
