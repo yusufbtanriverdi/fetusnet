@@ -109,7 +109,7 @@ reproducibility_:
 
 train_:
   architecture: "resunet3d"
-  batch_size_train: 2
+  batch_size: 2
   epochs: 50
   optimizer: "adam"
   loss: ["softmaxce"]
@@ -117,12 +117,11 @@ train_:
   lambdas: [0.5]
   num_workers: 1
   progress_bar: false
-  resume: false
   rescale_inputs: true
   num_fts: 32
 
 val_:
-  batch_size_val: 1
+  batch_size: 1
   check_visibility: true
   detector: "argmax"
   progress_bar: false
@@ -132,12 +131,14 @@ val_:
 gaussian_heatmap_:
   alpha: 3
   eps: 1.0e-6
-  mask: false
   clip: false
+  mask: false
 
 eval_:
-  batch_size_test: 1
+  batch_size: 1
+  check_visibility: true
   use_model: "last"
+  detector: "argmax"
   radius_eval: 40
   radius_num: 40
   save_outputs: false

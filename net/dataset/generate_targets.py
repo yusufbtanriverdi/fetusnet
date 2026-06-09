@@ -17,7 +17,7 @@ def perform_generate(sinfo, exp_dir, params):
         exp_dir (str): Directory to save the generated targets.
         params (Namespace): Parameters including landmarks, test patients, and generation settings.
     """
-    for lmk in params.lmks:  # Iterate over the list of landmarks
+    for lmk in params.target_.lmks:  # Iterate over the list of landmarks
         # Determine the indices of the target patients
         if params.test_patients:
             target_idx = sinfo.index[sinfo['pid'].isin(params.test_patients)].tolist()

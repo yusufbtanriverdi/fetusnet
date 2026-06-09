@@ -101,7 +101,7 @@ def save_experiment_parameters(experiment_directory, experiment_id, params, date
     with open(log_file, "w") as log:
         json.dump(log_data, log, indent=4)
 
-def log_epoch_to_wandb(train_loss, val_loss, ep_scores, params, global_wandb_steps):
+def log_epoch_to_wandb(train_loss, val_loss, ep_scores, global_wandb_steps):
     """
     Logs training and validation losses along with landmark-specific metrics to Weights & Biases (wandb).
 
@@ -114,16 +114,13 @@ def log_epoch_to_wandb(train_loss, val_loss, ep_scores, params, global_wandb_ste
             - lmks (list): List of landmark identifiers.
         global_wandb_steps (dict): Dictionary tracking global step counters (e.g., {'epoch': int}).
     """
-    if not getattr(params, 'use_wandb', False):
-        return  # Do nothing if wandb is disabled
-
     # Log generic losses
     wandb.log({'epoc/val_loss': val_loss, 'epoc/epoch': global_wandb_steps['epoch']})
     wandb.log({'epoc/train_loss': train_loss, 'epoc/epoch': global_wandb_steps['epoch']})
     wandb.log({'epoc/dmean': ep_scores['dmean'].mean(), 'epoc/epoch': global_wandb_steps['epoch']})
 
     # Log per-landmark evaluation metrics
-    # for lmk in params.lmks:
+    # for lmk in params.target_.lmks:
     #     metric_name = f'dmean_{lmk}'
     #     if metric_name in ep_scores:
     #         wandb.log({f'epoc/{metric_name}': ep_scores[metric_name].mean(),

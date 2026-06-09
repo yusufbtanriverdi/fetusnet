@@ -34,39 +34,39 @@ def get_train_val_dl(splitted_dataframe, params, transformations):
     """
 
     g_cpu = torch.Generator()  # Create a generator for CUDA
-    g_cpu.manual_seed(params.base_seed)  # Set the seed for reproducibility
+    g_cpu.manual_seed(params.reproducibility_.generator_seed)  # Set the seed for reproducibility
 
     # Create training and validation datasets
     train_ds = MyDataset(
         splitted_dataframe[splitted_dataframe['set'] == 0].reset_index(drop=True), # Subset for training
         params.dataset_.sys + params.dataset_.root,                     # Root directory
-        (params.g_alpha, params.g_eps, params.g_clip, params.g_mask),                  # Additional parameters
-        params.lmks,                                          # Landmark information
+        (params.gaussian_heatmap_.alpha, params.gaussian_heatmap_.eps, params.gaussian_heatmap_.clip, params.gaussian_heatmap_.mask),                  # Additional parameters
+        params.target_.lmks,                                          # Landmark information
         transformations,                              # Preprocessing transformations
 
     )
     val_ds = MyDataset(
         splitted_dataframe[splitted_dataframe['set'] == 1].reset_index(drop=True),   # Subset for validation
         params.dataset_.sys + params.dataset_.root,                     # Root directory
-        (params.g_alpha, params.g_eps, params.g_clip, params.g_mask),                  # Additional parameters
-        params.lmks,                                          # Landmark information
+        (params.gaussian_heatmap_.alpha, params.gaussian_heatmap_.eps, params.gaussian_heatmap_.clip, params.gaussian_heatmap_.mask),                  # Additional parameters
+        params.target_.lmks,                                          # Landmark information
         transformations,                              # Preprocessing transformations
     )
 
     # Create DataLoaders for training and validation datasets
     train_dl = tio.SubjectsLoader(
         dataset=train_ds,
-        batch_size=params.batch_size_train,  # Batch size for training
+        batch_size=params.train_.batch_size,  # Batch size for training
         shuffle=True,                        # Shuffle training data
-        num_workers=params.num_workers,      # Number of worker threads
+        num_workers=params.train_.num_workers,      # Number of worker threads
         generator=g_cpu,                        # Use the generator for reproducibility
     )
 
     val_dl = tio.SubjectsLoader(
         dataset=val_ds,
-        batch_size=params.batch_size_val,   # Batch size for validation
+        batch_size=params.val_batch_size,   # Batch size for validation
         shuffle=False,                      # Do not shuffle validation data
-        num_workers=params.num_workers      # Number of worker threads
+        num_workers=1      # Number of worker threads
     )
 
     return train_dl, val_dl
@@ -101,8 +101,8 @@ def get_test_dl(splitted_dataframe, params, transformations):
     test_ds = MyDataset(
         splitted_dataframe[splitted_dataframe['set'] == 2].reset_index(drop=True), # Subset for test
         params.dataset_.sys + params.dataset_.root,                    # Root directory
-        (params.g_alpha, params.g_eps, params.g_clip, params.g_mask),                  # Additional parameters
-        params.lmks,                                         # Landmark information
+        (params.gaussian_heatmap_.alpha, params.gaussian_heatmap_.eps, params.gaussian_heatmap_.clip, params.gaussian_heatmap_.mask),                  # Additional parameters
+        params.target_.lmks,                                        # Landmark information
         transformations,                             # Preprocessing transformations
 
     )
@@ -110,9 +110,9 @@ def get_test_dl(splitted_dataframe, params, transformations):
     # Create DataLoader for the test dataset
     test_dl = tio.SubjectsLoader(
         dataset=test_ds,
-        batch_size=params.batch_size_test,  # Batch size for testing
+        batch_size=params.eval_.batch_size,  # Batch size for testing
         shuffle=False,                      # Do not shuffle test data
-        num_workers=params.num_workers,      # Number of worker threads
+        num_workers=1,      # Number of worker threads
     )
 
     return test_dl

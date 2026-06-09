@@ -74,8 +74,8 @@ def perform_plot_3d(df, experiment_dir, params):
     row = df.iloc[0] # for now
 
     nsid = row["nsid"]
-    if params.lmks[0] in row['lmks_array']:
-        lmk = params.lmks[0]
+    if params.target_.lmks[0] in row['lmks_array']:
+        lmk = params.target_.lmks[0]
         pass
     else:
         lmk = row["lmks_array"][0] # visibles? then loop 
@@ -169,8 +169,8 @@ def start_game_3d(df, experiment_dir, params):
     row = df.iloc[0] # for now
 
     nsid = row["nsid"]
-    if params.lmks[0] in row['lmks_array']:
-        lmk = params.lmks[0]
+    if params.target_.lmks[0] in row['lmks_array']:
+        lmk = params.target_.lmks[0]
         pass
     else:
         lmk = row["lmks_array"][0] # visibles? then loop 
@@ -317,8 +317,8 @@ def start_game_3d_local(df, experiment_dir, params):
     row = df.iloc[0] # for now
 
     nsid = row["nsid"]
-    if params.lmks[0] in row['lmks_array']:
-        lmk = params.lmks[0]
+    if params.target_.lmks[0] in row['lmks_array']:
+        lmk = params.target_.lmks[0]
         pass
     else:
         lmk = row["lmks_array"][0] # visibles? then loop 
