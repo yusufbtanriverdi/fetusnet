@@ -38,14 +38,15 @@ def perform_preprocessing(dataframe, params, logger=None):
         image_path = os.path.join(dataframe.loc[i, 'fscan'])
         name = dataframe.loc[i, 'osid']
 
-        save_im_path = params.dataset_.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mscan']
-        save_csv_path = params.dataset_.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mcsv']
-        save_lmk_path = params.dataset_.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mlmk']
+        save_im_path = params.dataset_.sys + params.preprocessing_.save_dir + '/' + dataframe.loc[i, 'mscan']
+        save_csv_path = params.dataset_.sys + params.preprocessing_.save_dir + '/' + dataframe.loc[i, 'mcsv']
+        save_lmk_path = params.dataset_.sys + params.preprocessing_.save_dir + '/' + dataframe.loc[i, 'mlmk']
 
         # Skip processing if image already exists
         if os.path.exists(save_im_path):
+            
             # logger.info('Image seems to be processed already!!!')
-            # logger.info(filename)
+            # logger.info(save_im_path)
             continue
 
         # Load ultrasound image volume and header metadata
@@ -90,7 +91,7 @@ def perform_preprocessing(dataframe, params, logger=None):
         if params.preprocessing_.filter:
             V = filter_3d_image(V, 
                                 params.preprocessing_.params.filter.filter_size, 
-                                params.preprocessing_.params.filter.reflect ) 
+                                params.preprocessing_.params.filter.mode ) 
 
         # ----------  #
         # STEP 2: Interpolate image to desired spacing and size

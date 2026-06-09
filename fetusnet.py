@@ -134,7 +134,7 @@ logger.info(f"System path set to: {params.dataset_.sys}")
 logger.info(f"Device set to: {params.device}")
 logger.info("Searching for master dataframe in system+dataset_root... \n If you did not prepare such dataframe or you think it misses some samples, please re-run this script in prepare mode and specify datasets")
 
-# TODO: Test this mode.
+# Semi-tested.
 if params.mode == 'prepare':
     main_dataframe_path = perform_prepare(params) # Create info frames
 
@@ -152,6 +152,7 @@ if params.mode == 'presplit':
 # TODO: Test rotate, no rotate.
 # TODO: Build pipe for standardization.
 # Rotate/alignment step
+print(params.preprocessing_)
 if params.mode == 'preprocess':
     perform_preprocessing(main_dataframe, params, logger)
 
@@ -223,7 +224,6 @@ if params.mode == 'train':
     model, criteria, optimizer, multi_noise_loss, _ = get_fresh_model(params)
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     epoch = 0
-    exit()
     if params.resume:
         experiment_dir = params.checkpoint_
         model_dir = experiment_dir + '/' + params.eval_.use_model + '.pt'
