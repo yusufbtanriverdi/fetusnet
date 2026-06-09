@@ -47,21 +47,15 @@ preprocessing_:
       spacing_: [1.0, 1.0, 1.0]
       size_: [128, 128, 128]
     gtpp:
-      checkpoint_name: ""
-      model_dir: ""
+      checkpoint_name: "best_model_514"
+      model_dir: "net/dataset/utility/gtpp/checkpoints/"
       file_paths:
-        data_dir: "/gpfs/projects/imva/Ultrasound_data"
-        ddir: "/gpfs/projects/imva/Ultrasound_data/Pre_process_ST_s256_yusuf/"
-        label_dir: "/New_allplanes.txt"
-        out_dir_pre_pross: "/gpfs/projects/imva/Ultrasound_data/Pre_process_ST_s256_yusuf/"
-        samples:
-          train_samples: ""
-          val_samples: ""
-          test_samples: ""
+        data_dir: "/media/yusuf/HDD 4TB/"
+        ddir: "/media/yusuf/HDD 4TB/DATA3/test/Pre_process_ST_s256_yusuf/"
+        label_dir: "temp/all_planes.txt"
+        out_dir_pre_pross: "/media/yusuf/HDD 4TB/DATA3/test/Pre_process_ST_s256_yusuf/"
         list_files:
-          train: "/train_list_ga.txt"
-          val: "/val_list_ga.txt"
-          test: "/test_list_ga.txt"
+          test: "temp/test_list_ga.txt"
       params:
         desired_size: [256, 256, 256]
         save_jpg: false

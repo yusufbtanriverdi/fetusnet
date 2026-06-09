@@ -25,16 +25,22 @@ def perform_preprocessing(dataframe, params, logger=None):
         logger = logging.getLogger('my_project_logger') 
     # Extract all filenames from the dataframe for processing
     filenames = list(dataframe['fcaso'].values)
+    filedirs = list(dataframe['fscan'].values)
 
     # Load ground truth data for standard planes from JSON file
     dicto = json.loads(get_file_list('doc/info//gt.txt')[0])
-
+    filedirs_ = []
+    for filedir in filedirs:
+        parts = filedir.strip('/').split('/')
+        filedirs_.append('/'.join(parts[3:]))
     ct = 0
     ct_not_found = 0
     dataframe.loc[:, 'csvfound'] = True
-
+    txt_path = os.path.join(params.preprocessing_.params.gtpp.file_paths.list_files.test)
+    with open(txt_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(map(str, filedirs_)))
     if params.preprocessing_.gtpp:
-        gtpp(params.preprocessing_.gtpp)
+        gtpp(params.preprocessing_.params.gtpp)
     else: # Usual routine
         # Iterate over each file for processing
         for i, filename in tqdm(enumerate(filenames), total=len(filenames)):

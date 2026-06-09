@@ -152,7 +152,6 @@ if params.mode == 'presplit':
 # TODO: Test rotate, no rotate.
 # TODO: Build pipe for standardization.
 # Rotate/alignment step
-print(params.preprocessing_)
 if params.mode == 'preprocess':
     perform_preprocessing(main_dataframe, params, logger)
 

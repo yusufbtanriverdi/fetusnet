@@ -23,9 +23,9 @@ import nrrd
 import gc
 
 from net.dataset.utility.gtpp.dataloaders.torch_dataloader import Create_Ultrasound_loader, US_3D_dataset_fast
-from pytorch3d.transforms import matrix_to_quaternion, euler_angles_to_matrix, quaternion_to_matrix
 from net.dataset.utility.gtpp.utils.SonoNet import SonoNet
 from net.dataset.utility.gtpp.utils import slicer_to_torch_transform
+from net.dataset.utility.gtpp.utils.pytorch3d import euler_angles_to_matrix, quaternion_to_matrix
 import json
 
 torch.cuda.empty_cache()
@@ -93,18 +93,18 @@ def get_slices(config, image, rot, trans, factor=1):
   
 def gtpp(config):
     # DATALOADING AND GROUND TRUTH PLANE DEFINITION    
-    prefix= 'test'
+    prefix= 'test_yusuf'
     print(prefix)
     Create_Ultrasound_loader(config.file_paths.list_files.test, 
                              config.file_paths.data_dir, 
                              config.file_paths.label_dir, 
                              config.file_paths.out_dir_pre_pross, 
                              config.params.desired_size, prefix, 
-                             nSamples=5, transform=True, 
+                             nSamples=None, transform=True, 
                              downsample= config.params.downsampling_factor)
     testset = US_3D_dataset_fast(prefix, 
                                  config.file_paths.out_dir_pre_pross, 
-                                 scan_transform=None, nSamples=5)                                  
+                                 scan_transform=None, nSamples=None)                                  
                                    
     testLoader = DataLoader(testset, batch_size=1, shuffle=False, drop_last=False)
 
@@ -123,8 +123,8 @@ def gtpp(config):
     #summary(model, (config.batch_size ,config.input_plane, config.desired_size[0], config.desired_size[1]))
     names_planes = ["sagittal","coronal","axial"]
     print(prefix)
-    name_out_dir = prefix + "_it_"+ str(config.test_it) + '_out/' 
-    if config.int_rad:
+    name_out_dir = prefix + "_it_"+ str(config.params.test_it) + '_out/' 
+    if config.params.int_rad:
         name_out_dir = 'random_ini_' + name_out_dir
     if not os.path.isdir(config.model_dir + name_out_dir):
         os.makedirs(config.model_dir + name_out_dir)
