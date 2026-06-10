@@ -183,5 +183,4 @@ configs
 tmp.*
 testOnCasosMarReally.csv
 assets/_*
-net/dataset/utility/gtpp/*
 temp/
