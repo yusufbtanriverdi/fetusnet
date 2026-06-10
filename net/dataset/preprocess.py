@@ -40,7 +40,7 @@ def perform_preprocessing(dataframe, params, logger=None):
     with open(txt_path, "w", encoding="utf-8") as f:
         f.write("\n".join(map(str, filedirs_)))
     if params.preprocessing_.gtpp:
-        gtpp(params.preprocessing_.params.gtpp)
+        gtpp(dataframe, params.preprocessing_.params.gtpp)
     else: # Usual routine
         # Iterate over each file for processing
         for i, filename in tqdm(enumerate(filenames), total=len(filenames)):
@@ -139,11 +139,6 @@ def perform_preprocessing(dataframe, params, logger=None):
                     
             # Convert landmarks from mm to pixel units
             L_in_pix = L_in_mm / p
-
-            if params.preprocessing_.swap:
-                # Reorient image and landmarks as per processing assumptions
-                V = np.transpose(V, (2, 1, 0))
-                L_in_pix = swap_xz_coordinates(L_in_pix)
 
             # ------ -------------- #
             # STEP 5: Apply affine transformation to image and landmarks

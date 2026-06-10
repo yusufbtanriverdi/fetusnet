@@ -51,16 +51,17 @@ preprocessing_:
       model_dir: "net/dataset/utility/gtpp/checkpoints/"
       file_paths:
         data_dir: "/media/yusuf/HDD 4TB/"
-        ddir: "/media/yusuf/HDD 4TB/DATA3/test/Pre_process_ST_s256_yusuf/"
-        label_dir: "temp/all_planes.txt"
-        out_dir_pre_pross: "/media/yusuf/HDD 4TB/DATA3/test/Pre_process_ST_s256_yusuf/"
+        ddir: "/media/yusuf/HDD 4TB/DATA3/Preprocess_256/"
+        label_dir: "doc/info/gt.txt"
+        out_dir_pre_pross: "/media/yusuf/HDD 4TB/DATA3/Pre_process_ST_s256/"
         list_files:
           test: "temp/test_list_ga.txt"
       params:
         desired_size: [256, 256, 256]
         save_jpg: false
-        save_nrrd: false
+        save_nrrd: true
         downsampling_factor: 2
+        num_samples: 5
         spacing: 0.3
         permute: true
         input_plane: 3

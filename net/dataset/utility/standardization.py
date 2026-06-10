@@ -27,6 +27,8 @@ from net.dataset.utility.gtpp.utils.SonoNet import SonoNet
 from net.dataset.utility.gtpp.utils import slicer_to_torch_transform
 from net.dataset.utility.gtpp.utils.pytorch3d import euler_angles_to_matrix, quaternion_to_matrix
 import json
+from net.dataset.utility.rotation import affine_transform, swap_xz_coordinates
+
 
 torch.cuda.empty_cache()
 torch.pi = torch.acos(torch.zeros(1)).item() * 2
@@ -91,20 +93,33 @@ def get_slices(config, image, rot, trans, factor=1):
     
     return slices, image_i[:,0,:,:,:] 
   
-def gtpp(config):
+def get_coords(config, coord, rot, trans, factor=1):
+    coord, rot, trans = coord[0].cpu().detach().numpy(), rot[0].cpu().detach().numpy(), trans.cpu().detach().numpy()
+    # coord = swap_xz_coordinates(coord)
+    img_size = np.array(config.params.desired_size)/factor
+    L_in_pix_norm = (coord - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
+    print(rot, trans)
+    inv_translation_vector = -1 * trans
+    Lhat_in_pix_norm = affine_transform(L_in_pix_norm, rot, trans)
+    Lhat_in_pix = (Lhat_in_pix_norm / (2.0 / img_size).astype(np.float32)) + img_size / 2.0
+    return Lhat_in_pix
+
+def gtpp(dataframe, config):
     # DATALOADING AND GROUND TRUTH PLANE DEFINITION    
-    prefix= 'test_yusuf'
-    print(prefix)
-    Create_Ultrasound_loader(config.file_paths.list_files.test, 
+    prefix= 'test'
+    Create_Ultrasound_loader(dataframe,
+                             config.file_paths.list_files.test, 
                              config.file_paths.data_dir, 
                              config.file_paths.label_dir, 
                              config.file_paths.out_dir_pre_pross, 
                              config.params.desired_size, prefix, 
-                             nSamples=None, transform=True, 
+                             nSamples=config.params.num_samples, 
+                             transform=True, 
                              downsample= config.params.downsampling_factor)
     testset = US_3D_dataset_fast(prefix, 
                                  config.file_paths.out_dir_pre_pross, 
-                                 scan_transform=None, nSamples=None)                                  
+                                 scan_transform=None, 
+                                 nSamples=config.params.num_samples,)                                  
                                    
     testLoader = DataLoader(testset, batch_size=1, shuffle=False, drop_last=False)
 
@@ -126,11 +141,11 @@ def gtpp(config):
     name_out_dir = prefix + "_it_"+ str(config.params.test_it) + '_out/' 
     if config.params.int_rad:
         name_out_dir = 'random_ini_' + name_out_dir
-    if not os.path.isdir(config.model_dir + name_out_dir):
-        os.makedirs(config.model_dir + name_out_dir)
-        os.makedirs(config.model_dir + name_out_dir+ names_planes[0]+'/')
-        os.makedirs(config.model_dir + name_out_dir+ names_planes[1]+'/')
-        os.makedirs(config.model_dir + name_out_dir + names_planes[2]+'/')
+    if not os.path.isdir(config.file_paths.ddir + name_out_dir):
+        os.makedirs(config.file_paths.ddir + name_out_dir)
+        os.makedirs(config.file_paths.ddir + name_out_dir+ names_planes[0]+'/')
+        os.makedirs(config.file_paths.ddir + name_out_dir+ names_planes[1]+'/')
+        os.makedirs(config.file_paths.ddir + name_out_dir + names_planes[2]+'/')
         print('dir created')    
     if config.params.resume:
         # Resume previous training
@@ -151,7 +166,7 @@ def gtpp(config):
     allplanes={}
     # Disable gradient computation and reduce memory consumption.
     with torch.no_grad():
-          for filenames,images_res, slices_gt, trans_gt, rots_gt, mat_gt in testLoader:
+          for filenames,images_res, coords, pix_dim, slices_gt, trans_gt, rots_gt, mat_gt in testLoader:
                 name = str(filenames)
                 filenames_new = name.replace("'", "")
                 filenames_new = filenames_new.replace("(", "")
@@ -210,9 +225,11 @@ def gtpp(config):
                     #  Rotations accumulated in one go    
                     t_current = torch.bmm(R, ytr_es.unsqueeze(2))
                     T = T + t_current[:,:,0]
-                    R = torch.bmm(R,rot) 
+                    R = torch.bmm(R,rot)
                     slices_in,_ = get_slices(config,images,R,T,factor=factor_d)
-
+                    print(images.shape)
+                    lmk_rot = get_coords(config, coords.to(device), R, T, factor=factor_d)
+                    lmk_rot_in_mm = lmk_rot * pix_dim.cpu().detach().numpy()
                 if config.params.save_jpg:   
                     for k in range(config.params.input_plane):
                         # Extract the grayscale tensor (assuming slices_in is already a tensor)
@@ -232,10 +249,16 @@ def gtpp(config):
                     if config.params.int_rad:
                         filenames_new = filenames_new + '_rand_init_'
                         _ ,images = get_slices(config, images,rot_in,tran_in, factor=factor_d)
-    
-                    nrrd.write(config.model_dir + name_out_dir+'standarized_' + filenames_new + '.nrrd',image_final.detach().numpy(), index_order='C')
-                    
-                    nrrd.write(config.model_dir + name_out_dir +'original_' + filenames_new + '.nrrd',images.detach().numpy(), index_order='C')
+
+                    save_here = config.file_paths.ddir + name_out_dir + 'S' + filenames_new + '.nrrd'  
+                    if not os.path.exists(save_here): 
+                        nrrd.write(save_here,image_final.detach().numpy(), index_order='C')
+                        nrrd.write(config.file_paths.ddir + name_out_dir +'original_' + filenames_new + '.nrrd',images.detach().numpy(), index_order='C')
+                
+                save_lmk_here = config.file_paths.ddir + name_out_dir + 'S' + filenames_new + '.fcsv'
+                save_csv_here = config.file_paths.ddir + name_out_dir + 'S' + filenames_new + '.csv'
+
+                slicer_to_torch_transform.save_transformed_landmarks_gtpp(lmk_rot_in_mm, save_csv_here, save_lmk_here)
                 #Dictionary
                 info={'name':filenames_new,'R':R.cpu().numpy().tolist(),'t':T.cpu().numpy().tolist()}
                 allplanes.update({filenames_new:info})
@@ -243,5 +266,5 @@ def gtpp(config):
                 del img_val_saggital, img_val_axial, img_val_coronal
                 gc.collect()
                                   
-    with open(''.join((config.model_dir + name_out_dir + config.dic_name +"_allplanes_inference.txt")), "w") as fp:
+    with open(''.join((config.file_paths.ddir + name_out_dir + config.dic_name +"_allplanes_inference.txt")), "w") as fp:
         json.dump(allplanes,fp) 
