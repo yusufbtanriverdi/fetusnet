@@ -51,7 +51,7 @@ preprocessing_:
       model_dir: "net/dataset/utility/gtpp/checkpoints/"
       file_paths:
         data_dir: "/media/yusuf/HDD 4TB/"
-        ddir: "/media/yusuf/HDD 4TB/DATA3/Preprocess_256/"
+        ddir: "/media/yusuf/HDD 4TB/DATA3/Pre_process_ST_s256/"
         label_dir: "doc/info/gt.txt"
         out_dir_pre_pross: "/media/yusuf/HDD 4TB/DATA3/Pre_process_ST_s256/"
         list_files:

@@ -98,9 +98,8 @@ def get_coords(config, coord, rot, trans, factor=1):
     coord = swap_xz_coordinates(coord)
     img_size = np.array(config.params.desired_size)/factor
     L_in_pix_norm = (coord - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
-    print(rot, trans)
     inv_trans = -1 * trans
-    Lhat_in_pix_norm = affine_transform(L_in_pix_norm, np.linalg.inv(rot), inv_trans)
+    Lhat_in_pix_norm = affine_transform(L_in_pix_norm, rot, trans)
     Lhat_in_pix = (Lhat_in_pix_norm / (2.0 / img_size).astype(np.float32)) + img_size / 2.0
     return Lhat_in_pix
 
@@ -226,10 +225,13 @@ def gtpp(dataframe, config):
                     t_current = torch.bmm(R, ytr_es.unsqueeze(2))
                     T = T + t_current[:,:,0]
                     R = torch.bmm(R,rot)
+                    R[0] = torch.linalg.inv(R[0])
+                    T = -1 * T     
                     slices_in,_ = get_slices(config,images,R,T,factor=factor_d)
-                    print(images.shape)
-                    lmk_rot = get_coords(config, coords.to(device), R, T, factor=factor_d)
-                    lmk_rot_in_mm = lmk_rot * pix_dim.cpu().detach().numpy()
+
+                lmk_rot = get_coords(config, coords.to(device), R, T, factor=factor_d)
+                lmk_rot_in_mm = lmk_rot * pix_dim.cpu().detach().numpy()
+
                 if config.params.save_jpg:   
                     for k in range(config.params.input_plane):
                         # Extract the grayscale tensor (assuming slices_in is already a tensor)
@@ -243,17 +245,18 @@ def gtpp(dataframe, config):
                         save_name =  config.model_dir + name_out_dir +names_planes[k]+'/'+ filenames_new + '_' + names_planes[k]+'.jpg'
                         # Save the grayscale image
                         vutils.save_image(rotated_image, save_name)
-                                                         
+                                    
                 slices_in,image_final = get_slices(config,images_res,R,T)
+
                 if config.params.save_nrrd:
                     if config.params.int_rad:
                         filenames_new = filenames_new + '_rand_init_'
                         _ ,images = get_slices(config, images,rot_in,tran_in, factor=factor_d)
 
                     save_here = config.file_paths.ddir + name_out_dir + 'S' + filenames_new + '.nrrd'  
-                    if not os.path.exists(save_here): 
-                        nrrd.write(save_here,image_final.detach().numpy(), index_order='C')
-                        nrrd.write(config.file_paths.ddir + name_out_dir +'original_' + filenames_new + '.nrrd',images.detach().numpy(), index_order='C')
+                    #if not os.path.exists(save_here): 
+                    nrrd.write(save_here,image_final.detach().numpy(), index_order='C')
+                    nrrd.write(config.file_paths.ddir + name_out_dir +'original_' + filenames_new + '.nrrd',images.detach().numpy(), index_order='C')
                 
                 save_lmk_here = config.file_paths.ddir + name_out_dir + 'S' + filenames_new + '.fcsv'
                 save_csv_here = config.file_paths.ddir + name_out_dir + 'S' + filenames_new + '.csv'
