@@ -95,12 +95,12 @@ def get_slices(config, image, rot, trans, factor=1):
   
 def get_coords(config, coord, rot, trans, factor=1):
     coord, rot, trans = coord[0].cpu().detach().numpy(), rot[0].cpu().detach().numpy(), trans.cpu().detach().numpy()
-    # coord = swap_xz_coordinates(coord)
+    coord = swap_xz_coordinates(coord)
     img_size = np.array(config.params.desired_size)/factor
     L_in_pix_norm = (coord - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
     print(rot, trans)
-    inv_translation_vector = -1 * trans
-    Lhat_in_pix_norm = affine_transform(L_in_pix_norm, rot, trans)
+    inv_trans = -1 * trans
+    Lhat_in_pix_norm = affine_transform(L_in_pix_norm, np.linalg.inv(rot), inv_trans)
     Lhat_in_pix = (Lhat_in_pix_norm / (2.0 / img_size).astype(np.float32)) + img_size / 2.0
     return Lhat_in_pix
 

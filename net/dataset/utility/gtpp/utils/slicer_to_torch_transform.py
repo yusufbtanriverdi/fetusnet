@@ -5,7 +5,7 @@ import nrrd
 import pandas as pd
 from net.dataset.utility.gtpp.utils.pytorch3d import matrix_to_quaternion
 
-lmk_list=[
+LMK_LIST=[
 "exR",
 "enR",
 "n",
@@ -124,7 +124,7 @@ def save_transformed_landmarks_gtpp(Lhat, output_csv_path, output_fscv_path):
     Lhat_df = pd.DataFrame(columns=["","x","y","z","ow","ox","oy","oz","vis","sel","lock","label","desc","associatedNodeID"])
     for idx in range(19):
         Lhat_df.loc[idx, ['x', 'y', 'z']] = Lhat[idx, :]
-        Lhat_df.loc[idx, ['vis', 'label']] = 1, lmk_list[idx]
+        Lhat_df.loc[idx, ['vis', 'lock', 'label']] = 1, 1, LMK_LIST[idx]
     # Save CSV file
     Lhat_df.to_csv(output_csv_path, index=False)
 
