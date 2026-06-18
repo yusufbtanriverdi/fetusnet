@@ -36,9 +36,9 @@ def perform_preprocessing(dataframe, params, logger=None):
     ct = 0
     ct_not_found = 0
     dataframe.loc[:, 'csvfound'] = True
-    txt_path = os.path.join(params.preprocessing_.params.gtpp.file_paths.list_files.test)
-    with open(txt_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(map(str, filedirs_)))
+    # txt_path = os.path.join(params.preprocessing_.params.gtpp.file_paths.list_files.test)
+    # with open(txt_path, "w", encoding="utf-8") as f:
+    #     f.write("\n".join(map(str, filedirs_)))
     if params.preprocessing_.gtpp:
         gtpp(dataframe, params.preprocessing_.params.gtpp)
     else: # Usual routine

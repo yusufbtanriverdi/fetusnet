@@ -178,7 +178,6 @@ def gtpp(dataframe, config):
                 else:
                     images = images_res
                     factor_d = 1
-                
                 filenames_list.append(filenames)
                 img_val_saggital = []
                 img_val_coronal = []

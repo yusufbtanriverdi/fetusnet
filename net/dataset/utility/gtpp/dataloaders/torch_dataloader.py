@@ -258,7 +258,7 @@ class US_3D_dataset_fast(Dataset):
         print(filename)
         # DATA AUGMENTATION TRANSFORMATION 
         if self.scan_transform:
-            print('Appling trasnform \n')
+            print('Applying transform \n')
             image = self.scan_transform(image)
             slices_t = slicer_to_torch_transform.affine_transform(image.unsqueeze(0), mat_gt.unsqueeze(0)) 
               
