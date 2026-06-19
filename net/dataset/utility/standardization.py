@@ -11,7 +11,6 @@
 #
 # ==============================================================================
 
-
 import torch 
 import os
 import numpy as np
@@ -24,11 +23,9 @@ import gc
 
 from net.dataset.utility.gtpp.dataloaders.torch_dataloader import Create_Ultrasound_loader, US_3D_dataset_fast
 from net.dataset.utility.gtpp.utils.SonoNet import SonoNet
-from net.dataset.utility.gtpp.utils import slicer_to_torch_transform
+from net.dataset.utility.gtpp.utils import utils
 from net.dataset.utility.gtpp.utils.pytorch3d import euler_angles_to_matrix, quaternion_to_matrix
 import json
-from net.dataset.utility.rotation import affine_transform, swap_xz_coordinates
-
 
 torch.cuda.empty_cache()
 torch.pi = torch.acos(torch.zeros(1)).item() * 2
@@ -36,72 +33,6 @@ trans_frac = 0.0/4                            # Percentage of middle volume to s
 max_euler = [(0.0)*torch.pi,              # Maximum range to sample the three Euler angles in radians for plane orientation.
                 (0.0)*torch.pi,
                 (0.0)*torch.pi]
-
-def sample_euler_angles_fix_range(num, max_angle1=torch.pi, max_angle2=torch.pi/2.0, max_angle3=torch.pi,seed=None):
-    """Uniform random sampling of Euler angles with restricted range. Sample angles between [-max_angle1, max_angle1]
-
-    Args:
-    num: number of random samples
-    max_angle1, max_angle2, max_angle3: maximum positive angle to sample from. Possible values are [0, pi], [0, pi/2] and [0, pi]
-    Using max_angle1=pi, max_angle2=pi/2, max_angle3=pi cover the whole rotation sphere once.
-
-    Returns:
-    angles: Euler angles (Roll-Pitch-Yaw) [num, 3]
-
-    """
-    
-    if seed is not None:
-        gen = torch.torch.Generator()
-        gen.manual_seed(seed)
-    else:
-        gen= None
-    angles = torch.zeros(num,3)   
-    angle1 = 2 * max_angle1 * torch.rand(num, generator=gen) - max_angle1
-    a = torch.cos(torch.tensor(torch.pi/2.0 - max_angle2))
-    angle2 = torch.arccos((1-2*torch.rand(num, generator=gen)) * a) - torch.pi/2.0
-    angle3 = 2 * max_angle3 * torch.rand(num, generator=gen) - max_angle3
-    angles[:,0] = angle1
-    angles[:,1] = angle2
-    angles[:,2] = angle3
-    
-    return angles
-            
-def get_slices(config, image, rot, trans, factor=1):
-    desi_s = np.array(config.params.desired_size)/factor
-    batch_size = rot.shape[0]
-    
-    mat_rot = torch.zeros(batch_size, 3, 4)
-    mat_rot[:,:, :3] = rot
-    mat_rot[:,:,3] = trans
-    
-    
-    # Translate image 
-    image_i = slicer_to_torch_transform.affine_transform(image, mat_rot)
-    
-    # Center image is the standard plane 
-    c_idx = (np.array(desi_s)/2)+1
-    
-    slices = torch.zeros(batch_size,3,int(desi_s[0]),int(desi_s[1]))
-    
-    # Input slices to the network
-    slices[:,0,:,:] = image_i[:,0,:,:,int(c_idx[2])]
-    slices[:,1,:,:] = image_i[:,0,:,int(c_idx[1]),:]
-    slices[:,2,:,:] = image_i[:,0,int(c_idx[0]),:,:]
-    
-    del image, mat_rot
-    gc.collect() 
-    
-    return slices, image_i[:,0,:,:,:] 
-  
-def get_coords(config, coord, rot, trans, factor=1):
-    coord, rot, trans = coord[0].cpu().detach().numpy(), rot[0].cpu().detach().numpy(), trans.cpu().detach().numpy()
-    coord = swap_xz_coordinates(coord)
-    img_size = np.array(config.params.desired_size)/factor
-    L_in_pix_norm = (coord - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
-    inv_trans = -1 * trans
-    Lhat_in_pix_norm = affine_transform(L_in_pix_norm, rot, trans)
-    Lhat_in_pix = (Lhat_in_pix_norm / (2.0 / img_size).astype(np.float32)) + img_size / 2.0
-    return Lhat_in_pix
 
 def gtpp(dataframe, config):
     # DATALOADING AND GROUND TRUTH PLANE DEFINITION    
@@ -194,9 +125,8 @@ def gtpp(dataframe, config):
                     # Random translation
                     factor_a = np.array(config.params.desired_size).astype(np.float32)/4 
                     tran = ((torch.rand(batch_size, 3,generator=gen) * (factor_a * trans_frac) + factor_a * (1-trans_frac) / 2.0) - ((factor_a-1) / 2.0))/factor_a
-                    
                     # Random uniform sampling of Euler angles with restricted range
-                    euler_angles = sample_euler_angles_fix_range(batch_size, max_euler[0], max_euler[1], max_euler[2], config.params.seed_val + count)
+                    euler_angles = utils.sample_euler_angles_fix_range(batch_size, max_euler[0], max_euler[1], max_euler[2], config.params.seed_val + count)
 
                 else:
                     euler_angles =torch.zeros(batch_size, 3)
@@ -204,13 +134,11 @@ def gtpp(dataframe, config):
                     
                 rot =  euler_angles_to_matrix(euler_angles,"XYZ")
                 # quaternions = matrix_to_quaternion(rot)
-                slices_in, _ = get_slices(config, images,rot,tran, factor=factor_d)
+                slices_in, _ = utils.get_slices(config, images,rot,tran, factor=factor_d)
                 
                 rot_in = rot
                 tran_in = tran
-                
-                ##### Cumulative transformation #####
-                               
+                ##### Cumulative transformation ##### 
                 R = rot.to(device)
                 T = tran.to(device)
                 for _ in range(0, config.params.test_it):
@@ -226,10 +154,7 @@ def gtpp(dataframe, config):
                     R = torch.bmm(R,rot)
                     R[0] = torch.linalg.inv(R[0])
                     T = -1 * T     
-                    slices_in,_ = get_slices(config,images,R,T,factor=factor_d)
-
-                lmk_rot = get_coords(config, coords.to(device), R, T, factor=factor_d)
-                lmk_rot_in_mm = lmk_rot * pix_dim.cpu().detach().numpy()
+                    slices_in,_ = utils.get_slices(config,images,R,T,factor=factor_d)
 
                 if config.params.save_jpg:   
                     for k in range(config.params.input_plane):
@@ -245,22 +170,18 @@ def gtpp(dataframe, config):
                         # Save the grayscale image
                         vutils.save_image(rotated_image, save_name)
                                     
-                slices_in,image_final = get_slices(config,images_res,R,T)
+                slices_in,image_final = utils.get_slices(config,images_res,R,T)
 
                 if config.params.save_nrrd:
                     if config.params.int_rad:
                         filenames_new = filenames_new + '_rand_init_'
-                        _ ,images = get_slices(config, images,rot_in,tran_in, factor=factor_d)
+                        _ ,images = utils.get_slices(config, images,rot_in,tran_in, factor=factor_d)
 
                     save_here = config.file_paths.ddir + name_out_dir + 'S' + filenames_new + '.nrrd'  
                     #if not os.path.exists(save_here): 
                     nrrd.write(save_here,image_final.detach().numpy(), index_order='C')
                     nrrd.write(config.file_paths.ddir + name_out_dir +'original_' + filenames_new + '.nrrd',images.detach().numpy(), index_order='C')
                 
-                save_lmk_here = config.file_paths.ddir + name_out_dir + 'S' + filenames_new + '.fcsv'
-                save_csv_here = config.file_paths.ddir + name_out_dir + 'S' + filenames_new + '.csv'
-
-                slicer_to_torch_transform.save_transformed_landmarks_gtpp(lmk_rot_in_mm, save_csv_here, save_lmk_here)
                 #Dictionary
                 info={'name':filenames_new,'R':R.cpu().numpy().tolist(),'t':T.cpu().numpy().tolist()}
                 allplanes.update({filenames_new:info})

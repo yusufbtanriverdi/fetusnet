@@ -3,7 +3,7 @@
 import numpy as np
 import os
 import torch
-from net.dataset.utility.gtpp.utils import slicer_to_torch_transform
+from net.dataset.utility.gtpp.utils import utils
 from net.dataset.utility.rotation import get_matrix_of_lmks
 import nrrd
 import json
@@ -126,8 +126,8 @@ def Create_Ultrasound_loader(dataframe, file_list, data_dir, label_dir, out_dir,
         # Compute translation and rotation of GT plane wrt reference coordinate system (origin at centre of volume)
 
         
-        trans_gt, sl = slicer_to_torch_transform.translation(gt_item,pix_dim,np.array(size_desired),np.array(img_siz))
-        quats, mat = slicer_to_torch_transform.affine3Dmatrix(gt_item, point= trans_gt) # No translation in the totation matrix as first is translated and the rotated 
+        trans_gt, sl = utils.translation(gt_item,pix_dim,np.array(size_desired),np.array(img_siz))
+        quats, mat = utils.affine3Dmatrix(gt_item, point= trans_gt) # No translation in the totation matrix as first is translated and the rotated 
         
         # Image transform ( permute as the torch grid transforms considering D H W  and we have an image with H W D)
         if transform is not None:
@@ -209,7 +209,7 @@ def Create_Ultrasound_loader(dataframe, file_list, data_dir, label_dir, out_dir,
 
         # Rotate image 
         mat_gt = torch.from_numpy(mat)
-        slices_t = slicer_to_torch_transform.affine_transform(image.unsqueeze(0), mat_gt.unsqueeze(0)) 
+        slices_t = utils.affine_transform(image.unsqueeze(0), mat_gt.unsqueeze(0)) 
       
         slices_gt = torch.zeros(3,size_desired[0],size_desired[1])
 
@@ -260,7 +260,7 @@ class US_3D_dataset_fast(Dataset):
         if self.scan_transform:
             print('Applying transform \n')
             image = self.scan_transform(image)
-            slices_t = slicer_to_torch_transform.affine_transform(image.unsqueeze(0), mat_gt.unsqueeze(0)) 
+            slices_t = utils.affine_transform(image.unsqueeze(0), mat_gt.unsqueeze(0)) 
               
             slices_gt = torch.zeros(3,image.shape[0],image.shape[1])
             c_idx = (np.array(image.shape)/2)+1
