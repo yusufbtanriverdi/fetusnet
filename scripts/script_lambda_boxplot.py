@@ -4,7 +4,7 @@ import seaborn as sns
 import os
 
 sns.set_style('whitegrid', {'font.family':'sans-serif', 'font.sans-serif': 'Verdana'})
-sns.set_theme('paper', 'whitegrid', font_scale=1.25, palette='husl')
+sns.set_theme('paper', 'whitegrid', font_scale=2, palette='husl')
 
 color = "#337255"
 

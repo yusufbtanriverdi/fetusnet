@@ -7,9 +7,9 @@ import numpy as np
 import seaborn as sns
 
 sns.set_style('whitegrid', {'font.family':'sans-serif', 'font.sans-serif': 'Verdana'})
-sns.set_theme('paper', 'whitegrid', font_scale=1.25, palette='husl')
+sns.set_theme('paper', 'whitegrid', font_scale=1.5, palette='husl')
 
-def plot_aela_figure(radii, edrs, titles, dict, save_dir='ela.svg', show=False):
+def plot_aela_figure(radii, edrs, titles, dict, save_dir='assets/ela.svg', show=False):
     """
     Plot the average expected local accuracy (AELA) figure.
 
@@ -47,6 +47,7 @@ def plot_aela_figure(radii, edrs, titles, dict, save_dir='ela.svg', show=False):
         plt.show()
 
     plt.close()  # Free memory
+
 
 def average_edr_per_experiment(directory):
     """
