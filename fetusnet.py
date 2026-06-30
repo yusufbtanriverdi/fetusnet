@@ -40,20 +40,20 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
     val_losses = []
     val_loss = torch.inf
     # Epoch training loop
-    for epoch in range(0, params.train_.epochs):
-        logger.info(f" \n[Epoch {epoch + 1}/{params.train_.epochs}] \n ")
+    for epoch in range(0, params.training.epochs):
+        logger.info(f" \n[Epoch {epoch + 1}/{params.training.epochs}] \n ")
 
         # Train for one epoch
         train_loss, global_wandb_steps = train_one_ep(
             model, 
             train_dl, 
             criteria, 
-            multi_noise_loss if params.train_.mnl else None,
+            multi_noise_loss if params.training.mnl else None,
             optimizer, 
             params.device, 
             global_wandb_steps,
-            params.wandb_.log,
-            progress_bar=params.train_.progress_bar
+            params.wandb.log,
+            progress_bar=params.training.progress_bar
         )
 
         if validate:
@@ -61,13 +61,14 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
                 model, 
                 val_dl, 
                 criteria, 
-                multi_noise_loss if params.train_.mnl else None,
-                params.device, 
+                multi_noise_loss if params.training.mnl else None,
+                params.device,
                 global_wandb_steps, 
-                params.wandb_.log,
-                experiment_dir,
+                params.wandb.log,
+                lmks = params.target.lmks,
+                experiment_dir=experiment_dir,
                 eval=False, 
-                **namespace_to_dict(params.eval_)
+                **namespace_to_dict(params.validation)
             )
         
             # Save best model
@@ -84,7 +85,7 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
         logger.info(f"Validation loss: {val_loss}")
         train_losses.append(train_loss)
         val_losses.append(val_loss)
-        if params.wandb_.log:
+        if params.wandb.log:
             global_wandb_steps = log_epoch_to_wandb(train_loss, val_loss, ep_scores, global_wandb_steps)
 
     return train_losses, val_losses
@@ -97,7 +98,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 params = setup_config()
 # Apply reproducibility settings
 # Set random seed from parameters for reproducibility
-torch_seed = params.reproducibility_.model_seed
+torch_seed = params.repro.model_seed
 # Set environment variables for deterministic behavior
 os.environ["PYTHONHASHSEED"] = str(torch_seed)  # Python hash randomization
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":16:8"  # CUDA determinism configuration
@@ -109,8 +110,8 @@ torch.cuda.manual_seed_all(torch_seed)  # All GPU devices
 np.random.seed(torch_seed)  # NumPy random seed
 random.seed(torch_seed)  # Python random module seed
 # Enable deterministic algorithms in PyTorch
-torch.backends.cudnn.deterministic = params.reproducibility_.deterministic  # Use deterministic CUDA algorithms
-torch.backends.cudnn.benchmark = params.reproducibility_.benchmark  # Disable auto-tuning (slower but reproducible)
+torch.backends.cudnn.deterministic = params.repro.deterministic  # Use deterministic CUDA algorithms
+torch.backends.cudnn.benchmark = params.repro.benchmark  # Disable auto-tuning (slower but reproducible)
 # torch.use_deterministic_algorithms(True)  # Force deterministic behavior globally
 
 # Convert to dictionary (if Namespace or similar)
@@ -130,7 +131,7 @@ stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 logger = setup_logger(experiment_dir)
 logger.info(f"Experiment directory created at: {experiment_dir}")
 logger.info(f"Experiment started and parameters are saved. This is the experiment dir: {experiment_dir} ")
-logger.info(f"System path set to: {params.dataset_.sys}")
+logger.info(f"System path set to: {params.ds.sys}")
 logger.info(f"Device set to: {params.device}")
 logger.info("Searching for master dataframe in system+dataset_root... \n If you did not prepare such dataframe or you think it misses some samples, please re-run this script in prepare mode and specify datasets")
 
@@ -139,7 +140,7 @@ if params.mode == 'prepare':
     main_dataframe_path = perform_prepare(params) # Create info frames
 
 # Load or create sinfo dataframe
-main_dataframe_path = os.path.join(params.dataset_.sys, params.dataset_.root, params.dataset_.dataframe + '.csv')
+main_dataframe_path = os.path.join(params.ds.sys, params.ds.root, params.ds.dataframe + '.csv')
 if os.path.exists(main_dataframe_path):
     main_dataframe = pd.read_csv(main_dataframe_path)
 else:
@@ -147,7 +148,7 @@ else:
     raise FileNotFoundError("Master dataframe not found.")
 
 if params.mode == 'presplit':
-    split_dataframe_path = perform_crossfold_split(main_dataframe, params)
+    splitdataframe_path = perform_crossfold_split(main_dataframe, params)
 
 # TODO: Test rotate, no rotate.
 # TODO: Build pipe for standardization.
@@ -163,7 +164,7 @@ logger.info(f"Training - validation - test subset sizes: {len(main_dataframe[mai
 transforms = [
                 tio.RescaleIntensity((0, 1)), 
                 # tio.Flip(axes=('L',)),
-              ] if params.train_.rescale_inputs else []
+              ] if params.training.rescale_inputs else []
 transformations = tio.Compose(transforms)
 logger.info("Transformations are created.")
 
@@ -183,7 +184,7 @@ logger.info(f"!__[U]__! Training - validation - test subset sizes: {len(main_dat
 # TODO: Test
 if params.mode in ['generate', 'interactive_plot', 'interactive_game']:
     logger.info(f"Running one of the interactive modes...")
-    main_dataframe = main_dataframe.loc[main_dataframe['npid'].isin(params.split_.test_patients)]
+    main_dataframe = main_dataframe.loc[main_dataframe['npid'].isin(params.test_patients)]
     if len(main_dataframe) == 0:
         raise KeyError("No test patient is given. Aborting mission...")
     if params.mode == 'interactive_plot':
@@ -198,10 +199,10 @@ if params.mode == 'script_concept':
     logger.info("Running script_concept_fig.py")
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     # test_patients = getattr(params, 'test_patients', [''])
-    print(params.split_.test_patients)
-    main_dataframe.loc[main_dataframe['npid'].isin(params.split_.test_patients), "set"] = 2
+    print(params.test_patients)
+    main_dataframe.loc[main_dataframe['npid'].isin(params.test_patients), "set"] = 2
     # Filter test patients first
-    test_dl = get_test_dl(main_dataframe.loc[main_dataframe['npid'].isin(params.split_.test_patients)], params, transformations=transformations)
+    test_dl = get_test_dl(main_dataframe.loc[main_dataframe['npid'].isin(params.test_patients)], params, transformations=transformations)
     logger.info(f"!__[U]__! Test subset size: {len(test_dl)}")
     if len(test_dl) == 0: 
         test_dl = get_test_dl(main_dataframe, params, transformations)
@@ -217,14 +218,14 @@ global_wandb_steps = {'train_loss': 0,
 
 if params.mode == 'train':
     logger.info("...... Training mode has started  .......")
-    if params.wandb_.log: initialize_wandb(params, experiment_name)
+    if params.wandb.log: initialize_wandb(params, experiment_name)
     # Initialize model, loss, optimizer
     model, criteria, optimizer, multi_noise_loss, _ = get_fresh_model(params)
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     epoch = 0
     if params.resume:
         experiment_dir = params.checkpoint_
-        model_dir = experiment_dir + '/' + params.eval_.use_model + '.pt'
+        model_dir = experiment_dir + '/' + params.validation.use_model + '.pt'
         if not os.path.exists(model_dir):
             raise FileNotFoundError(f"Model directory {model_dir} does not exist.")
         model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir) 
@@ -246,21 +247,25 @@ if params.mode == 'train':
         raise FileNotFoundError(f"Model directory {model_dir} does not exist.")
     
     model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir) 
-    logger.info(f"\n--- Testing {params.eval_.use_model} model from {model_dir} --- \n")
+    logger.info(f"\n--- Testing {params.validation.use_model} model from {model_dir} --- \n")
         
     test_dl = get_test_dl(main_dataframe, params, transformations=transformations)
     if len(test_dl) == 0: _, test_dl = get_train_val_dl(main_dataframe, params, transformations=transformations)
+    eval_dict = namespace_to_dict(params.validation)
+    loss_dict = namespace_to_dict(params.loss)
+    eval_dict['loss_params'] = loss_dict
     test_loss, global_wandb_steps, test_scores  = infer_one_ep(
-            model, 
-            test_dl, 
-            criteria, 
-            multi_noise_loss if params.train_.mnl else None,
-            params.device, 
-            global_wandb_steps, 
-            params.wandb_.log,
-            eval=True, 
-            loss_params=params.loss_,
-            **params.eval_
+                model, 
+                val_dl, 
+                criteria, 
+                multi_noise_loss if params.training.mnl else None,
+                params.device,
+                global_wandb_steps, 
+                params.wandb.log,
+                lmks = params.target.lmks,
+                experiment_dir=experiment_dir,
+                eval=False, 
+                **eval_dict
             )
     
     logger.info(f"Test loss: {test_loss}")
@@ -279,26 +284,26 @@ if params.mode == 'train':
         counter += 1
     test_scores.drop(['nsid'], axis=1).mean().to_csv(save_mean_scores)
 
-    if params.wandb_.log: wandb.finish()
+    if params.wandb.log: wandb.finish()
 
 if params.mode == 'test':
-    params.wandb_.log = False
+    params.wandb.log = False
     logger.info("I am starting to test")
     # Initialize model, loss, optimizer
     model, criteria, optimizer, multi_noise_loss, _ = get_fresh_model(params)
     experiment_dir = params.checkpoint_
-    model_dir = experiment_dir + '/' + params.eval_.use_model + '.pt'
+    model_dir = experiment_dir + '/' + params.validation.use_model + '.pt'
     if not os.path.exists(model_dir):
         raise FileNotFoundError(f"Model directory {model_dir} does not exist.")
     
     model, optimizer, epoch, best_val_loss = load_checkpoint(model, optimizer, model_dir) 
-    logger.info(f"\n--- Testing {params.eval_.use_model} model from {model_dir} --- \n")
+    logger.info(f"\n--- Testing {params.validation.use_model} model from {model_dir} --- \n")
     
     # test_patients = getattr(params, 'test_patients', [''])
-    logger.info("The selected patient(s) are ", params.split_.test_patients, ".")
-    main_dataframe.loc[main_dataframe['npid'].isin(params.split_.test_patients), "set"] = 2
+    logger.info(f"The selected patient(s) are {params.test_patients} .")
+    main_dataframe.loc[main_dataframe['npid'].isin(params.test_patients), "set"] = 2
     # Filter test patients first
-    test_dl = get_test_dl(main_dataframe.loc[main_dataframe['npid'].isin(params.split_.test_patients)], params, transformations=transformations)
+    test_dl = get_test_dl(main_dataframe.loc[main_dataframe['npid'].isin(params.test_patients)], params, transformations=transformations)
     logger.info(f"!__[U]__! Test subset size: {len(test_dl)}")
     if len(test_dl) == 0: 
         test_dl = get_test_dl(main_dataframe, params, transformations)
@@ -308,17 +313,21 @@ if params.mode == 'test':
                 _, test_dl = get_train_val_dl(main_dataframe, params, transformations=transformations)
                 logger.info(f"!__[U]__! Switched to val subset. Subset size: {len(test_dl)}")
 
+    eval_dict = namespace_to_dict(params.validation)
+    loss_dict = namespace_to_dict(params.loss)
+    eval_dict['loss_params'] = loss_dict
     test_loss, global_wandb_steps, test_scores  = infer_one_ep(
-            model, 
-            test_dl, 
-            criteria, 
-            multi_noise_loss if params.train_.mnl else None,
-            params.device, 
-            global_wandb_steps, 
-            params.wandb_.log,
-            eval=True, 
-            loss_params=params.loss_,
-            **params.eval_
+                model, 
+                test_dl, 
+                criteria, 
+                multi_noise_loss if params.training.mnl else None,
+                params.device,
+                global_wandb_steps, 
+                params.wandb.log,
+                lmks = params.target.lmks,
+                experiment_dir=experiment_dir,
+                eval=True, 
+                **eval_dict
             )
     
     logger.info(f"Test loss: {test_loss}")

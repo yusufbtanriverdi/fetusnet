@@ -63,7 +63,7 @@ def print_custom_help(config_ns, help_ns):
     print(" FetusNet Command Line Manual")
     print("="*60)
     print("\n📝 Dynamic Overrides Syntax:")
-    print("  python main.py --mode=train --train_.epochs=100")
+    print("  python main.py --mode=train --training.epochs=100")
     print("  python main.py --prepocessing_.params.gtpp.params.desired_size=\"[128,128,128]\"\n")
     print("⚙️ Configured Parameter Tree & Descriptions:")
     
@@ -146,8 +146,8 @@ def setup_config(default_path="net/config/default.yaml", help_path="net/config/h
 #     print(f"Target Hardware:  {cfg.device}")
     
 #     if cfg.mode == "train":
-#         print(f"Running training sequence on architecture: {cfg.train_.architecture}")
-#         print(f"Epoch limit set to: {cfg.train_.epochs}")
+#         print(f"Running training sequence on architecture: {cfg.training.architecture}")
+#         print(f"Epoch limit set to: {cfg.training.epochs}")
         
 #     elif cfg.mode == "preprocess":
 #         # Safe dot notation access, even down into sections containing symbols like 'gtpp'

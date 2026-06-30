@@ -21,13 +21,13 @@ def get_fresh_model(params):
             - float: Placeholder value (currently set to `torch.inf`).
     """
     # === Model Initialization ===
-    model_key = params.train_.architecture  # Default to 'mse' if not specified.
+    model_key = params.training.architecture  # Default to 'mse' if not specified.
     
     if model_key == 'resunet3d':
         model = ResUNet3D.ResUNet3D(
             input_channels=1,  # Assuming single-channel input (e.g., grayscale or single-modality volumes).
-            output_channels=len(params.target_.lmks),  # Output channels match the number of landmarks.
-            base_features=params.train_.num_fts,  # Base feature count (default: 32). 
+            output_channels=len(params.target.lmks),  # Output channels match the number of landmarks.
+            base_features=params.training.num_fts,  # Base feature count (default: 32). 
         ) 
     else: 
         raise ValueError(f"Unsupported model architecture '{model_key}'. Choose from: ['resunet3d', 'resnet34'].")
@@ -43,9 +43,9 @@ def get_fresh_model(params):
         'eucEMD': EucEMDLoss,
     }
     
-    loss_params = flatten_namespace_to_dict(params.loss_)
-    loss_keys = params.train_.loss
-    lambdas = params.train_.lambdas
+    loss_params = flatten_namespace_to_dict(params.loss)
+    loss_keys = params.training.loss
+    lambdas = params.training.lambdas
 
     criteria = []
     for i, lk in enumerate(loss_keys):
@@ -57,22 +57,22 @@ def get_fresh_model(params):
         criteria.append(criterion)
 
     # === Multinoise Loss Initialisation === 
-    if params.train_.mnl:
+    if params.training.mnl:
         multi_loss = MultiNoiseLoss(n_losses=len(criteria), device=device).to(device)
     else:
         multi_loss = None
     # === Optimizer Selection ===
     optim_dict = {
         'adam': optim.Adam,
-        'sgd': partial(optim.SGD, momentum=params.optimizer_.sgd.momentum)
+        'sgd': partial(optim.SGD, momentum=params.optimizer.sgd.momentum)
     }
-    optim_name = params.train_.optimizer
+    optim_name = params.training.optimizer
     optimizer_cls = optim_dict.get(optim_name)
     if optimizer_cls is None:
         raise ValueError(f"Unsupported optimizer '{optim_name}'. Choose from: {list(optim_dict.keys())}.")
     # Set learning rate.
-    learning_rate = params.optimizer_.adam.lr
-    if params.train_.mnl:
+    learning_rate = params.optimizer.adam.lr
+    if params.training.mnl:
         optimizer = optimizer_cls([
                                     {'params': model.parameters()},
                                     {'params': multi_loss.noise_params}], lr=learning_rate)

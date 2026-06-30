@@ -1,38 +1,37 @@
 # Modes Mapping
-train: 0
-test: 1
-prepare: 2
-preprocess: 3
-rotate: 4
+help: 0
+train: 1
+test: 2
+prepare: 3
+preprocess: 4
 presplit: 5
-help: 6
-generate: 7
-script_conceptual: 8
-script_stats: 9
-script_ELA: 10
-test_loaders: 11
-test_pipe: 12
-interactive_plot: 13
-interactive_game: 14
+generate: 6
+script_conceptual: 10
+script_stats: 11
+script_ELA: 12
+test_loaders: 21
+test_pipe: 22
+interactive_plot: 31
+interactive_game: 32
 
 # Active Mode Selector (Default fallback)
 mode: "help" 
 
-loss_:
+loss:
   eps: 1.0e-15
   sigmoid: true
   w: 2
   normalize_targets: true
   reduction: "mean"
   
-optimizer_:
+optimizer:
   adam:
     lr: 0.0001
   sgd:
     lr: 0.0001
     momentum: 0.9
 
-preprocessing_:
+preprocessing:
   skip: false
   filter: true
   bspline: true
@@ -44,8 +43,8 @@ preprocessing_:
       filter_size: 3
       mode: "reflect"
     bspline:
-      spacing_: [1.0, 1.0, 1.0]
-      size_: [128, 128, 128]
+      spacing: [1.0, 1.0, 1.0]
+      size: [128, 128, 128]
     gtpp:
       checkpoint_name: "best_model_514"
       model_dir: "net/dataset/utility/gtpp/checkpoints/"
@@ -97,62 +96,54 @@ preprocessing_:
       dic_name: "dictionary_transform_yusuf"
   save_dir: "DATA/"
 
-reproducibility_:
+repro:
   model_seed: 42
   generator_seed: 42
   deterministic: true
   benchmark: false
 
-train_:
+training:
   architecture: "resunet3d"
   batch_size: 2
   epochs: 50
   optimizer: "adam"
   loss: ["softmaxce"]
   mnl: false
-  lambdas: [0.5]
+  lambdas: [1]
   num_workers: 1
   progress_bar: false
   rescale_inputs: true
   num_fts: 32
 
-val_:
+validation:
   batch_size: 1
   check_visibility: true
+  use_model: "last"
   detector: "argmax"
-  progress_bar: false
-  save_outputs: false
-  save_targets: false
+  radius_eval: 100
+  radius_num: 100
+  save_outputs: true
+  save_targets: true
+  progress_bar: true
+  show_figures: true
 
-gaussian_heatmap_:
+gh:
   alpha: 3
   eps: 1.0e-6
   clip: false
   mask: false
 
-eval_:
-  batch_size: 1
-  check_visibility: true
-  use_model: "last"
-  detector: "argmax"
-  radius_eval: 40
-  radius_num: 40
-  save_outputs: false
-  save_targets: false
-  progress_bar: false
-  show_figures: false
-
-wandb_:
+wandb:
   log: false
   wandbpro: "fetusnetv3"
 
-dataset_:
+ds:
   dataframe: "sinMaternitat__fold3"
   root: "DATA/"
   sys: "/media/yusuf/HDD 4TB/"
   source: ""
 
-target_:
+target:
   lmks:
     - "prn"
     - "enL"
@@ -174,18 +165,16 @@ target_:
     - "exL"
     - "exR"
 
-loaders_:
-  num_workers: 1
-
+num_workers: 1
 device: "cuda"
 prefix: "v2"
 resume: false
 checkpoint_: ""
+test_patients: [1002, 1003]
 
-split_:
-  n_split: 4
+split:
+  n: 4
   test_ds: ["Casos Mar"]
-  test_patients: []
   train_val_ds: ["Estudio Dexeus"]
 
 script_:

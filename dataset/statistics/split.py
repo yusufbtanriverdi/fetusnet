@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from sklearn.model_selection import GroupKFold, train_test_split
+from sklearn.model_selection import GroupKFold
 
 def perform_crossfold_split(master_dataframe, params):
     """
@@ -10,18 +10,18 @@ def perform_crossfold_split(master_dataframe, params):
     df = master_dataframe.copy()
     df['set'] = -1  # Initialize all to unassigned
 
-    test_patients = params.split_.test_patients
+    test_patients = params.test_patients
     # Assign test patients first
     if test_patients:
         df.loc[df['npid'].isin(test_patients), 'set'] = 2
 
-    test_ds = params.split_.test_ds
+    test_ds = params.split.test_ds
     if test_ds:
         df.loc[df['ds'].isin(test_ds), 'set'] = 2
 
     remaining_df = df[df['set'] == -1]
-    n_splits = params.split_.n_split
-    output_dir = os.path.join(params.dataset_.sys, params.dataset_.root) + '/' + params.dataset_.dataframe
+    n_splits = params.split.n
+    output_dir = os.path.join(params.ds.sys, params.ds.root) + '/' + params.ds.dataframe
 
     unique_pids = remaining_df['npid'].unique()
     kf = GroupKFold(n_splits=n_splits)

@@ -120,7 +120,7 @@ def log_epoch_to_wandb(train_loss, val_loss, ep_scores, global_wandb_steps):
     wandb.log({'epoc/dmean': ep_scores['dmean'].mean(), 'epoc/epoch': global_wandb_steps['epoch']})
 
     # Log per-landmark evaluation metrics
-    # for lmk in params.target_.lmks:
+    # for lmk in params.target.lmks:
     #     metric_name = f'dmean_{lmk}'
     #     if metric_name in ep_scores:
     #         wandb.log({f'epoc/{metric_name}': ep_scores[metric_name].mean(),
@@ -132,7 +132,7 @@ def log_epoch_to_wandb(train_loss, val_loss, ep_scores, global_wandb_steps):
 
 def update_dataframe(dataframe, params):
     # Construct full file paths by joining base paths with relative paths
-    paths = dataframe['mscan'].apply(lambda x: os.path.join(params.dataset_.sys + params.dataset_.root, x))
+    paths = dataframe['mscan'].apply(lambda x: os.path.join(params.ds.sys + params.ds.root, x))
 
     # Create a boolean mask for existing files
     mask = paths.apply(os.path.exists)

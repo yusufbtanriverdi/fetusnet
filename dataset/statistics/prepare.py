@@ -58,11 +58,11 @@ def perform_prepare(params):
     # Initialize lists to hold patient and scan info dictionaries
     pinfo_df = []
     sinfo_df = []
-    save_dir = params.dataset_.sys + params.preprocessing_.save_dir
+    save_dir = params.ds.sys + params.preprocessing.save_dir
     os.makedirs(save_dir, exist_ok=True)
     # Load ground truth data for standard planes from JSON file
     dicto = json.loads(get_file_list('doc/info//gt.txt')[0])
-    datasets = params.split_.train_val_ds + params.split_.test_ds
+    datasets = params.split.train_val_ds + params.split.test_ds
     
     ######  CASOS ######
     # Iterate over each dataset specified in params
@@ -70,7 +70,7 @@ def perform_prepare(params):
         # Process "Casos Mar" dataset
         if dataset == 'Casos Mar':
             ds_id = '1'
-            raw_files = params.dataset_.sys + params.dataset_.source + dataset
+            raw_files = params.ds.sys + params.ds.source + dataset
             casos = os.listdir(os.path.join(raw_files, 'Casos'))
             ds_dict = {'ds_id': ds_id, 
                        'ds': dataset,
@@ -198,7 +198,7 @@ def perform_prepare(params):
 
         if dataset == 'Casos Maternitat':
             ds_id = '2'
-            raw_files = params.dataset_.sys + params.dataset_.source + dataset
+            raw_files = params.ds.sys + params.ds.source + dataset
             casos = os.listdir(os.path.join(raw_files))
             ds_dict = {'ds_id': ds_id, 
                        'ds': dataset,
@@ -323,7 +323,7 @@ def perform_prepare(params):
 
         if dataset == 'Estudio Dexeus':
             ds_id = '3'
-            raw_files = params.dataset_.sys + params.dataset_.source + dataset
+            raw_files = params.ds.sys + params.ds.source + dataset
             casos = os.listdir(os.path.join(raw_files, 'Casos'))
             ds_dict = {'ds_id': ds_id, 
                        'ds': dataset,
@@ -452,9 +452,9 @@ def perform_prepare(params):
     sinfo_df = pd.DataFrame.from_records(sinfo_df)
 
     # Save patient and scan info DataFrames as CSV files
-    pd.DataFrame.from_records(pinfo_df).to_csv(params.dataset_.sys + params.dataset_.root + 'pinfo_total.csv', index=False)
-    sinfo_df.to_csv(params.dataset_.sys + params.dataset_.root + 'sinfo_total.csv', index=False)
+    pd.DataFrame.from_records(pinfo_df).to_csv(params.ds.sys + params.ds.root + 'pinfo_total.csv', index=False)
+    sinfo_df.to_csv(params.ds.sys + params.ds.root + 'sinfo_total.csv', index=False)
     sinfo = sinfo_df[sinfo_df['rot_found'] & sinfo_df['lmks_found'] & sinfo_df['csv_found']]
-    pd.DataFrame.from_records(sinfo).to_csv(params.dataset_.sys + params.dataset_.root + 'sinfo.csv', index=False)
+    pd.DataFrame.from_records(sinfo).to_csv(params.ds.sys + params.ds.root + 'sinfo.csv', index=False)
 
     return sinfo_df

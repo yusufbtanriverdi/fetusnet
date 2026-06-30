@@ -36,11 +36,12 @@ def perform_preprocessing(dataframe, params, logger=None):
     ct = 0
     ct_not_found = 0
     dataframe.loc[:, 'csvfound'] = True
-    # txt_path = os.path.join(params.preprocessing_.params.gtpp.file_paths.list_files.test)
+    # txt_path = os.path.join(params.preprocessing.params.gtpp.file_paths.list_files.test)
     # with open(txt_path, "w", encoding="utf-8") as f:
     #     f.write("\n".join(map(str, filedirs_)))
-    if params.preprocessing_.gtpp:
-        gtpp(dataframe, params.preprocessing_.params.gtpp)
+    print(params.preprocessing)
+    if params.preprocessing.gtpp:
+        gtpp(dataframe, params.preprocessing.params.gtpp)
     else: # Usual routine
         # Iterate over each file for processing
         for i, filename in tqdm(enumerate(filenames), total=len(filenames)):
@@ -48,9 +49,9 @@ def perform_preprocessing(dataframe, params, logger=None):
             image_path = os.path.join(dataframe.loc[i, 'fscan'])
             name = dataframe.loc[i, 'osid']
             
-            save_im_path = params.dataset_.sys + params.preprocessing_.save_dir + '/' + dataframe.loc[i, 'mscan']
-            save_csv_path = params.dataset_.sys + params.preprocessing_.save_dir + '/' + dataframe.loc[i, 'mcsv']
-            save_lmk_path = params.dataset_.sys + params.preprocessing_.save_dir + '/' + dataframe.loc[i, 'mlmk']
+            save_im_path = params.ds.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mscan']
+            save_csv_path = params.ds.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mcsv']
+            save_lmk_path = params.ds.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mlmk']
 
         # Skip processing if image already exists
             if os.path.exists(save_im_path):
@@ -98,21 +99,21 @@ def perform_preprocessing(dataframe, params, logger=None):
             # --------- #
             # STEP 1: Apply low-pass filter to the 3D ultrasound image volume
             # --------- #
-            if params.preprocessing_.filter:
+            if params.preprocessing.filter:
                 V = filter_3d_image(V, 
-                                    params.preprocessing_.params.filter.filter_size, 
-                                    params.preprocessing_.params.filter.mode)
+                                    params.preprocessing.params.filter.filter_size, 
+                                    params.preprocessing.params.filter.mode)
 
             # ----------  #
             # STEP 2: Interpolate image to desired spacing and size
             # ----------  #
 
-            if params.preprocessing_.bspline:
+            if params.preprocessing.bspline:
                 image = sitk.GetImageFromArray(V)
                 image.SetSpacing(p)  # Set original spacing
 
-                new_spacing = params.preprocessing_.params.bspline.spacing_
-                new_size = params.preprocessing_.params.bspline.size_
+                new_spacing = params.preprocessing.params.bspline.spacing
+                new_size = params.preprocessing.params.bspline.size
 
                 # Configure the resampler filter for image interpolation
                 resampler = sitk.ResampleImageFilter()
@@ -124,7 +125,7 @@ def perform_preprocessing(dataframe, params, logger=None):
 
                 resampled_image = resampler.Execute(image)
                 V = sitk.GetArrayFromImage(resampled_image)
-                header['sizes'] = params.preprocessing_.params.bspline.size_
+                header['sizes'] = params.preprocessing.params.bspline.size
 
                 p = new_spacing
                 # Determine pixel spacing information from header; fallback if keys missing
@@ -143,7 +144,7 @@ def perform_preprocessing(dataframe, params, logger=None):
             # ------ -------------- #
             # STEP 5: Apply affine transformation to image and landmarks
             # ------ -------------- #
-            if params.preprocessing_.affine:
+            if params.preprocessing.affine:
                 # Retrieve ground truth plane data from dictionary for current image
                 plane = dicto.get(name)
                 if plane is None:
@@ -168,7 +169,7 @@ def perform_preprocessing(dataframe, params, logger=None):
                 # Apply affine transformation to the image volume
                 Vhat = grid_transform_3d(V.astype(np.float32), transform_matrix.astype(np.float32))
                 
-                if params.preprocessing_.swap:
+                if params.preprocessing.swap:
                     Vhat = np.transpose(Vhat, (2, 1, 0))
                     L_in_pix = swap_xz_coordinates(L_in_pix)
 
