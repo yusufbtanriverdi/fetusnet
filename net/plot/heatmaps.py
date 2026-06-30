@@ -2,6 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 # from mpl_toolkits.mplot3d import Axes3D  # Required for 3D plotting
 from matplotlib.patches import Circle
+import seaborn as sns
+
+sns.set_style('whitegrid', {'font.family':'sans-serif', 'font.sans-serif': 'Verdana'})
+sns.set_theme('paper', 'whitegrid', font_scale=1.25, palette='husl')
 
 def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, argmax_tensor, titles=None, save_figs=False, save_path=None):
     """
@@ -32,19 +36,19 @@ def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, argmax_tensor, title
             ax2d = axs[0, j]
             if ax == 0:
                 slice_data = heatmap[coord_idx[0], :, :]
-                patch1 = Circle((coord_idx[2], coord_idx[1]), radius=1, color='white')
+                patch1 = Circle((coord_idx[2], coord_idx[1]), radius=1, color='purple')
                 patch2 = Circle((argmax_idx[2], argmax_idx[1]), radius=1, color='black')
                 ax2d.add_patch(patch1)
                 ax2d.add_patch(patch2)
             elif ax == 1:
                 slice_data = heatmap[:, coord_idx[1], :]                
-                patch1 = Circle((coord_idx[2], coord_idx[0]), radius=1, color='white')
+                patch1 = Circle((coord_idx[2], coord_idx[0]), radius=1, color='purple')
                 patch2 = Circle((argmax_idx[2], argmax_idx[0]), radius=1, color='black')
                 ax2d.add_patch(patch1)
                 ax2d.add_patch(patch2)
             else:
                 slice_data = heatmap[:, :, coord_idx[2]]
-                patch1 = Circle((coord_idx[1], coord_idx[0]), radius=1, color='white')
+                patch1 = Circle((coord_idx[1], coord_idx[0]), radius=1, color='purple')
                 patch2 = Circle((argmax_idx[1], argmax_idx[0]), radius=1, color='black')
                 ax2d.add_patch(patch1)
                 ax2d.add_patch(patch2)
@@ -68,8 +72,8 @@ def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, argmax_tensor, title
         plt.tight_layout()
         
         if save_figs:
-            save_here = save_path + '_' + titles[i] + '.png'
-            fig.savefig(save_here)
+            save_here = save_path + '_' + titles[i] + '.svg'
+            fig.savefig(save_here, format='svg')
         
         # plt.show()
         plt.close()  # Free memory
