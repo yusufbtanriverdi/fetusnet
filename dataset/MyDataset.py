@@ -1,5 +1,5 @@
-from net.dataset.target import gaussian_heatmap
-from net.dataset.utility.rotation import extract_image
+from dataset.target import gaussian_heatmap
+from dataset.utility.rotation import extract_image
 from net.plot.heatmaps import plot_heatmaps_slices_from_coord
 import torch
 import os 

@@ -1,4 +1,4 @@
-from net.dataset.MyDataset import MyDataset
+from dataset.MyDataset import MyDataset
 import torchio as tio
 import torch
 
@@ -64,7 +64,7 @@ def get_train_val_dl(splitted_dataframe, params, transformations):
 
     val_dl = tio.SubjectsLoader(
         dataset=val_ds,
-        batch_size=params.val_batch_size,   # Batch size for validation
+        batch_size=params.val_.batch_size,   # Batch size for validation
         shuffle=False,                      # Do not shuffle validation data
         num_workers=1      # Number of worker threads
     )

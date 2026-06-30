@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import numpy as np
 import nrrd
 import pandas as pd
-from net.dataset.utility.gtpp.utils.pytorch3d import matrix_to_quaternion
+from dataset.utility.gtpp.utils.pytorch3d import matrix_to_quaternion
 import gc
 
 LMK_LIST=["exR", "enR", "n", "enL", "exL", "acR", "aR", "prn", "aL", "acL", "sn",

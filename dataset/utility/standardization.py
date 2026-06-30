@@ -21,10 +21,10 @@ import torchvision.transforms.functional as TF
 import nrrd
 import gc
 
-from net.dataset.utility.gtpp.dataloaders.torch_dataloader import Create_Ultrasound_loader, US_3D_dataset_fast
-from net.dataset.utility.gtpp.utils.SonoNet import SonoNet
-from net.dataset.utility.gtpp.utils import utils
-from net.dataset.utility.gtpp.utils.pytorch3d import euler_angles_to_matrix, quaternion_to_matrix
+from dataset.utility.gtpp.dataloaders.torch_dataloader import Create_Ultrasound_loader, US_3D_dataset_fast
+from dataset.utility.gtpp.utils.SonoNet import SonoNet
+from dataset.utility.gtpp.utils import utils
+from dataset.utility.gtpp.utils.pytorch3d import euler_angles_to_matrix, quaternion_to_matrix
 import json
 
 torch.cuda.empty_cache()

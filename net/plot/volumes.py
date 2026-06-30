@@ -19,7 +19,6 @@ def numpy_sigmoid(arr: np.ndarray) -> np.ndarray:
         raise ValueError("Input must be a 3D NumPy array.")
     return 1 / (1 + np.exp(-arr))
 
-
 def load_landmarks_as_point_cloud(csv_path: str):
     """Load lmk coordinates from CSV → PyVista point cloud + labels."""
     df = pd.read_csv(csv_path)
@@ -29,12 +28,10 @@ def load_landmarks_as_point_cloud(csv_path: str):
     cloud.point_data["labels"] = labels
     return cloud, labels
 
-
 def project_landmarks_to_surface(point_cloud: pv.PolyData, mesh: pv.PolyData) -> pv.PolyData:
     """Project landmarks onto the closest surface points."""
     projected = [mesh.points[mesh.find_closest_point(p)] for p in point_cloud.points]
     return  pv.PolyData(np.array(projected))
-
 
 def load_heatmap_as_grid(nrrd_path: str) -> pv.ImageData:
     """Load a .nrrd heatmap file and convert to PyVista ImageData."""

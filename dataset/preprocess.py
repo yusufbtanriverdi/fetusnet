@@ -6,8 +6,8 @@ import pandas as pd
 from tqdm import tqdm
 import SimpleITK as sitk
 
-from net.dataset.utility.rotation import *
-from net.dataset.utility.standardization import gtpp
+from dataset.utility.rotation import *
+from dataset.utility.standardization import gtpp
 
 def perform_preprocessing(dataframe, params, logger=None):
     """

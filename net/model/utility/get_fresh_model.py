@@ -26,7 +26,7 @@ def get_fresh_model(params):
     if model_key == 'resunet3d':
         model = ResUNet3D.ResUNet3D(
             input_channels=1,  # Assuming single-channel input (e.g., grayscale or single-modality volumes).
-            output_channels=params.target_.lmks,  # Output channels match the number of landmarks.
+            output_channels=len(params.target_.lmks),  # Output channels match the number of landmarks.
             base_features=params.train_.num_fts,  # Base feature count (default: 32). 
         ) 
     else: 

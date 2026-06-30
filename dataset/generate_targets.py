@@ -1,6 +1,6 @@
 # Import necessary modules
-from net.dataset.target.gaussian_heatmap import create_gaussian_heatmap
-from net.dataset.MyDataset import extract_image
+from dataset.target.gaussian_heatmap import create_gaussian_heatmap
+from dataset.MyDataset import extract_image
 import os
 import torch
 import pandas as pd

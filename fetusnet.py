@@ -11,12 +11,12 @@ import yaml
 
 # from net.parameters.parameters import parameters_parsing
 from net.config.parser import setup_config
-from net.dataset.statistics.split import perform_crossfold_split
-from net.dataset.statistics.prepare import perform_prepare
-from net.dataset.preprocess import perform_preprocessing
-from net.dataset.generate_targets import perform_generate
+from dataset.statistics.split import perform_crossfold_split
+from dataset.statistics.prepare import perform_prepare
+from dataset.preprocess import perform_preprocessing
+from dataset.generate_targets import perform_generate
 from logger_setup import setup_logger
-from net.dataset.utility.loaders import get_train_val_dl, get_test_dl
+from dataset.utility.loaders import get_train_val_dl, get_test_dl
 from net.model.utility.get_fresh_model import get_fresh_model
 from net.phases.train import train_one_ep
 from net.phases.infer import infer_one_ep
@@ -67,7 +67,7 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
                 params.wandb_.log,
                 experiment_dir,
                 eval=False, 
-                **params.eval_
+                **namespace_to_dict(params.eval_)
             )
         
             # Save best model
@@ -217,9 +217,8 @@ global_wandb_steps = {'train_loss': 0,
 
 if params.mode == 'train':
     logger.info("...... Training mode has started  .......")
-    if params.wandb_.log: initialize_wandb(params, experiment_name+'_'+params.split)
+    if params.wandb_.log: initialize_wandb(params, experiment_name)
     # Initialize model, loss, optimizer
-    # TODO: test get_fresh_model
     model, criteria, optimizer, multi_noise_loss, _ = get_fresh_model(params)
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     epoch = 0

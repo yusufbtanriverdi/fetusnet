@@ -7,17 +7,41 @@ import numpy as np
 import gc 
 import nrrd 
 import random
-from net.metrics.metrics_eval import compute_heatmap_metrics, compute_landmark_metrics
 from net.plot.curves import compute_aela, plot_aela_figure
 from net.plot.histograms import plot_histograms_and_stats
 from net.plot.matrices_3d import plot_3d_matrices
 from net.plot.heatmaps import plot_heatmaps_slices_from_coord
 
-from net.postprocess.utility.save_fscv_csv import save_fscv_csv
-from net.postprocess.utility.where_is_landmark import get_peak_location
-from net.dataset.utility.rotation import extract_image
-from net.plot.heatmaps import plot_heatmaps_slices_from_coord # To debug.
+from net.postprocess.save_fscv_csv import save_fscv_csv
+from net.postprocess.where_is_landmark import get_peak_location
+from dataset.utility.rotation import extract_image
+from net.plot.heatmaps import plot_heatmaps_slices_from_coord
 from net.loss.losses import *
+from net.evaluation.dMean import d_mean_mm
+
+def compute_landmark_metrics(outputs, targets, spacings):
+    """
+    Computes and optionally aggregates evaluation metrics.
+
+    Args:
+        outputs (torch.Tensor): Model predictions.
+        targets (torch.Tensor): Ground truth values.
+        spacings (torch.Tensor): Spacing values for distance calculations.
+        exp_dir (str): Experiment directory (not used in function but kept for flexibility).
+        metrics_list (list, optional): List of previously computed metrics for aggregation.
+
+    Returns:
+        dict: Scores.
+    """
+    # Define metric functions
+    metric_functions = {
+        "dmean": d_mean_mm,
+    }
+    # Compute metrics
+    scores = {key: func(outputs, targets, spacings) for key, func in metric_functions.items()}
+    
+    return scores
+
 
 def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_wandb, detector, progress_bar,
                  lmks, experiment_dir, check_visibility, eval, **kwargs):

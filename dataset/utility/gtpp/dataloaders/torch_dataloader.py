@@ -3,8 +3,8 @@
 import numpy as np
 import os
 import torch
-from net.dataset.utility.gtpp.utils import utils
-from net.dataset.utility.rotation import get_matrix_of_lmks
+from dataset.utility.gtpp.utils import utils
+from dataset.utility.rotation import get_matrix_of_lmks
 import nrrd
 import json
 import numpy as np

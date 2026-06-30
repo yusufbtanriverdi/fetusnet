@@ -1,10 +1,9 @@
 import os
 import pandas as pd
 from tqdm import tqdm
-import nrrd
 import json
 
-from net.dataset.utility.rotation import extract_image
+from dataset.utility.rotation import extract_image
 
 def extract_list_lmks_fromfcsv(file_path: str):
     """
