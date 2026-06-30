@@ -69,6 +69,6 @@ def train_one_ep(model, loader, criteria, multi_loss, optimizer, device, wandb_s
                     wandb.log({f'train/noise_params_{i}': multi_loss.noise_params[i], 'train/step': wandb_steps['train_loss']})
             # Increment the wandb step counter
             wandb_steps['train_loss'] += 1
-        if ind >= 1:
-            break      # {!} For debugging, remove this line in production 
+        # if ind >= 1:
+        #     break      # {!} For debugging, remove this line in production 
     return avg_loss, wandb_steps
