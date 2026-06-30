@@ -1,6 +1,6 @@
 # Import necessary modules
-from net.dataset.target.gaussian_heatmap import create_gaussian_heatmap
-from net.dataset.MyDataset import extract_image
+from dataset.target.gaussian_heatmap import create_gaussian_heatmap
+from dataset.MyDataset import extract_image
 import os
 import torch
 import pandas as pd
@@ -17,10 +17,10 @@ def perform_generate(sinfo, exp_dir, params):
         exp_dir (str): Directory to save the generated targets.
         params (Namespace): Parameters including landmarks, test patients, and generation settings.
     """
-    for lmk in params.lmks:  # Iterate over the list of landmarks
+    for lmk in params.target.lmks:  # Iterate over the list of landmarks
         # Determine the indices of the target patients
         if params.test_patients:
-            target_idx = sinfo.index[sinfo['pid'].isin(params.test_patients)].tolist()
+            target_idx = sinfo.index[sinfo['npid'].isin(params.test_patients)].tolist()
             print(target_idx)
         else:
             raise ValueError("No test patients specified in params.test_patients")
@@ -29,11 +29,11 @@ def perform_generate(sinfo, exp_dir, params):
             start_time = time.time()  # Start timing
 
             # Load the 3D volume
-            image_path = os.path.join(params.sys + params.root, sinfo.loc[i, 'mscan'])
+            image_path = os.path.join(params.ds.sys + params.ds.root, sinfo.loc[i, 'mscan'])
             volume, header = extract_image(image_path)
 
             # Load the landmark file
-            landmark_path = os.path.join(params.sys + params.root, sinfo.loc[i, 'mcsv'])
+            landmark_path = os.path.join(params.ds.sys + params.ds.root, sinfo.loc[i, 'mcsv'])
             landmark_df = pd.read_csv(landmark_path)
 
             # Extract coordinates for the selected landmark
@@ -53,11 +53,11 @@ def perform_generate(sinfo, exp_dir, params):
             coord_tensor = torch.abs(torch.tensor(coord, dtype=torch.float32))
 
             # Generate the target (heatmap or distance matrix)
-            target, distance = create_gaussian_heatmap(coord_tensor, volume, alpha=params.g_alpha, eps=params.g_eps, clip=params.clip, mask=params.mask)
+            target, distance = create_gaussian_heatmap(coord_tensor, torch.from_numpy(volume), alpha=params.gh.alpha, eps=params.gh.eps, clip=params.gh.clip, mask=params.gh.mask)
  
             end_time = time.time()  # End timing
             elapsed_time = end_time - start_time  # Compute elapsed time
             print(f"Processed {sinfo.loc[i, 'nsid']} in {elapsed_time:.4f} seconds")
 
             # Save the generated target to a file
-            nrrd.write(os.path.join(exp_dir, f"{sinfo.loc[i, 'nsid']}_{lmk}.nrrd"), target, header=header)
+            nrrd.write(os.path.join(exp_dir, f"{sinfo.loc[i, 'nsid']}_{lmk}.nrrd"), target.numpy(), header=header)

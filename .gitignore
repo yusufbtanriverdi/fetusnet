@@ -175,11 +175,13 @@ graveyard/
 mock.py
 tmps/
 tmp/
+temp/
+tmp.*
+temp.*
 cluster.sh
 
 .vscode
 configs
 
-tmp.*
-testOnCasosMarReally.csv
+*.csv
 assets/_*

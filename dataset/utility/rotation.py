@@ -102,18 +102,6 @@ def grid_transform_3d(moving_image, transform_matrix):
 
     return predicted_image.squeeze(0).squeeze(0).numpy()  # Result after inverse mapping
 
-def affine_transform_3d(image, transform_matrix):
-    depth, height, width = image.shape
-    x, y, z = np.meshgrid(np.arange(width), np.arange(height), np.arange(depth))
-    homogeneous_coords = np.stack([x, y, z, np.ones_like(x)], axis=-1).reshape(-1, 4).T
-    
-    transformed_coords = np.dot(transform_matrix, homogeneous_coords)
-    new_x, new_y, new_z, _ = transformed_coords.reshape(4, depth, height, width)
-    
-    transformed_image = ndimage.map_coordinates(image, [new_z, new_y, new_x], order=1, mode='constant')
-    return transformed_image
-
-
 def affine_transform(landmarks, R, T):
     """
     Applies an affine transformation to 3D landmarks.

@@ -1,0 +1,193 @@
+# Modes Mapping
+help: 0
+train: 1
+test: 2
+prepare: 3
+preprocess: 4
+presplit: 5
+generate: 6
+script_conceptual: 10
+script_stats: 11
+script_ELA: 12
+test_loaders: 21
+test_pipe: 22
+interactive_plot: 31
+interactive_game: 32
+
+# Active Mode Selector (Default fallback)
+mode: "help" 
+
+loss:
+  eps: 1.0e-15
+  sigmoid: true
+  w: 2
+  normalize_targets: true
+  reduction: "mean"
+  
+optimizer:
+  adam:
+    lr: 0.0001
+  sgd:
+    lr: 0.0001
+    momentum: 0.9
+
+preprocessing:
+  skip: false
+  filter: true
+  bspline: true
+  swap: true
+  affine: true
+  gtpp: false
+  params:
+    filter:
+      filter_size: 3
+      mode: "reflect"
+    bspline:
+      spacing: [1.0, 1.0, 1.0]
+      size: [128, 128, 128]
+    gtpp:
+      checkpoint_name: "best_model_514"
+      model_dir: "net/dataset/utility/gtpp/checkpoints/"
+      file_paths:
+        data_dir: "/media/yusuf/HDD 4TB/"
+        ddir: "/media/yusuf/HDD 4TB/DATA3/Pre_process_ST_s256/"
+        label_dir: "doc/info/gt.txt"
+        out_dir_pre_pross: "/media/yusuf/HDD 4TB/DATA3/Pre_process_ST_s256/"
+        list_files:
+          test: "temp/sample.txt"
+      params:
+        desired_size: [256, 256, 256]
+        save_jpg: false
+        save_nrrd: true
+        downsampling_factor: 2
+        num_samples: 5
+        spacing: 0.3
+        permute: true
+        input_plane: 3
+        resume: true
+        learning_rate: 0.0001
+        test_it: 3
+        int_rad: false
+        epochs: 100000
+        save_interval: 1
+        batch_size: 12
+        debug: false
+        normalize_quaternion: "None"
+        seed_val: 42
+        num_output_tr: 3
+        num_output_rr: 4
+        ViT_model: "vit_small"
+        classification: false
+        perceptual_loss: false
+        limit_translation: 0.5
+        euler: false
+        vgg: "11"
+        image_loss: true
+        instance_norm: false
+        data_augment_close: true
+        net: "SN16"
+        latent: 128
+        latent2: 64
+        last_bn: false
+        name_model_old: false
+        grid_loss: true
+        only_grid_loss: true
+        dropout: 0.5
+      dic_name: "dictionary_transform_yusuf"
+  save_dir: "DATA/"
+
+repro:
+  model_seed: 42
+  generator_seed: 42
+  deterministic: true
+  benchmark: false
+
+training:
+  architecture: "resunet3d"
+  batch_size: 2
+  epochs: 50
+  optimizer: "adam"
+  loss: ["softmaxce"]
+  mnl: false
+  lambdas: [1]
+  num_workers: 1
+  progress_bar: false
+  rescale_inputs: true
+  num_fts: 32
+
+validation:
+  batch_size: 1
+  check_visibility: true
+  use_model: "last"
+  detector: "argmax"
+  radius_eval: 100
+  radius_num: 100
+  save_outputs: true
+  save_targets: true
+  progress_bar: true
+  show_figures: true
+
+gh:
+  alpha: 3
+  eps: 1.0e-6
+  clip: false
+  mask: false
+
+wandb:
+  log: false
+  wandbpro: "fetusnetv3"
+
+ds:
+  dataframe: "sinMaternitat__fold3"
+  root: "DATA/"
+  sys: "/media/yusuf/HDD 4TB/"
+  source: ""
+
+target:
+  lmks:
+    - "prn"
+    - "enL"
+    - "enR"
+    - "pg"
+    - "n"
+    - "sn"
+    - "sl"
+    - "li"
+    - "ls"
+    - "acL"
+    - "acR"
+    - "cphL"
+    - "cphR"
+    - "chR"
+    - "chL"
+    - "aR"
+    - "aL"
+    - "exL"
+    - "exR"
+
+num_workers: 1
+device: "cuda"
+prefix: "v2"
+resume: false
+checkpoint_: ""
+test_patients: [1002, 1003]
+
+split:
+  n: 4
+  test_ds: ["Casos Mar"]
+  train_val_ds: ["Estudio Dexeus"]
+
+script_:
+  fig_size: [15, 10]
+  save_dir: "figures/"
+  temp_dir: "temp/"
+  sampling:
+    num_samples: 128
+    max_shift: 0.1
+    alpha: 0.5
+  ela_:
+    marker_size: 5
+    line_width: 1
+    show: true
+    savefig: true
+    directories: []

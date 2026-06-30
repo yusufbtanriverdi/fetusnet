@@ -20,12 +20,10 @@ def load_landmarks_as_point_cloud(csv_path: str):
     cloud.point_data["labels"] = labels
     return cloud, labels
 
-
 def project_landmarks_to_surface(point_cloud: pv.PolyData, mesh: pv.PolyData) -> pv.PolyData:
     """Project landmarks onto the closest surface points."""
     projected = [mesh.points[mesh.find_closest_point(p)] for p in point_cloud.points]
     return  pv.PolyData(np.array(projected))
-
 
 def load_heatmap_as_grid(nrrd_path: str) -> pv.ImageData:
     """Load a .nrrd heatmap file and convert to PyVista ImageData."""
@@ -65,14 +63,14 @@ def perform_plot_3d(df, experiment_dir, params):
     row = df.iloc[0] # for now
 
     nsid = row["nsid"]
-    if params.lmks[0] in row['lmks_array']:
-        lmk = params.lmks[0]
+    if params.target.lmks[0] in row['lmks_array']:
+        lmk = params.target.lmks[0]
         pass
     else:
         lmk = row["lmks_array"][0] # visibles? then loop 
     
     # --- Load inputs ---
-    point_cloud, labels = load_landmarks_as_point_cloud(os.path.join(params.sys + params.root, row['mcsv']))
+    point_cloud, labels = load_landmarks_as_point_cloud(os.path.join(params.ds.sys + params.ds.root, row['mcsv']))
     pred_points, preds = load_landmarks_as_point_cloud(os.path.join(experiment_dir, 'eval', str(nsid) + '.csv'))
     grid_gt = load_heatmap_as_grid(os.path.join(experiment_dir, 'eval', str(nsid)+'_'+lmk+'_target.nrrd')) 
     grid_pred = load_heatmap_as_grid(os.path.join(experiment_dir, 'eval', str(nsid)+'_'+lmk+'_output.nrrd')) 
@@ -161,14 +159,14 @@ def start_game_3d(df, experiment_dir, params):
     row = df.iloc[0] # for now
 
     nsid = row["nsid"]
-    if params.lmks[0] in row['lmks_array']:
-        lmk = params.lmks[0]
+    if params.target.lmks[0] in row['lmks_array']:
+        lmk = params.target.lmks[0]
         pass
     else:
         lmk = row["lmks_array"][0] # visibles? then loop 
     
     # --- Load inputs ---
-    point_cloud, labels = load_landmarks_as_point_cloud(os.path.join(params.sys + params.root, row['mcsv']))
+    point_cloud, labels = load_landmarks_as_point_cloud(os.path.join(params.ds.sys + params.ds.root, row['mcsv']))
     pred_points, preds = load_landmarks_as_point_cloud(os.path.join(experiment_dir, 'eval', str(nsid) + '.csv'))
     gt_point = np.array(point_cloud.points[labels == lmk])
     pred_point = np.array(pred_points.points[preds == lmk])
@@ -309,14 +307,14 @@ def start_game_3d_local(df, experiment_dir, params):
     row = df.iloc[0] # for now
 
     nsid = row["nsid"]
-    if params.lmks[0] in row['lmks_array']:
-        lmk = params.lmks[0]
+    if params.target.lmks[0] in row['lmks_array']:
+        lmk = params.target.lmks[0]
         pass
     else:
         lmk = row["lmks_array"][0] # visibles? then loop 
     
     # --- Load inputs ---
-    point_cloud, labels = load_landmarks_as_point_cloud(os.path.join(params.sys + params.root, row['mcsv']))
+    point_cloud, labels = load_landmarks_as_point_cloud(os.path.join(params.ds.sys + params.ds.root, row['mcsv']))
     pred_points, preds = load_landmarks_as_point_cloud(os.path.join(experiment_dir, 'eval', str(nsid) + '.csv'))
     gt_point = np.array(point_cloud.points[labels == lmk])
     pred_point = np.array(pred_points.points[preds == lmk])

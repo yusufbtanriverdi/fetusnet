@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing import Optional, Dict
 
-
 def plot_histograms_and_stats(
     outputs: torch.Tensor,
     targets: torch.Tensor,

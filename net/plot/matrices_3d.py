@@ -5,7 +5,6 @@ from matplotlib import widgets
 import imageio
 from typing import List, Optional
 
-
 def plot_3d_matrices(
     *matrices: torch.Tensor,
     titles: Optional[List[str]] = None,
@@ -82,7 +81,6 @@ def plot_3d_matrices(
 
         if gif_path:
             imageio.mimsave(gif_path, images, fps=fps)
-
 
 if __name__ == "__main__":
     # Dummy 3D volumes

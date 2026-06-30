@@ -1,41 +1,6 @@
 import torch
 import matplotlib.pyplot as plt
-from net.model.modules.dsnt import dsnt_3d_separable
-from net.postprocess.utility.where_is_landmark import get_peak_location
-
-
-# def get_peak_location_single_v2(probs, target_coords, method):
-#     """Extracts peak location from a single heatmap."""
-#     if method == 'argmax':
-#         # Find all peak locations (handles ties) and return the one closest to the target coordinate
-#         max_val = probs.max()
-#         peaks = torch.nonzero(probs == max_val, as_tuple=False).float()
-#         if peaks.numel() == 0:
-#             raise ValueError("No peaks found in the heatmap. Check the input probabilities.")
-#         if target_coords is not None:
-#             target = torch.tensor(target_coords, device=peaks.device, dtype=peaks.dtype)
-#             distances = torch.norm(peaks - target.unsqueeze(0), dim=1)
-#             return peaks[distances.argmin()]
-#         return peaks[0]
-
-#     if method == 'com':
-#         D, H, W = probs.shape
-#         # Compute soft center-of-mass for smoother localization
-#         grid = torch.meshgrid(torch.arange(D, device=probs.device),
-#                               torch.arange(H, device=probs.device),
-#                               torch.arange(W, device=probs.device), indexing='ij')
-#         grid = torch.stack(grid, dim=-1).float()  # Shape (D, H, W, 3)
-#         # softmax over voxel domain: do reshape softmax for stability & correctness
-#         weighted = probs.unsqueeze(-1) * grid
-#         # plot_3d_matrices(probs, weighted[: ,: ,: , 0], weighted[:, :, :, 1], weighted[:, :, :, 2], titles=['Probabilities', 'Weighted X', 'Weighted Y', 'Weighted Z'])
-#         # Weighted sum of coordinates by probability
-#         com = weighted.sum(dim=(0, 1, 2))
-#         return com
-
-#     if method == 'dsnt':
-#         # probs = to_probability_distributions(heatmap)
-#         coords = dsnt_3d_separable(probs, probs.device, probs.dtype)  # Use DSNT to get coordinates
-#         return coords
+from net.postprocess.where_is_landmark import get_peak_location
 
 def plot_aela_figure(radii, edr, save_dir='average_expected_local_accuracy.png', show=False):
     """

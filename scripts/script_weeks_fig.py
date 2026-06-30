@@ -9,7 +9,7 @@ sns.set_style(
 sns.set_theme(
     'paper',
     'whitegrid',
-    font_scale=1.25,
+    font_scale=2,
     palette='husl'
 )
 
@@ -50,4 +50,4 @@ plt.xlabel('Gestational Age (weeks)', labelpad=15)
 plt.ylabel('Count', labelpad=15)
 plt.tight_layout()
 plt.show()  
-fig.savefig('figures/weeks.svg', format='svg')
+fig.savefig('assets/weeks.svg', format='svg')
