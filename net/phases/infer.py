@@ -27,7 +27,7 @@ def get_template():
     Args:
         template_path (str): Path to the template NRRD file.
     """
-    with open("tempates/1.pkl", "rb") as f:
+    with open("templates/1.pkl", "rb") as f:
         loaded_d = pickle.load(f)
     return loaded_d
 

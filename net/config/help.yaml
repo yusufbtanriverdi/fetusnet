@@ -1,0 +1,170 @@
+# FetusNet command-line help descriptions.
+#
+# This file is read by net/config/parser.py and matched against default.yaml
+# using flattened dot paths, e.g. training.epochs, ds.dataframe, validation.use_model.
+# Keep the structure synchronized with net/config/default.yaml.
+#
+
+# Modes Mapping
+help: "Print this command-line manual and exit. Can be selected with --mode=help, --mode=0, -h, or --help."
+train: "Train a model, validate during training, save checkpoints, and then run a final test pass."
+test: "Load an existing checkpoint directory and evaluate the selected checkpoint on test patients or test split."
+prepare: "Create metadata CSV files from raw datasets, including scan paths, landmark paths, patient/sample identifiers, and quality flags."
+preprocess: "Run preprocessing on scans and landmarks according to preprocessing.* settings."
+presplit: "Create cross-validation train/validation/test split CSV files from the master dataframe."
+generate: "Generate output artifacts, such as predicted landmark files, for selected patients using a trained checkpoint."
+script_concept: "Run the concept figure generation script."
+script_weeks: "Run the gestational-week/statistics plotting script."
+test_loaders: "Instantiate train/validation loaders and iterate through them as a dataloader sanity check."
+test_pipe: "Reserved/test pipeline mode; document implementation before relying on this mode."
+interactive_plot: "Open an interactive 3D visualization for selected test patients using a trained checkpoint."
+interactive_game: "Open the interactive 3D landmark game/visualization mode for selected test patients."
+
+# Active Mode Selector
+mode: "Execution mode. Use a mode name such as train, test, prepare, preprocess, presplit, generate, interactive_plot, or an integer mode id."
+
+loss:
+  eps: "Small numerical stability constant used by probability/log-softmax based losses."
+  sigmoid: "Apply sigmoid to model outputs inside SSELoss before computing squared error."
+  w: "Exponent applied to the Euclidean distance map in EucEMDLoss; larger values penalize far-away probability mass more strongly."
+  normalize_targets: "Normalize target heatmaps into spatial probability distributions before SoftmaxCELoss."
+  reduction: "Loss reduction across the batch. Supported values are mean, sum, and none."
+
+optimizer:
+  lr: "Learning rate used."
+  sgd:
+    momentum: "Momentum value used by SGD when training.optimizer is sgd."
+
+preprocessing:
+  skip: "Reserved flag for skipping preprocessing steps; verify implementation before relying on this option."
+  filter: "Apply image filtering during preprocessing."
+  bspline: "Resample volumes with B-spline interpolation to preprocessing.params.bspline.size and spacing."
+  swap: "Swap/adjust landmark coordinate ordering after affine handling; keep consistent with image orientation transforms."
+  affine: "Use image affine/space-direction information to transform landmark coordinates consistently with the preprocessed image."
+  gtpp: "Run the GTPP/standardization preprocessing branch before the regular preprocessing pipeline."
+  params:
+    filter:
+      filter_size: "Kernel size passed to the preprocessing filter."
+      mode: "Boundary handling mode for filtering, e.g. reflect."
+    bspline:
+      spacing: "Target voxel spacing used when resampling scans."
+      size: "Target output volume size [D, H, W] or equivalent axis order used by preprocessing."
+    gtpp:
+      checkpoint_name: "Filename of the GTPP checkpoint to load."
+      model_dir: "Directory containing the GTPP checkpoint file."
+      file_paths:
+        data_dir: "Base directory used by the GTPP preprocessing utilities."
+        ddir: "Input/output directory used by the GTPP data loader utilities."
+        label_dir: "Path to the GTPP label file."
+        out_dir_pre_pross: "Output directory for GTPP preprocessed results. Name is kept for compatibility with current code."
+        list_files:
+          test: "Text file listing test/input scans for the GTPP branch."
+      params:
+        desired_size: "Desired standardized output size for GTPP, usually [256, 256, 256]."
+        save_jpg: "Save intermediate JPEG slices during GTPP preprocessing."
+        save_nrrd: "Save standardized NRRD volumes from GTPP preprocessing."
+        downsampling_factor: "Downsampling factor used by the GTPP grid/standardization code."
+        num_samples: "Number of samples/planes used by the GTPP sampler."
+        spacing: "Voxel spacing value used in the GTPP standardization code."
+        permute: "Permute axes/input orientation inside the GTPP pipeline."
+        input_plane: "Number of input planes/channels expected by the GTPP model."
+        resume: "Load an existing GTPP checkpoint instead of starting from scratch."
+        learning_rate: "Learning rate for the GTPP model when training/resuming that branch."
+        test_it: "Number of test-time iterations/samples for GTPP inference."
+        int_rad: "Use integer-radius sampling/transform behavior in the GTPP utilities."
+        epochs: "Maximum number of epochs for GTPP training code."
+        save_interval: "Checkpoint/output save interval for the GTPP branch."
+        batch_size: "Batch size for the GTPP branch."
+        debug: "Enable extra debug behavior in the GTPP branch."
+        normalize_quaternion: "Quaternion normalization strategy for GTPP rotation prediction."
+        seed_val: "Random seed used by GTPP sampling and augmentation."
+        num_output_tr: "Number of translation outputs predicted by the GTPP model."
+        num_output_rr: "Number of rotation/quaternion outputs predicted by the GTPP model."
+        ViT_model: "Vision Transformer model name used if the GTPP branch uses a ViT backbone."
+        classification: "Use classification mode in the GTPP branch instead of regression where implemented."
+        perceptual_loss: "Enable perceptual loss in the GTPP branch."
+        limit_translation: "Limit/range for sampled or predicted translations in GTPP."
+        euler: "Use Euler angle representation instead of quaternion representation where implemented."
+        vgg: "VGG version used for perceptual loss if enabled."
+        image_loss: "Enable image reconstruction/alignment loss in the GTPP branch."
+        instance_norm: "Use instance normalization in the GTPP model if supported."
+        data_augment_close: "Control close-range data augmentation behavior in GTPP."
+        net: "GTPP network architecture identifier, e.g. SN16."
+        latent: "Primary latent feature dimension for the GTPP model."
+        latent2: "Secondary latent feature dimension for the GTPP model."
+        last_bn: "Use a final batch-normalization layer in the GTPP model if supported."
+        name_model_old: "Use legacy model naming/loading behavior in GTPP."
+        grid_loss: "Enable grid-based loss in GTPP."
+        only_grid_loss: "Use only the grid-based loss in GTPP."
+        dropout: "Dropout probability used in the GTPP model."
+      dic_name: "Name of the dictionary file containing GTPP transform/output metadata."
+  save_dir: "Root directory, relative to ds.sys, where preprocessed scans, landmarks, and metadata are saved."
+
+repro:
+  model_seed: "Random seed for Python, NumPy, and PyTorch model initialization/training."
+  generator_seed: "Random seed for DataLoader shuffling/generator behavior."
+  deterministic: "Set torch.backends.cudnn.deterministic for more reproducible CUDA behavior."
+  benchmark: "Set torch.backends.cudnn.benchmark. Usually false for reproducibility, true may improve speed for fixed input sizes."
+
+training:
+  architecture: "Model architecture key. Currently implemented: resunet3d."
+  batch_size: "Training batch size."
+  epochs: "Number of training epochs."
+  optimizer: "Optimizer key. Supported by get_fresh_model: adam or sgd."
+  loss: "List of loss keys to combine. Supported: sse, softmaxce, eucEMD."
+  mnl: "Enable Kendall-style multi-noise/multi-loss uncertainty weighting."
+  lambdas: "Per-loss scalar weights. Must have the same length/order as training.loss."
+  num_workers: "Number of DataLoader workers for the training loader."
+  progress_bar: "Show training progress bars during epochs."
+  rescale_inputs: "Apply TorchIO RescaleIntensity((0, 1)) to input scans before model inference/training."
+  num_fts: "Base number of feature channels in ResUNet3D. Larger values increase model capacity and memory usage."
+
+validation:
+  batch_size: "Batch size for validation and test loaders."
+  check_visibility: "Use visibility information to handle/evaluate landmarks that are not visible."
+  use_model: "Checkpoint filename stem to load for validation/test/resume, e.g. last or best."
+  detector: "Landmark detector used to convert heatmaps to coordinates. Common value: argmax."
+  radius_eval: "Radius around the target used for local evaluation/accuracy calculations."
+  radius_num: "Number of radius samples or bins used in local evaluation."
+  save_outputs: "Save predicted output heatmaps/landmark outputs during inference."
+  save_targets: "Save target heatmaps/ground-truth outputs during inference."
+  progress_bar: "Show progress bars during validation/test inference."
+  show_figures: "Display or generate figures during inference/evaluation where supported."
+
+gh:
+  alpha: "Alpha/sharpness parameter used when generating Gaussian-like heatmap targets."
+  eps: "Small numerical stability constant used during heatmap generation."
+  clip: "Clip heatmap values during target generation if implemented."
+  mask: "Mask heatmap/distance-map values during target generation if implemented."
+
+wandb:
+  log: "Enable Weights & Biases logging."
+  wandbpro: "Weights & Biases project name."
+
+ds:
+  dataframe: "Master dataframe basename without .csv. Loaded from ds.sys + ds.root + ds.dataframe + .csv."
+  root: "Dataset root directory relative to ds.sys. Contains dataframe CSVs, preprocessed scans, and landmark files."
+  sys: "Absolute system/storage prefix prepended to ds.root and other dataset paths."
+  source: "Raw-source directory, relative to ds.sys, used by prepare mode to discover raw datasets."
+
+target:
+  lmks: "Ordered list of landmark labels. The network output channel order follows this list."
+
+num_workers: "Global fallback worker count. Prefer training.num_workers for training; validation/test currently use fixed workers in loaders."
+device: "PyTorch device string, e.g. cuda, cuda:0, or cpu."
+prefix: "Experiment name prefix used when creating runs/YYYY-MM-DD/<prefix> directories."
+resume: "Resume training from checkpoint_ instead of starting a new run."
+checkpoint_: "Path to an existing experiment/checkpoint directory used by test, resume, generate, and interactive modes."
+test_patients: "List of patient IDs (npid values) to force/select as test cases in test/generate/interactive modes."
+
+split:
+  n: "Number of cross-validation folds to create in presplit mode."
+  test_ds: "Dataset names reserved for the test set during prepare/presplit workflows."
+  train_val_ds: "Dataset names used for train/validation splitting during prepare/presplit workflows."
+
+script:
+  fig_size: "Default figure size [width, height] for plotting scripts."
+  save_dir: "Directory where plotting scripts save output figures."
+  temp_dir: "Temporary directory used by plotting scripts."
+  concept:
+    num_samples: "Number of samples used to generate the concept/loss illustration figure."

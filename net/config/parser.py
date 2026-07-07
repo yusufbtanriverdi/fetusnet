@@ -64,7 +64,7 @@ def print_custom_help(config_ns, help_ns):
     print("="*60)
     print("\n📝 Dynamic Overrides Syntax:")
     print("  python main.py --mode=train --training.epochs=100")
-    print("  python main.py --prepocessing_.params.gtpp.params.desired_size=\"[128,128,128]\"\n")
+    print("  python main.py --preprocessing.params.gtpp.params.desired_size=\"[128,128,128]\"\n")
     print("⚙️ Configured Parameter Tree & Descriptions:")
     
     flat_config = flatten_namespace_to_dict(config_ns)
@@ -131,27 +131,3 @@ def setup_config(default_path="net/config/default.yaml", help_path="net/config/h
         sys.exit(0)
         
     return config
-
-# ==========================================
-# RUN PIPELINE
-# ==========================================
-
-# if __name__ == "__main__":
-#     # Resolve values, handle help context, map modes
-#     cfg = setup_config()
-    
-#     # Execute with clean native dot-notation syntax!
-#     print(f"\n🚀 Pipeline initialized successfully!")
-#     print(f"Active Mode Name: {cfg.mode}")
-#     print(f"Target Hardware:  {cfg.device}")
-    
-#     if cfg.mode == "train":
-#         print(f"Running training sequence on architecture: {cfg.training.architecture}")
-#         print(f"Epoch limit set to: {cfg.training.epochs}")
-        
-#     elif cfg.mode == "preprocess":
-#         # Safe dot notation access, even down into sections containing symbols like 'gtpp'
-#         # Dict syntax fallback is avoided completely
-#         tgt_dimensions = cfg.prepocessing_.params.__dict__['gtpp'].params.desired_size
-#         print(f"Executing Preprocessing sequence.")
-#         print(f"Reshaping volume space to: {tgt_dimensions}")

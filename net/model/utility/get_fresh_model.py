@@ -71,7 +71,7 @@ def get_fresh_model(params):
     if optimizer_cls is None:
         raise ValueError(f"Unsupported optimizer '{optim_name}'. Choose from: {list(optim_dict.keys())}.")
     # Set learning rate.
-    learning_rate = params.optimizer.adam.lr
+    learning_rate = params.optimizer.lr
     if params.training.mnl:
         optimizer = optimizer_cls([
                                     {'params': model.parameters()},
