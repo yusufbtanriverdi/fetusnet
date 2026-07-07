@@ -9,7 +9,6 @@ import random
 import numpy as np
 import yaml
 
-# from net.parameters.parameters import parameters_parsing
 from net.config.parser import setup_config
 from dataset.statistics.split import perform_crossfold_split
 from dataset.statistics.prepare import perform_prepare
@@ -23,7 +22,8 @@ from net.phases.infer import infer_one_ep
 from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.config.wandb import initialize_wandb
 from net.plot.volumes import perform_plot_3d, start_game_3d
-from scripts import script_concept_fig
+from scripts.script_concept_fig import create_disc_figure
+from scripts.script_weeks_fig import create_weeks_plot
 from utils import *
 
 def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps, validate=True):
@@ -135,7 +135,28 @@ logger.info(f"System path set to: {params.ds.sys}")
 logger.info(f"Device set to: {params.device}")
 logger.info("Searching for master dataframe in system+dataset_root... \n If you did not prepare such dataframe or you think it misses some samples, please re-run this script in prepare mode and specify datasets")
 
-# Semi-tested.
+if 'script' in params.mode:
+    import seaborn as sns
+    
+    logger.info(f"Running a script mode: {params.mode}")
+
+    sns.set_style(
+        'whitegrid',
+        {'font.family': 'sans-serif', 'font.sans-serif': 'Verdana'}
+    )
+    sns.set_theme(
+        'paper',
+        'whitegrid',
+        font_scale=2,
+        palette='husl'
+    )
+
+if params.mode == 'script_concept':
+    logger.info("Running script_concept_fig.py")
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    create_disc_figure(params.script.save_dir, params.script.temp_dir, params.loss.w, **namespace_to_dict(params.script.concept))
+    exit(0)  # Exit after running the script to prevent further execution
+
 if params.mode == 'prepare':
     main_dataframe_path = perform_prepare(params) # Create info frames
 
@@ -150,15 +171,18 @@ else:
 if params.mode == 'presplit':
     splitdataframe_path = perform_crossfold_split(main_dataframe, params)
 
-# TODO: Test rotate, no rotate.
-# TODO: Build pipe for standardization.
-# Rotate/alignment step
 if params.mode == 'preprocess':
     perform_preprocessing(main_dataframe, params, logger)
 
 logger.info(f"Master dataframe path: {main_dataframe_path}")
 logger.info(f"Total number of input in master dataframe: {len(main_dataframe)}")
 logger.info(f"Training - validation - test subset sizes: {len(main_dataframe[main_dataframe['set'] == 0]), len(main_dataframe[main_dataframe['set'] == 1]), len(main_dataframe[main_dataframe['set'] == 2])}")
+
+if params.mode == 'script_weeks':
+    logger.info("Running script_weeks_fig.py")
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    create_weeks_plot(params.script.save_dir, main_dataframe)
+    exit(0)  # Exit after running the script to prevent further execution
 
 # Define transformations for 3D images
 transforms = [
@@ -168,20 +192,17 @@ transforms = [
 transformations = tio.Compose(transforms)
 logger.info("Transformations are created.")
 
-# TODO: Test
 if params.mode == 'test_loaders':
     logger.info(f"I have been asked to test loaders... Here it goes.")
     train_dl, val_dl = get_train_val_dl(main_dataframe, params, transformations=transformations)
     test_loaders(train_dl)
     test_loaders(val_dl)
 
-# TODO: Test
 logger.info(f"I am cleaning the dataframe from non-existing files and nonfrontal cases... {len(main_dataframe)}")
 main_dataframe = update_dataframe(main_dataframe, params)
 logger.info(f"After cleaning, total number of input in master dataframe: {len(main_dataframe)}")
 logger.info(f"!__[U]__! Training - validation - test subset sizes: {len(main_dataframe[main_dataframe['set'] == 0]), len(main_dataframe[main_dataframe['set'] == 1]), len(main_dataframe[main_dataframe['set'] == 2])}")
 
-# TODO: Test
 if params.mode in ['generate', 'interactive_plot', 'interactive_game']:
     logger.info(f"Running one of the interactive modes...")
     main_dataframe = main_dataframe.loc[main_dataframe['npid'].isin(params.test_patients)]
@@ -193,24 +214,6 @@ if params.mode in ['generate', 'interactive_plot', 'interactive_game']:
         perform_generate(main_dataframe, experiment_dir, params)
     elif params.mode == 'interactive_game':
         start_game_3d(main_dataframe, experiment_dir, params)
-
-# TODO: merge from kendall
-if params.mode == 'script_concept':
-    logger.info("Running script_concept_fig.py")
-    stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    # test_patients = getattr(params, 'test_patients', [''])
-    print(params.test_patients)
-    main_dataframe.loc[main_dataframe['npid'].isin(params.test_patients), "set"] = 2
-    # Filter test patients first
-    test_dl = get_test_dl(main_dataframe.loc[main_dataframe['npid'].isin(params.test_patients)], params, transformations=transformations)
-    logger.info(f"!__[U]__! Test subset size: {len(test_dl)}")
-    if len(test_dl) == 0: 
-        test_dl = get_test_dl(main_dataframe, params, transformations)
-        logger.info(f"!__[U]__! Couldn't find test patients, switch to entire test subset. Subset size: {len(test_dl)}")
-
-        if len(test_dl) == 0:         
-                _, test_dl = get_train_val_dl(main_dataframe, params, transformations=transformations)
-    script_concept_fig.create_disc_figure(test_dl, params.loss_params['w'], save_dir='figures/')
 
 global_wandb_steps = {'train_loss': 0, 
                       'val_loss': 0, 

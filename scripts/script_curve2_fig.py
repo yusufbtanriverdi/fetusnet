@@ -6,9 +6,16 @@ from glob import glob
 import numpy as np
 import seaborn as sns
 
-sns.set_style('whitegrid', {'font.family':'sans-serif', 'font.sans-serif': 'Verdana'})
-sns.set_theme('paper', 'whitegrid', font_scale=1.5, palette='husl')
-
+sns.set_style(
+    'whitegrid',
+    {'font.family': 'sans-serif', 'font.sans-serif': 'Verdana'}
+)
+sns.set_theme(
+    'paper',
+    'whitegrid',
+    font_scale=2,
+    palette='husl'
+)
 def plot_aela_figure(radii, edrs, titles, dict, save_dir='assets/ela2.svg', show=False, colors=[None, None]):
     """
     Plot the average expected local accuracy (AELA) figure.

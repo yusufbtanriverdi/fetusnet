@@ -2,9 +2,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-sns.set_style('whitegrid', {'font.family':'sans-serif', 'font.sans-serif': 'Verdana'})
-sns.set_theme('paper', 'whitegrid', font_scale=2, palette='husl')
-
+sns.set_style(
+    'whitegrid',
+    {'font.family': 'sans-serif', 'font.sans-serif': 'Verdana'}
+)
+sns.set_theme(
+    'paper',
+    'whitegrid',
+    font_scale=2,
+    palette='husl'
+)
 df = pd.read_csv('assets/lambdas.csv')
 
 fig, ax = plt.subplots(figsize=(12, 10))

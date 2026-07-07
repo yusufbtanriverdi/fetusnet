@@ -6,9 +6,8 @@ prepare: 3
 preprocess: 4
 presplit: 5
 generate: 6
-script_conceptual: 10
-script_stats: 11
-script_ELA: 12
+script_concept: 10
+script_weeks: 11
 test_loaders: 21
 test_pipe: 22
 interactive_plot: 31
@@ -177,17 +176,9 @@ split:
   test_ds: ["Casos Mar"]
   train_val_ds: ["Estudio Dexeus"]
 
-script_:
+script:
   fig_size: [15, 10]
-  save_dir: "figures/"
+  save_dir: "assets/"
   temp_dir: "temp/"
-  sampling:
+  concept:
     num_samples: 128
-    max_shift: 0.1
-    alpha: 0.5
-  ela_:
-    marker_size: 5
-    line_width: 1
-    show: true
-    savefig: true
-    directories: []
