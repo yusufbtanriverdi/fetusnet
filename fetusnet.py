@@ -245,7 +245,7 @@ if params.mode == 'train':
     # Save to CSV or any preferred format
     loss_df.to_csv(os.path.join(experiment_dir, f"losses_{stamp}.csv"), index=False)
 
-    model_dir = experiment_dir + '/' + params.eval_use_model + '.pt'
+    model_dir = experiment_dir + '/' + params.validation.use_model + '.pt'
     if not os.path.exists(model_dir):
         raise FileNotFoundError(f"Model directory {model_dir} does not exist.")
     

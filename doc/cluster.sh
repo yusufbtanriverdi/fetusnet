@@ -1,16 +1,15 @@
 #!/bin/bash
-#SBATCH -J herewego
+#SBATCH -J [CENSORED]
 #SBATCH -p high
+#SBATCH --chdir=/[CENSORED]
+#SBATCH --mem=32GB
+#SBATCH --[CENSORED]:gpu:1
 #SBATCH -N 1
-#SBATCH -n 8                                     # Request 8 CPU cores
-#SBATCH --nodelist=node032
-#SBATCH --chdir=/home/ytanriverdi
-#SBATCH --mem=32GB 
-#SBATCH --gres=gpu:gtx1080:1
-# SBATCH --array=0-3:1%3                      # Run 6 jobs with step 2, max 3 concurrent jobs
+#SBATCH -n 1
+# SBATCH --array=0-2:1%3
 
-#SBATCH -o /home/ytanriverdi/logs/%J.%u.out # STDOUT
-#SBATCH -e /home/ytanriverdi/logs/%J.%u.err # STDERR 
+#SBATCH -o /[CENSORED]/logs/%J.%u.out # STDOUT
+#SBATCH -e /[CENSORED]/logs/%J.%u.err # STDERR 
 
 ## SBATCH --partition=<partition>          # Partition/queue name
 ## SBATCH --nodes=<num_nodes>              # Number of nodes to use
@@ -61,6 +60,7 @@ echo "Environment is here!"
 pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
 cd fetusnet 
+
 git pull
 pip3 install -r doc/requirements/requirements.txt
 
@@ -82,7 +82,7 @@ echo "$cuda_status"
 ### JOBS 
 # List config files
 CONFIG_DIR="configs"
-CONFIG_FILES=($CONFIG_DIR/*.json)
+CONFIG_FILES=($CONFIG_DIR/*.yaml)
 
 CONFIG="${CONFIG_FILES[$SLURM_ARRAY_TASK_ID]}"
 echo "CONFIG FILE COUNT: ${#CONFIG_FILES[@]}"
@@ -91,9 +91,11 @@ for cfg in "${CONFIG_FILES[@]}"; do
 done
 
 echo "Running config: $CONFIG"
+echo "TASK ID: $SLURM_ARRAY_TASK_ID"
+echo "CONFIG COUNT: ${#CONFIG_FILES[@]}"
 # authorise wandb
-export WANDB_API_KEY=CENSORED
+export WANDB_API_KEY=[CENSORED]
 wandb login
-python fetusnet.py train --config "$CONFIG" --prefix "$(basename "$CONFIG" .json)"
-
+python fetusnet.py --config "$CONFIG" --prefix "$(basename "$CONFIG" .yaml)"
+# FOR DEBUGGING ONLY
 # python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"

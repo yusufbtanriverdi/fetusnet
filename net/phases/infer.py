@@ -1,3 +1,4 @@
+import pickle
 from tqdm import tqdm
 import torch
 import wandb
@@ -18,6 +19,17 @@ from dataset.utility.rotation import extract_image
 from net.plot.heatmaps import plot_heatmaps_slices_from_coord
 from net.loss.losses import *
 from net.evaluation.dMean import d_mean_mm
+
+def get_template():
+    """
+    Load a template NRRD file and return its header.
+
+    Args:
+        template_path (str): Path to the template NRRD file.
+    """
+    with open("tempates/1.pkl", "rb") as f:
+        loaded_d = pickle.load(f)
+    return loaded_d
 
 def compute_landmark_metrics(outputs, targets, spacings):
     """
@@ -88,7 +100,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
         output_dir = os.path.join(experiment_dir, "eval")
         os.makedirs(output_dir, exist_ok=True)
         radii = torch.linspace(1, radius_eval, radius_num)
-        template_header = extract_image('templates/1.nrrd')[1]
+        template_header = get_template('templates/1.pkl')
     # Disable gradient computation for validation
     with torch.inference_mode():
         # Iterate over the DataLoader
