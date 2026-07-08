@@ -1,6 +1,7 @@
 from dataset.MyDataset import MyDataset
 import torchio as tio
 import torch
+import warnings
 
 def get_train_val_dl(splitted_dataframe, params, transformations):
     """
@@ -53,21 +54,29 @@ def get_train_val_dl(splitted_dataframe, params, transformations):
         transformations,                              # Preprocessing transformations
     )
 
-    # Create DataLoaders for training and validation datasets
-    train_dl = tio.SubjectsLoader(
-        dataset=train_ds,
-        batch_size=params.training.batch_size,  # Batch size for training
-        shuffle=True,                        # Shuffle training data
-        num_workers=params.training.num_workers,      # Number of worker threads
-        generator=g_cpu,                        # Use the generator for reproducibility
-    )
+    if not len(train_ds) == 0:
+        # Create DataLoaders for training and validation datasets
+        train_dl = tio.SubjectsLoader(
+            dataset=train_ds,
+            batch_size=params.training.batch_size,  # Batch size for training
+            shuffle=True,                        # Shuffle training data
+            num_workers=params.training.num_workers,      # Number of worker threads
+            generator=g_cpu,                        # Use the generator for reproducibility
+        )
+    else:
+        warnings.warn("No train dataset found. Please be aware. Returning none.")
+        train_dl = None
 
-    val_dl = tio.SubjectsLoader(
-        dataset=val_ds,
-        batch_size=params.validation.batch_size,   # Batch size for validation
-        shuffle=False,                      # Do not shuffle validation data
-        num_workers=1      # Number of worker threads
-    )
+    if not len(val_ds) == 0:
+        val_dl = tio.SubjectsLoader(
+            dataset=val_ds,
+            batch_size=params.validation.batch_size,   # Batch size for validation
+            shuffle=False,                      # Do not shuffle validation data
+            num_workers=1      # Number of worker threads
+        )
+    else:
+        warnings.warn("No validation dataset found. Please be aware. Returning none.")
+        val_dl = None
 
     return train_dl, val_dl
 
