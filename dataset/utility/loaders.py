@@ -72,7 +72,7 @@ def get_train_val_dl(splitted_dataframe, params, transformations):
             dataset=val_ds,
             batch_size=params.validation.batch_size,   # Batch size for validation
             shuffle=False,                      # Do not shuffle validation data
-            num_workers=1      # Number of worker threads
+            num_workers=0      # Number of worker threads
         )
     else:
         warnings.warn("No validation dataset found. Please be aware. Returning none.")

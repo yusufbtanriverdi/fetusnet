@@ -117,7 +117,7 @@ torch.backends.cudnn.benchmark = params.repro.benchmark  # Disable auto-tuning (
 # Convert to dictionary (if Namespace or similar)
 params_as_dict = namespace_to_dict(params)  # or: params.__dict__ if vars() doesn't work
 if params.mode in ['test', 'interactive_plot', 'interactive_game'] or params.resume:
-    experiment_dir = params.checkpoint_
+    experiment_dir = params.checkpoint
 else:
     experiment_dir, experiment_name = create_experiment_id(params.prefix)
     # Write to JSON
@@ -227,7 +227,7 @@ if params.mode == 'train':
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     epoch = 0
     if params.resume:
-        experiment_dir = params.checkpoint_
+        experiment_dir = params.checkpoint
         model_dir = experiment_dir + '/' + params.validation.use_model + '.pt'
         if not os.path.exists(model_dir):
             raise FileNotFoundError(f"Model directory {model_dir} does not exist.")
@@ -294,7 +294,7 @@ if params.mode == 'test':
     logger.info("I am starting to test")
     # Initialize model, loss, optimizer
     model, criteria, optimizer, multi_noise_loss, _ = get_fresh_model(params)
-    experiment_dir = params.checkpoint_
+    experiment_dir = params.checkpoint
     model_dir = experiment_dir + '/' + params.validation.use_model + '.pt'
     if not os.path.exists(model_dir):
         raise FileNotFoundError(f"Model directory {model_dir} does not exist.")

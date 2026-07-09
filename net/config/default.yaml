@@ -166,7 +166,7 @@ num_workers: 1
 device: "cuda"
 prefix: "v2"
 resume: false
-checkpoint_: ""
+checkpoint: ""
 test_patients: [1002, 1003]
 
 split:

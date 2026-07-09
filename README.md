@@ -274,7 +274,7 @@ runs/YYYY-MM-DD/<prefix>/test_scores_mean.csv
 ```bash
 python fetusnet.py \
   --mode=test \
-  --checkpoint_="runs/2026-07-07/resunet3d_fold0" \
+  --checkpoint="runs/2026-07-07/resunet3d_fold0" \
   --validation.use_model="best" \
   --ds.sys="/media/.../" \
   --ds.root="DATA/" \
@@ -292,7 +292,7 @@ python fetusnet.py \
 If the selected `test_patients` are not found, the script falls back to the full test subset. Evaluation results are saved in the checkpoint directory, and per-landmark output/target NRRDs are saved under:
 
 ```text
-<checkpoint_>/eval/
+<checkpoint>/eval/
 ```
 
 ## Losses and model options
@@ -374,7 +374,7 @@ The dataframe must contain a `set` column before training/testing. Use `presplit
 
 ### Checkpoint not found
 
-For test mode, `--checkpoint_` must point to an experiment directory containing `best.pt` or `last.pt`:
+For test mode, `--checkpoint` must point to an experiment directory containing `best.pt` or `last.pt`:
 
 ```text
 runs/YYYY-MM-DD/<prefix>/best.pt

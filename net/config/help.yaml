@@ -153,8 +153,8 @@ target:
 num_workers: "Global fallback worker count. Prefer training.num_workers for training; validation/test currently use fixed workers in loaders."
 device: "PyTorch device string, e.g. cuda, cuda:0, or cpu."
 prefix: "Experiment name prefix used when creating runs/YYYY-MM-DD/<prefix> directories."
-resume: "Resume training from checkpoint_ instead of starting a new run."
-checkpoint_: "Path to an existing experiment/checkpoint directory used by test, resume, generate, and interactive modes."
+resume: "Resume training from checkpoint instead of starting a new run."
+checkpoint: "Path to an existing experiment/checkpoint directory used by test, resume, generate, and interactive modes."
 test_patients: "List of patient IDs (npid values) to force/select as test cases in test/generate/interactive modes."
 
 split:
