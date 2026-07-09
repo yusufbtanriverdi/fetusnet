@@ -104,20 +104,20 @@ def plot_histograms_and_stats(
 
     return stats
 
-if __name__ == "__main__":
-    # Dummy outputs: logits with a wide spread
-    outputs = torch.randn(10_000) * 2  # Gaussian, std=2
-    outputs[::500] = torch.randn(outputs[::500].shape) * 20  # Inject some big outliers
+# if __name__ == "__main__":
+#     # Dummy outputs: logits with a wide spread
+#     outputs = torch.randn(10_000) * 2  # Gaussian, std=2
+#     outputs[::500] = torch.randn(outputs[::500].shape) * 20  # Inject some big outliers
 
-    # Dummy targets: mostly near 0 with occasional spikes
-    targets = torch.rand(10_000) ** 3  # Skewed toward 0
-    targets[::400] = torch.rand(targets[::400].shape) * 5  # Rare large values
+#     # Dummy targets: mostly near 0 with occasional spikes
+#     targets = torch.rand(10_000) ** 3  # Skewed toward 0
+#     targets[::400] = torch.rand(targets[::400].shape) * 5  # Rare large values
 
-    stats = plot_histograms_and_stats(
-        outputs, targets,
-        bins=50,
-        range_percentile=99.0,
-        log_scale=False,  # try True to see detail near 0
-    )
+#     stats = plot_histograms_and_stats(
+#         outputs, targets,
+#         bins=50,
+#         range_percentile=99.0,
+#         log_scale=False,  # try True to see detail near 0
+#     )
 
-    print("Stats:\n", stats)
+#     print("Stats:\n", stats)

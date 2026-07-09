@@ -78,12 +78,12 @@ def plot_heatmaps_slices_from_coord(heatmaps, coord_tensor, argmax_tensor, title
         # plt.show()
         plt.close()  # Free memory
 
-if __name__ == "__main__":
-    # Dummy 3D heatmaps
-    heatmap1 = np.exp(-((np.indices((30, 50, 50))[1]-25)**2 + (np.indices((30, 50, 50))[2]-25)**2)/50)
-    heatmap2 = np.exp(-((np.indices((30, 50, 50))[1]-25)**2 + (np.indices((30, 50, 50))[2]-25)**2)/20)
+# if __name__ == "__main__":
+#     # Dummy 3D heatmaps
+#     heatmap1 = np.exp(-((np.indices((30, 50, 50))[1]-25)**2 + (np.indices((30, 50, 50))[2]-25)**2)/50)
+#     heatmap2 = np.exp(-((np.indices((30, 50, 50))[1]-25)**2 + (np.indices((30, 50, 50))[2]-25)**2)/20)
 
-    coord = (15, 25, 25)
+#     coord = (15, 25, 25)
 
-    # Plot each heatmap in separate figure with columns = axes, rows = image/surface
-    plot_heatmaps_slices_from_coord([heatmap1, heatmap2], coord, titles=["Predicted", "Modulated"])
+#     # Plot each heatmap in separate figure with columns = axes, rows = image/surface
+#     plot_heatmaps_slices_from_coord([heatmap1, heatmap2], coord, titles=["Predicted", "Modulated"])

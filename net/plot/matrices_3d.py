@@ -82,13 +82,13 @@ def plot_3d_matrices(
         if gif_path:
             imageio.mimsave(gif_path, images, fps=fps)
 
-if __name__ == "__main__":
-    # Dummy 3D volumes
-    t1 = torch.rand(30, 64, 64)  # (D, H, W)
-    t2 = torch.rand(30, 64, 64) * 2  # scaled version
+# if __name__ == "__main__":
+#     # Dummy 3D volumes
+#     t1 = torch.rand(30, 64, 64)  # (D, H, W)
+#     t2 = torch.rand(30, 64, 64) * 2  # scaled version
 
-    # Interactive browsing
-    plot_3d_matrices(t1, t2, titles=["Random A", "Random B"], interactive=True)
+#     # Interactive browsing
+#     plot_3d_matrices(t1, t2, titles=["Random A", "Random B"], interactive=True)
 
-    # Auto-GIF mode
-    plot_3d_matrices(t1, t2, titles=["Random A", "Random B"], gif_path="distances.gif", interactive=False, fps=5)
+#     # Auto-GIF mode
+#     plot_3d_matrices(t1, t2, titles=["Random A", "Random B"], gif_path="distances.gif", interactive=False, fps=5)
