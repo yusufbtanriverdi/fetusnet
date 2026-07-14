@@ -101,6 +101,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
         os.makedirs(output_dir, exist_ok=True)
         radii = torch.linspace(1, radius_eval, radius_num)
         template_header = get_template()
+        print(template_header)
     # Disable gradient computation for validation
     with torch.inference_mode():
         # Iterate over the DataLoader
