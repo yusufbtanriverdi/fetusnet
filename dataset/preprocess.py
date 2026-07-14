@@ -53,9 +53,21 @@ def perform_preprocessing(dataframe, params, logger=None):
             save_csv_path = params.ds.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mcsv']
             save_lmk_path = params.ds.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mlmk']
 
+
         # Skip processing if image already exists
             if os.path.exists(save_im_path):
-                
+                # Temporary header update for imfusion
+                V, header = extract_image(image_path)
+                header["space dimension"] = 3
+                header["space directions"] = [
+                    [1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0],
+                ]
+                header["space origin"] = [0.0, 0.0, 0.0]
+                header["space units"] = ["mm", "mm", "mm"]
+                # optional: remove old/simple spacing if ImFusion complains
+                # header.pop("spacings", None)
                 # logger.info('Image seems to be processed already!!!')
                 # logger.info(save_im_path)
                 continue
