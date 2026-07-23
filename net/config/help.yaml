@@ -15,6 +15,7 @@ presplit: "Create cross-validation train/validation/test split CSV files from th
 generate: "Generate output artifacts, such as predicted landmark files, for selected patients using a trained checkpoint."
 script_concept: "Run the concept figure generation script."
 script_weeks: "Run the gestational-week/statistics plotting script."
+script_mean_shape: "Run the mean-shape computation and plotting script."
 test_loaders: "Instantiate train/validation loaders and iterate through them as a dataloader sanity check."
 test_pipe: "Reserved/test pipeline mode; document implementation before relying on this mode."
 interactive_plot: "Open an interactive 3D visualization for selected test patients using a trained checkpoint."
@@ -168,3 +169,9 @@ script:
   temp_dir: "Temporary directory used by plotting scripts."
   concept:
     num_samples: "Number of samples used to generate the concept/loss illustration figure."
+  mean_shape:
+    recompute: "Force recomputation of mean shape coordinates and figure even if output files exist."
+    df_name: "Filename for the mean shape coordinates CSV output."
+    fig_name: "Filename for the mean shape plot PNG output."
+    validation: "Run mean shape computation on the validation set instead of the training set."
+    progress_bar: "Show progress bar during mean shape computation."

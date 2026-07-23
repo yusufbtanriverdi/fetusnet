@@ -24,6 +24,7 @@ from net.config.wandb import initialize_wandb
 from net.plot.volumes import perform_plot_3d, start_game_3d
 from scripts.script_concept_fig import create_disc_figure
 from scripts.script_weeks_fig import create_weeks_plot
+from scripts.script_mean_shape import plot_mean_shape
 from utils import *
 
 def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps, validate=True):
@@ -288,6 +289,28 @@ if params.mode == 'train':
     test_scores.drop(['nsid'], axis=1).mean().to_csv(save_mean_scores)
 
     if params.wandb.log: wandb.finish()
+
+if params.mode == 'script_mean_shape':
+    logger.info(f"Running script_mean_shape.py")
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if params.script.mean_shape.validation:
+        shape_dl = get_test_dl(main_dataframe, params, transformations=transformations)
+        if len(shape_dl) == 0: _, shape_dl = get_train_val_dl(main_dataframe, params, transformations=transformations)
+    else:
+        shape_dl, _ = get_train_val_dl(main_dataframe, params, transformations=transformations)
+    plot_mean_shape(shape_dl, 
+                    device=params.device, 
+                    lmks=params.target.lmks, 
+                    output_dir=params.script.save_dir,
+                    temp_dir=params.script.temp_dir,
+                    df_name=params.script.mean_shape.df_name,
+                    fig_name=params.script.mean_shape.fig_name,
+                    html_name=params.script.mean_shape.html_name,
+                    progress_bar=params.script.mean_shape.progress_bar,
+                    check_visibility=params.validation.check_visibility,
+                    recompute=params.script.mean_shape.recompute,
+                    )
+
 
 if params.mode == 'test':
     params.wandb.log = False

@@ -6,7 +6,7 @@ from utils import flatten_namespace_to_dict
 
 # Hide the top-level mode mappings from the main options list
 skipped_keys = ["train", "test", "prepare", "preprocess", "rotate", "presplit", "help", "generate", 
-                "script_concept", "script_weeks", "test_loaders", "test_pipe", 
+                "script_concept", "script_weeks", "script_mean_shape", "test_loaders", "test_pipe", 
                 "interactive_plot", "interactive_game"
                 ]
 

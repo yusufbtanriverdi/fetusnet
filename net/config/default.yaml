@@ -8,6 +8,7 @@ presplit: 5
 generate: 6
 script_concept: 10
 script_weeks: 11
+script_mean_shape: 12
 test_loaders: 21
 test_pipe: 22
 interactive_plot: 31
@@ -180,3 +181,10 @@ script:
   temp_dir: "temp/"
   concept:
     num_samples: 128
+  mean_shape:
+    recompute: false
+    df_name: "mean_shape_coordinates.csv"
+    fig_name: "mean_shape_plot.png"
+    html_name: "mean_shape_3D.html"
+    validation: true
+    progress_bar: true

@@ -1,7 +1,5 @@
 import os
-from glob import glob
 from matplotlib import pyplot as plt
-import os
 from glob import glob
 import numpy as np
 import seaborn as sns
