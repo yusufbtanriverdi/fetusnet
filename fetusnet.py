@@ -309,6 +309,7 @@ if params.mode == 'script_mean_shape':
                     progress_bar=params.script.mean_shape.progress_bar,
                     check_visibility=params.validation.check_visibility,
                     recompute=params.script.mean_shape.recompute,
+                    exp_dir=params.script.mean_shape.exp_dir
                     )
 
 

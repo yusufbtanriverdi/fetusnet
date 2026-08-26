@@ -182,9 +182,10 @@ script:
   concept:
     num_samples: 128
   mean_shape:
-    recompute: false
-    df_name: "mean_shape_coordinates.csv"
-    fig_name: "mean_shape_plot.png"
-    html_name: "mean_shape_3D.html"
+    recompute: true
+    df_name: "mean_shape_coordinates_2026-05-20_kendall6_f3.csv"
+    fig_name: "mean_shape_plot_2026-05-20_kendall6_f3.png"
+    html_name: "mean_shape_3D_2026-05-20_kendall6_f3.html"
     validation: true
     progress_bar: true
+    exp_dir: "runs/2026-05-20/kendall6_f3/"

@@ -17,7 +17,8 @@ def plot_mean_shape(
     progress_bar=True,
     check_visibility=True,
     recompute=False,
-    palette='tab20c'
+    palette='tab20c',
+    exp_dir=None,
     ):
     """Collect landmark coordinates, compute means, and plot them.
 
@@ -35,41 +36,81 @@ def plot_mean_shape(
     df_path = os.path.join(temp_dir, df_name)
     fig_path = os.path.join(output_dir, fig_name)
 
-    if os.path.exists(df_path) and not recompute:
-        df = pd.read_csv(df_path)
-    else:
-        records = []
-        iterable = tqdm(loader, desc='Collecting landmark coordinates', total=len(loader)) if progress_bar else loader
+    if not exp_dir:
+        if os.path.exists(df_path) and not recompute:
+            print(f"Loading existing target landmark coordinates from {df_path}...")
+            df = pd.read_csv(df_path)
+        else:
+            print(f"Collecting target landmark coordinates from DataLoader and saving to {df_path}...")
+            records = []
+            iterable = tqdm(loader, desc='Collecting landmark coordinates', total=len(loader)) if progress_bar else loader
 
-        for batch_index, batch in enumerate(iterable):
-            if len(batch['image']['data']) != 1:
-                print(f"Skipping batch {batch_index} due to unexpected batch size: {len(batch['image']['data'])}")
-                continue
-
-            nsid = batch['name'][0]
-            visibles = batch['visibles'][0]
-            target_coord_tensor = batch['coords'][0].to(device)
-
-            if progress_bar:
-                iterable.set_description(f"Processing {nsid}")
-
-            for lmk_index, lmk in enumerate(lmks):
-                if check_visibility and lmk not in visibles:
+            for batch_index, batch in enumerate(iterable):
+                if len(batch['image']['data']) != 1:
+                    print(f"Skipping batch {batch_index} due to unexpected batch size: {len(batch['image']['data'])}")
                     continue
 
-                coord = target_coord_tensor[lmk_index].cpu().numpy()
-                records.append(
-                    {
-                        'nsid': nsid,
-                        'lmk': lmk,
-                        'x': float(coord[0]),
-                        'y': float(coord[1]),
-                        'z': float(coord[2]),
-                    }
-                )
+                nsid = batch['name'][0]
+                visibles = batch['visibles'][0]
+                target_coord_tensor = batch['coords'][0].to(device)
+                if progress_bar:
+                    iterable.set_description(f"Processing {nsid}")
 
-        df = pd.DataFrame.from_records(records)
-        df.to_csv(df_path, index=False)
+                for lmk_index, lmk in enumerate(lmks):
+                    if check_visibility and lmk not in visibles:
+                        continue
+
+                    coord = target_coord_tensor[lmk_index].cpu().numpy()
+                    records.append(
+                        {
+                            'nsid': nsid,
+                            'lmk': lmk,
+                            'x': float(coord[0]),
+                            'y': float(coord[1]),
+                            'z': float(coord[2]),
+                        }
+                    )
+
+            df = pd.DataFrame.from_records(records)
+            df.to_csv(df_path, index=False)
+
+    if exp_dir:
+        df_path = os.path.join(exp_dir, df_name)
+        if os.path.exists(df_path) and not recompute:
+            print(f"Loading existing predicted mean shape coordinates from {exp_dir}...")
+            df = pd.read_csv(df_path)
+        else:
+            print(f"Recomputing predicted mean shape coordinates from {exp_dir}...")
+            records = []
+            iterable = tqdm(loader, desc='Collecting landmark coordinates', total=len(loader)) if progress_bar else loader
+            for batch_index, batch in enumerate(iterable):
+                if len(batch['image']['data']) != 1:
+                    print(f"Skipping batch {batch_index} due to unexpected batch size: {len(batch['image']['data'])}")
+                    continue
+
+                nsid = batch['name'][0]
+                visibles = batch['visibles'][0]
+                output_coord_tensor = pd.read_csv(os.path.join(exp_dir, f"eval/{nsid}.csv"))
+                if progress_bar:
+                    iterable.set_description(f"Processing {nsid}")
+
+                for lmk_index, lmk in enumerate(lmks):
+                    if check_visibility and lmk not in visibles:
+                        continue
+
+                    coord = output_coord_tensor.iloc[lmk_index]
+                    records.append(
+                        {
+                            'nsid': nsid,
+                            'lmk': lmk,
+                            'x': float(coord['x']),
+                            'y': float(coord['y']),
+                            'z': float(coord['z']),
+                        }
+                    )
+
+            df = pd.DataFrame.from_records(records)
+            df.to_csv(df_path, index=False)
 
     if df.empty:
         raise ValueError('No landmark coordinates were collected. Check the loader contents or visibility settings.')
@@ -97,7 +138,7 @@ def plot_mean_shape(
                 means[axis_x],
                 means[axis_y],
                 c='red',
-                s=120,
+                s=40,
                 marker='X',
                 label='mean coordinate',
             )

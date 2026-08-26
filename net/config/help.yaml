@@ -175,3 +175,4 @@ script:
     fig_name: "Filename for the mean shape plot PNG output."
     validation: "Run mean shape computation on the validation set instead of the training set."
     progress_bar: "Show progress bar during mean shape computation."
+    exp_dir: "Experiment directory containing the CSV files for mean shape computation. If None, uses the default run directory."
