@@ -39,7 +39,7 @@ def perform_preprocessing(dataframe, params, logger=None):
     # txt_path = os.path.join(params.preprocessing.params.gtpp.file_paths.list_files.test)
     # with open(txt_path, "w", encoding="utf-8") as f:
     #     f.write("\n".join(map(str, filedirs_)))
-    print(params.preprocessing)
+    # print(params.preprocessing)
     if params.preprocessing.gtpp:
         gtpp(dataframe, params.preprocessing.params.gtpp)
     else: # Usual routine
@@ -106,7 +106,7 @@ def perform_preprocessing(dataframe, params, logger=None):
                             header['space directions'][1, 1],
                             header['space directions'][2, 2]])
 
-            img_size = np.array(V.shape)
+            img_size = np.array(V.shape).astype(np.float32)
 
             # --------- #
             # STEP 1: Apply low-pass filter to the 3D ultrasound image volume
@@ -137,22 +137,26 @@ def perform_preprocessing(dataframe, params, logger=None):
 
                 resampled_image = resampler.Execute(image)
                 V = sitk.GetArrayFromImage(resampled_image)
-                header['sizes'] = params.preprocessing.params.bspline.size
-
+                header['sizes'] = new_size
                 p = new_spacing
                 # Determine pixel spacing information from header; fallback if keys missing
-                try:
-                    header['spacings'] = p
-                except Exception:
-                    header['space directions'] = np.array([ [p[0], 0, 0],
-                                                            [0, p[1], 0],
-                                                            [0, 0, p[2]]
-                                                            ]
-                                                        )
-                    
+                if "spacings" in header:
+                    header["spacings"] = p
+                elif "space directions" in header:
+                    header["space directions"] = np.array(
+                        [
+                            [p[0], 0, 0],
+                            [0, p[1], 0],
+                            [0, 0, p[2]],
+                        ]
+                    )
+                else:
+                    raise KeyError(
+                        "Neither 'spacings' nor 'space directions' exists in the header."
+                    )                
             # Convert landmarks from mm to pixel units
             L_in_pix = L_in_mm / p
-
+            img_size = np.array(V.shape).astype(np.float32)
             # ------ -------------- #
             # STEP 5: Apply affine transformation to image and landmarks
             # ------ -------------- #
@@ -167,7 +171,6 @@ def perform_preprocessing(dataframe, params, logger=None):
                 ct += 1
                 # Assumption: Centers are in RAS coordinate system
                 center_gt_in_pix = np.array([-1 * plane["center"][0], -1 * plane["center"][1], plane["center"][2]]) / p
-                img_size = np.array(V.shape).astype(np.float32)
                 # Compute translation vector for affine transform
                 translation_vector = (center_gt_in_pix - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
                 # Compute rotation matrix from plane parameters

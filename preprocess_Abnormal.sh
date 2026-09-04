@@ -1,0 +1,14 @@
+python fetusnet.py \
+  --mode=preprocess \
+  --ds.sys="runs/2026-05-20/kendall6_f3/" \
+  --ds.root="DATA/" \
+  --ds.dataframe="sinfo_test" \
+  --preprocessing.save_dir="DATA/" \
+  --preprocessing.filter=True \
+  --preprocessing.bspline=True \
+  --preprocessing.swap=True \
+  --preprocessing.affine=False \
+  --preprocessing.gtpp=False \
+  --preprocessing.params.filter.filter_size=3 \
+  --preprocessing.params.bspline.spacing="[1.0, 1.0, 1.0]" \
+  --preprocessing.params.bspline.size="[128, 128, 128]"
