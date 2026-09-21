@@ -38,7 +38,6 @@ def extract_image(filename):
 
     return data, header
 
-
 def affine_grid_generator_3D(theta, size):
     """
     Generates a 3D affine transformation grid for resampling an image.
@@ -115,7 +114,6 @@ def affine_transform(landmarks, R, T):
     """
 
     landmarks = landmarks + T
-    
     landmarks_transformed = np.dot(R, landmarks.T).T
 
     return landmarks_transformed
@@ -139,14 +137,10 @@ def affine3Dmatrix(gt):
     # Default axis directions in 3D
     V0 = [[1, 0, 0], [0, 1, 0], [0, 0, -1]]
     V1 = [normal_sagittal, normal_axial, normal_coronal]
-
     # Solve for the affine rotation matrix
     M = np.transpose(np.linalg.solve(V0, V1))
     
     return M
-
-def translate_lmk(landmarks, translation_vector):
-    return landmarks + translation_vector
 
 def get_matrix_of_lmks(landmarks_df):
     """
@@ -158,7 +152,6 @@ def get_matrix_of_lmks(landmarks_df):
     Returns:
     np.ndarray: Numpy array representing the matrix of landmarks in LPS format.
     """
-
     # Assuming the DataFrame has columns named 'x', 'y', 'z' for the coordinates
     # Modify according to your actual column names
     # x = -landmarks_df['x'].values  # Flip x for LPS
@@ -184,76 +177,22 @@ def swap_xz_coordinates(lmks):
         lmks (numpy.ndarray or torch.Tensor): A 2D array of landmarks with shape (N, 3), 
                                               where N is the number of landmarks, and the 
                                               coordinates are [x, y, z].
-
     Returns:
         numpy.ndarray or torch.Tensor: The array with x and z coordinates swapped.
     """
     lmks[:, [0, 2]] = lmks[:, [2, 0]]
     return lmks
 
-
-def pad_3d_image(image, lmks, centers_gt, desired_size):
-    pad_width = [(max(d - s, 0) // 2, max(d - s, 0) - max(d - s, 0) // 2) for s, d in zip(image.shape, desired_size)]
-    padded_image = np.pad(image, pad_width, mode='constant')
+# def pad_3d_image(image, lmks, centers_gt, desired_size):
+#     pad_width = [(max(d - s, 0) // 2, max(d - s, 0) - max(d - s, 0) // 2) for s, d in zip(image.shape, desired_size)]
+#     padded_image = np.pad(image, pad_width, mode='constant')
     
-    # Adjust landmarks
-    pad_before = np.array([p[0] for p in pad_width])
-    adjusted_lmks = lmks + pad_before
-    adjusted_centers_gt = centers_gt + pad_before
+#     # Adjust landmarks
+#     pad_before = np.array([p[0] for p in pad_width])
+#     adjusted_lmks = lmks + pad_before
+#     adjusted_centers_gt = centers_gt + pad_before
     
-    return padded_image, adjusted_lmks, adjusted_centers_gt
-
-
-def save_transformed_landmarks_arc(Lhat, lmk, output_path, name, prefix='tr'):
-    """
-    Save transformed landmarks to CSV and FCSV files with predefined header lines.
-
-    Parameters:
-    - Lhat (np.ndarray): Array containing transformed landmark coordinates.
-    - lmk (pd.DataFrame): DataFrame to copy structure from.
-    - output_path (str): Directory path to save the files.
-    - name (str): Base name for the output files.
-    """
-    # Copy structure of landmarks and update with transformed coordinates
-    Lhat_df = lmk.copy()
-    for idx in range(Lhat.shape[0]):
-        Lhat_df.loc[idx, ['x', 'y', 'z']] = Lhat[idx, :]
-
-    # Save CSV file
-    csv_path = f'{output_path}/csv/{prefix}{name}.csv'
-    Lhat_df.to_csv(csv_path, index=False)
-
-    # Define the predefined lines for FCSV format
-    predefined_lines = [
-        "# Markups fiducial file version = 5.2\n",
-        "# CoordinateSystem = LPS\n",
-        "# columns = id,x,y,z,ow,ox,oy,oz,vis,sel,lock,label,desc,associatedNodeID\n"
-    ]
-
-    # Save FCSV file with predefined lines
-    fcsv_path = f'{output_path}/fcsv/{prefix}{name}.fcsv'
-    with open(fcsv_path, 'w') as f:
-        # Write predefined lines
-        f.writelines(predefined_lines)
-        
-        # Write each row as a comma-separated string
-        for index, row in Lhat_df.iterrows():
-            f.write(','.join(map(str, row.values)) + '\n')
-
-
-def save_3d_image_arc(Vhat, header, desired_size, output_path, name, prefix=''):
-    # Save padded 3D image as .nrrd
-    header_ = header.copy()
-    header_['sizes'] = desired_size  # Update to the desired size
-
-    nrrd.write(join(output_path, f"{prefix}{name}.nrrd"), Vhat, header=header_)
-
-def save_3d_image(Vhat, header, desired_size, output_path):
-    # Save padded 3D image as .nrrd
-    header_ = header.copy()
-    header_['sizes'] = desired_size  # Update to the desired size
-
-    nrrd.write(output_path, Vhat, header=header_)
+#     return padded_image, adjusted_lmks, adjusted_centers_gt
 
 def save_transformed_landmarks(Lhat, lmk, output_csv_path, output_fscv_path):
     """

@@ -96,7 +96,7 @@ def gtpp(dataframe, config):
     allplanes={}
     # Disable gradient computation and reduce memory consumption.
     with torch.no_grad():
-          for filenames,images_res, coords, pix_dim, slices_gt, trans_gt, rots_gt, mat_gt in testLoader:
+          for filenames, images_res, coords, pix_dim, slices_gt, trans_gt, rots_gt, mat_gt in testLoader:
                 name = str(filenames)
                 filenames_new = name.replace("'", "")
                 filenames_new = filenames_new.replace("(", "")
@@ -179,8 +179,8 @@ def gtpp(dataframe, config):
 
                     save_here = config.file_paths.ddir + name_out_dir + 'S' + filenames_new + '.nrrd'  
                     #if not os.path.exists(save_here): 
-                    nrrd.write(save_here,image_final.detach().numpy(), index_order='C')
-                    nrrd.write(config.file_paths.ddir + name_out_dir +'original_' + filenames_new + '.nrrd',images.detach().numpy(), index_order='C')
+                    nrrd.write(save_here, image_final.detach().numpy(), index_order='C')
+                    nrrd.write(config.file_paths.ddir + name_out_dir +'original_' + filenames_new + '.nrrd', images.detach().numpy(), index_order='C')
                 
                 #Dictionary
                 info={'name':filenames_new,'R':R.cpu().numpy().tolist(),'t':T.cpu().numpy().tolist()}

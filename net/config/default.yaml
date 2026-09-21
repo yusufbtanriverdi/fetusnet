@@ -8,7 +8,8 @@ presplit: 5
 generate: 6
 script_concept: 10
 script_weeks: 11
-script_mean_shape: 12
+script_spatial_prior: 12
+script_mean_template: 13
 test_loaders: 21
 test_pipe: 22
 interactive_plot: 31
@@ -181,11 +182,17 @@ script:
   temp_dir: "temp/"
   concept:
     num_samples: 128
-  mean_shape:
+  spatial_prior:
     recompute: true
-    df_name: "mean_shape_coordinates_2026-05-20_kendall6_f3.csv"
-    fig_name: "mean_shape_plot_2026-05-20_kendall6_f3.png"
-    html_name: "mean_shape_3D_2026-05-20_kendall6_f3.html"
+    df_name: "spatial_prior_coordinates_2026-05-20_kendall6_f3.csv"
+    fig_name: "spatial_prior_plot_2026-05-20_kendall6_f3.png"
+    html_name: "spatial_prior_3D_2026-05-20_kendall6_f3.html"
     validation: true
     progress_bar: true
     exp_dir: "runs/2026-05-20/kendall6_f3/"
+  mean_template:
+    recompute: true
+    df_name: "mean_template_2026-05-20_kendall6_f3.csv"
+    fig_name: "mean_template_2026-05-20_kendall6_f3.png"
+    progress_bar: true
+    validation: false

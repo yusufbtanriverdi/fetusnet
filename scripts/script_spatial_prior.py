@@ -5,15 +5,15 @@ from tqdm import tqdm
 import os 
 import pyvista as pv
 
-def plot_mean_shape(
+def plot_spatial_prior(
     loader,
     device,
     lmks,
     output_dir='.',
     temp_dir='.',
-    df_name='mean_shape_coordinates.csv',
-    fig_name='mean_shape_plot.png',
-    html_name='mean_shape_3D.html',
+    df_name='spatial_prior_coordinates.csv',
+    fig_name='spatial_prior_plot.png',
+    html_name='spatial_prior_3D.html',
     progress_bar=True,
     check_visibility=True,
     recompute=False,
@@ -32,6 +32,9 @@ def plot_mean_shape(
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    temp_dir = Path(temp_dir)
+    temp_dir.mkdir(parents=True, exist_ok=True)
 
     df_path = os.path.join(temp_dir, df_name)
     fig_path = os.path.join(output_dir, fig_name)

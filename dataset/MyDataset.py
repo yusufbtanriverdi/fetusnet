@@ -135,7 +135,8 @@ class MyDataset(Dataset):
             spacings=spacings,  # Pixel spacings
             coords = coord_tensor,  # Coordinates of landmarks
             lmk=self.lmks,  # List of landmarks
-            visibles=self.dataframe.loc[idx, 'visibles']  # Visibility flag list for landmarks.
+            visibles=self.dataframe.loc[idx, 'visibles'],  # Visibility flag list for landmarks.
+            week=self.dataframe.loc[idx, 'week'],  # Metadata: patient ID
         )
 
         return subject

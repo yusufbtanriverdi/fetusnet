@@ -5,9 +5,11 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import SimpleITK as sitk
+import nrrd
 
-from dataset.utility.rotation import *
+from dataset.utility.rotation import extract_image, get_file_list, get_matrix_of_lmks, filter_3d_image, affine3Dmatrix, grid_transform_3d, swap_xz_coordinates, affine_transform, save_transformed_landmarks
 from dataset.utility.standardization import gtpp
+from doc.info.template import create_template
 
 def perform_preprocessing(dataframe, params, logger=None):
     """
@@ -53,27 +55,25 @@ def perform_preprocessing(dataframe, params, logger=None):
             save_csv_path = params.ds.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mcsv']
             save_lmk_path = params.ds.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mlmk']
 
-
-        # Skip processing if image already exists
+            V, header = extract_image(image_path)
+            # Determine pixel spacing information from header; fallback if keys missing
+            try:
+                p = header.get('spacings')[:3]
+            except Exception as e:
+                p = np.array([header['space directions'][0, 0],
+                            header['space directions'][1, 1],
+                            header['space directions'][2, 2]])
+                
+            # Skip processing if image already exists
             if os.path.exists(save_im_path):
+                # ! ATTENTION ! 
                 # Temporary header update for imfusion
-                V, header = extract_image(image_path)
-                header["space dimension"] = 3
-                header["space directions"] = [
-                    [1.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0],
-                    [0.0, 0.0, 1.0],
-                ]
-                header["space origin"] = [0.0, 0.0, 0.0]
-                header["space units"] = ["mm", "mm", "mm"]
-                # optional: remove old/simple spacing if ImFusion complains
-                # header.pop("spacings", None)
-                # logger.info('Image seems to be processed already!!!')
-                # logger.info(save_im_path)
+                # Save processed image and transformed landmarks
+                template = create_template(p)
+                nrrd.write(save_im_path, V, header=template)
                 continue
 
             # Load ultrasound image volume and header metadata
-            V, header = extract_image(image_path)
             V = np.array(V)
 
             lmk_path = dataframe.loc[i, '_fcsv']
@@ -91,21 +91,10 @@ def perform_preprocessing(dataframe, params, logger=None):
             # Verify landmarks count
             if len(lmk) != 19:
                 logger.warning('Something wrong!! Landmark count mismatch: %s', filename)
-
             # Convert landmark points to matrix format in millimeters
             L_in_mm = get_matrix_of_lmks(lmk)
-
             # Log header info for debugging
             # logger.info(header)
-
-            # Determine pixel spacing information from header; fallback if keys missing
-            try:
-                p = header.get('spacings')[:3]
-            except Exception as e:
-                p = np.array([header['space directions'][0, 0],
-                            header['space directions'][1, 1],
-                            header['space directions'][2, 2]])
-
             img_size = np.array(V.shape).astype(np.float32)
 
             # --------- #
@@ -196,7 +185,7 @@ def perform_preprocessing(dataframe, params, logger=None):
                 V = Vhat.copy()
                 L_in_pix = Lhat_in_pix
             # Save processed image and transformed landmarks
-            save_3d_image(V, header, img_size, save_im_path)
+            nrrd.write(save_im_path, V, header=header)
             save_transformed_landmarks(L_in_pix * p, lmk, save_csv_path, save_lmk_path)
 
         logger.info("Number of images with missing csvs: %d", ct_not_found)

@@ -91,43 +91,6 @@ def affine3Dmatrix(gt, point=[0,0,0]):
     
     return quat.numpy(), mat
 
-    
-def save_transformed_landmarks(Lhat, output_csv_path, output_fscv_path):
-    """
-    Save transformed landmarks to CSV and FCSV files with predefined header lines.
-
-    Parameters:
-    - Lhat (np.ndarray): Array containing transformed landmark coordinates.
-    - lmk (pd.DataFrame): DataFrame to copy structure from.
-    - output_path (str): Directory path to save the files.
-    - name (str): Base name for the output files.
-    """
-    # Copy structure of landmarks and update with transformed coordinates
-    Lhat_df = pd.DataFrame(columns=["","x","y","z","ow","ox","oy","oz","vis","sel","lock","label","desc","associatedNodeID"])
-    for idx in range(19):
-        Lhat_df.loc[idx, ['x', 'y', 'z']] = Lhat[idx, :]
-        Lhat_df.loc[idx, ['vis', 'lock', 'label']] = 1, 1, LMK_LIST[idx]
-    # Save CSV file
-    Lhat_df.to_csv(output_csv_path, index=False)
-
-    # Define the predefined lines for FCSV format
-    predefined_lines = [
-        "# Markups fiducial file version = 5.2\n",
-        "# CoordinateSystem = LPS\n",
-        "# columns = id,x,y,z,ow,ox,oy,oz,vis,sel,lock,label,desc,associatedNodeID\n"
-    ]
-
-    # Save FCSV file with predefined lines
-    fcsv_path = output_fscv_path
-    with open(fcsv_path, 'w') as f:
-        # Write predefined lines
-        f.writelines(predefined_lines)
-        
-        # Write each row as a comma-separated string
-        for index, row in Lhat_df.iterrows():
-            f.write(','.join(map(str, row.values)) + '\n')
-
-
 def sample_euler_angles_fix_range(num, max_angle1=torch.pi, max_angle2=torch.pi/2.0, max_angle3=torch.pi,seed=None):
     """Uniform random sampling of Euler angles with restricted range. Sample angles between [-max_angle1, max_angle1]
 

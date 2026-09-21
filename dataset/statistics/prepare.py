@@ -3,7 +3,7 @@ import pandas as pd
 from tqdm import tqdm
 import json
 
-from dataset.utility.rotation import extract_image
+from dataset.utility.rotation import extract_image, get_file_list
 
 def extract_list_lmks_fromfcsv(file_path: str):
     """
@@ -24,21 +24,6 @@ def extract_list_lmks_fromfcsv(file_path: str):
                 if val:  # only add non-empty entries
                     lmks.append(val)
     return lmks
-
-def get_file_list(txt_file):
-    """Get a list of filenames.
-
-    Args:
-      txt_file: Name of a txt file containing a list of filenames for the images.
-
-    Returns:
-      filenames: A list of filenames for the images.
-
-    """
-    with open(txt_file) as f:
-        filenames = f.read().splitlines()
-    return filenames
-
 
 def perform_prepare(params):
     """

@@ -24,7 +24,8 @@ from net.config.wandb import initialize_wandb
 from net.plot.volumes import perform_plot_3d, start_game_3d
 from scripts.script_concept_fig import create_disc_figure
 from scripts.script_weeks_fig import create_weeks_plot
-from scripts.script_mean_shape import plot_mean_shape
+from scripts.script_spatial_prior import plot_spatial_prior
+from scripts.script_mean_template import plot_mean_volume
 from utils import *
 
 def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps, validate=True):
@@ -138,7 +139,6 @@ logger.info("Searching for master dataframe in system+dataset_root... \n If you 
 
 if 'script' in params.mode:
     import seaborn as sns
-    
     logger.info(f"Running a script mode: {params.mode}")
 
     sns.set_style(
@@ -290,28 +290,45 @@ if params.mode == 'train':
 
     if params.wandb.log: wandb.finish()
 
-if params.mode == 'script_mean_shape':
-    logger.info(f"Running script_mean_shape.py")
+if params.mode == 'script_spatial_prior':
+    logger.info(f"Running script_spatial_prior.py")
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    if params.script.mean_shape.validation:
+    if params.script.spatial_prior.validation:
         shape_dl = get_test_dl(main_dataframe, params, transformations=transformations)
         if len(shape_dl) == 0: _, shape_dl = get_train_val_dl(main_dataframe, params, transformations=transformations)
     else:
         shape_dl, _ = get_train_val_dl(main_dataframe, params, transformations=transformations)
-    plot_mean_shape(shape_dl, 
+    plot_spatial_prior(shape_dl, 
                     device=params.device, 
                     lmks=params.target.lmks, 
                     output_dir=params.script.save_dir,
                     temp_dir=params.script.temp_dir,
-                    df_name=params.script.mean_shape.df_name,
-                    fig_name=params.script.mean_shape.fig_name,
-                    html_name=params.script.mean_shape.html_name,
-                    progress_bar=params.script.mean_shape.progress_bar,
+                    df_name=params.script.spatial_prior.df_name,
+                    fig_name=params.script.spatial_prior.fig_name,
+                    html_name=params.script.spatial_prior.html_name,
+                    progress_bar=params.script.spatial_prior.progress_bar,
                     check_visibility=params.validation.check_visibility,
-                    recompute=params.script.mean_shape.recompute,
-                    exp_dir=params.script.mean_shape.exp_dir
+                    recompute=params.script.spatial_prior.recompute,
+                    exp_dir=params.script.spatial_prior.exp_dir
                     )
 
+if params.mode == 'script_mean_template':
+    logger.info(f"Running script_mean_template.py")
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if params.script.mean_template.validation:
+        shape_dl = get_test_dl(main_dataframe, params, transformations=transformations)
+        if len(shape_dl) == 0: _, shape_dl = get_train_val_dl(main_dataframe, params, transformations=transformations)
+    else:
+        shape_dl, _ = get_train_val_dl(main_dataframe, params, transformations=transformations)
+    plot_mean_volume(shape_dl, 
+                    device=params.device, 
+                    output_dir=params.script.save_dir,
+                    temp_dir=params.script.temp_dir,
+                    df_name=params.script.mean_template.df_name,
+                    fig_name=params.script.mean_template.fig_name,
+                    progress_bar=params.script.mean_template.progress_bar,
+                    recompute=params.script.mean_template.recompute,
+                    )
 
 if params.mode == 'test':
     params.wandb.log = False

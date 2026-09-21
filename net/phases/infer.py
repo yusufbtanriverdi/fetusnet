@@ -1,4 +1,3 @@
-import pickle
 from tqdm import tqdm
 import torch
 import wandb
@@ -8,28 +7,18 @@ import numpy as np
 import gc 
 import nrrd 
 import random
+
 from net.plot.curves import compute_aela, plot_aela_figure
 from net.plot.histograms import plot_histograms_and_stats
 from net.plot.matrices_3d import plot_3d_matrices
 from net.plot.heatmaps import plot_heatmaps_slices_from_coord
-
 from net.postprocess.save_fscv_csv import save_fscv_csv
 from net.postprocess.where_is_landmark import get_peak_location
 from dataset.utility.rotation import extract_image
 from net.plot.heatmaps import plot_heatmaps_slices_from_coord
 from net.loss.losses import *
 from net.evaluation.dMean import d_mean_mm
-
-def get_template():
-    """
-    Load a template NRRD file and return its header.
-
-    Args:
-        template_path (str): Path to the template NRRD file.
-    """
-    with open("templates/1.pkl", "rb") as f:
-        loaded_d = pickle.load(f)
-    return loaded_d
+from doc.info.template import create_template
 
 def compute_landmark_metrics(outputs, targets, spacings):
     """
@@ -38,7 +27,7 @@ def compute_landmark_metrics(outputs, targets, spacings):
     Args:
         outputs (torch.Tensor): Model predictions.
         targets (torch.Tensor): Ground truth values.
-        spacings (torch.Tensor): Spacing values for distance calculations.
+        spacings (torch.Tensor): p values for distance calculations.
         exp_dir (str): Experiment directory (not used in function but kept for flexibility).
         metrics_list (list, optional): List of previously computed metrics for aggregation.
 
@@ -100,8 +89,6 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
         output_dir = os.path.join(experiment_dir, "eval")
         os.makedirs(output_dir, exist_ok=True)
         radii = torch.linspace(1, radius_eval, radius_num)
-        template_header = get_template()
-        print(template_header)
     # Disable gradient computation for validation
     with torch.inference_mode():
         # Iterate over the DataLoader
@@ -112,11 +99,12 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
             # Move input data and targets to the specified device
             images = batch['image']['data'].to(device)
             targets = batch['target'].to(device)
-            spacing = batch['spacings'][0][0] # Assuming ISO spacing for simplicity
+            p = batch['spacings'][0][0] # Assuming ISO p for simplicity
             nsid = batch['name'][0]
             visibles = batch['visibles'][0]  # Assuming batch size of 1
             # Forward pass through the model
             outputs = model(images)
+            template = create_template(p)
 
             # Compute the losses
             losses = [criterion(outputs, targets) for criterion in criteria]
@@ -138,7 +126,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                 landmark_score = compute_landmark_metrics(
                     output_coord_tensor[i],
                     target_coord_tensor[i], 
-                    spacing
+                    p
                 )
 
                 if check_visibility and lmk not in visibles:
@@ -172,7 +160,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                         out=os.path.join(output_dir, f"{nsid}"),
                         coords=output_coord_tensor.cpu().numpy(),
                         selected_lmks=lmks,  
-                        spacing=spacing,
+                        p=p,
                     ) 
                 for i, lmk in enumerate(lmks):
                     ##### DEVRE DIŞI #####
@@ -187,7 +175,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                         if lmk in visibles:
                             # Extract the landmark coordinates for the current landmark
                             scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i], distance_map[i],
-                                                                                spacing=spacing, 
+                                                                                p=p, 
                                                                                 radii=radii,
                                                                                 save_dir=None,
                                                                                 detector=detector,
@@ -200,7 +188,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                     else:
                         # Extract the landmark coordinates for the current landmark
                         scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i], distance_map[i],
-                                                                            spacing=spacing, 
+                                                                            p=p, 
                                                                             radii=radii,
                                                                             save_dir=None,
                                                                             detector=detector,
@@ -251,14 +239,14 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                         nrrd.write(
                             os.path.join(output_dir, f"{nsid}_{lmk}_output.nrrd"),
                             output_heatmap_i.cpu().numpy(),
-                            header=template_header
+                            header=template
                         )
                     
                     if save_targets:   
                         nrrd.write(
                             os.path.join(output_dir, f"{nsid}_{lmk}_target.nrrd"),
                             target_heatmap[i].cpu().numpy(),
-                            header=template_header
+                            header=template
                         )
             ep_scores.append(row)
             if ind % 50:

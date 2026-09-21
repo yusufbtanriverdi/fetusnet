@@ -3,8 +3,6 @@
 import numpy as np
 import os
 import torch
-from dataset.utility.gtpp.utils import utils
-from dataset.utility.rotation import get_matrix_of_lmks
 import nrrd
 import json
 import numpy as np
@@ -13,36 +11,8 @@ from torch.utils.data import Dataset
 from os.path import join
 import pandas as pd
 
-def get_file_list(txt_file):
-    """Get a list of filenames.
-
-    Args:
-      txt_file: Name of a txt file containing a list of filenames for the images.
-
-    Returns:
-      filenames: A list of filenames for the images.
-
-    """
-    with open(txt_file) as f:
-        filenames = f.read().splitlines()
-    return filenames
-
-def extract_image(filename):
-    """Extract the image into a 3D numpy array [x, y, z].
-
-    Args:
-      filename: Path and name of nifti file.
-
-    Returns:
-      data: A 3D numpy array [x, y, z]
-      pix_dim: pixel spacings
-
-    """
-    data,header=nrrd.read(filename.strip())
-    
-    if len(data.shape)==4:
-        data=data[:,:,:,0]
-    return data, header
+from dataset.utility.gtpp.utils import utils
+from dataset.utility.rotation import get_matrix_of_lmks, get_file_list, extract_image
 
 def Create_Ultrasound_loader(dataframe, file_list, data_dir, label_dir, out_dir, size_desired, prefix, nSamples=None, transform=None, scan_transform= None, downsample= None):
 
@@ -70,8 +40,8 @@ def Create_Ultrasound_loader(dataframe, file_list, data_dir, label_dir, out_dir,
     if not os.path.exists(join(out_dir,prefix)):
         os.makedirs(join(out_dir,prefix))
     
-    image= []
-    gt=json.loads(get_file_list(label_dir)[0])
+    image = []
+    gt = json.loads(get_file_list(label_dir)[0])
     
     for i in range(len(filenames)):
         # Read 3D Ultrasounds
@@ -124,8 +94,6 @@ def Create_Ultrasound_loader(dataframe, file_list, data_dir, label_dir, out_dir,
             print('Not in dictionay')
             continue
         # Compute translation and rotation of GT plane wrt reference coordinate system (origin at centre of volume)
-
-        
         trans_gt, sl = utils.translation(gt_item,pix_dim,np.array(size_desired),np.array(img_siz))
         quats, mat = utils.affine3Dmatrix(gt_item, point= trans_gt) # No translation in the totation matrix as first is translated and the rotated 
         
