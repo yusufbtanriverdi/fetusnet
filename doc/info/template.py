@@ -9,7 +9,7 @@ def create_template(spacings):
     """ To save template header for your image. 
     This is to ensure you have correct numpy version as sometimes it might be a matter of conflict."""
     header = {
-        "space": "right-anterior-superior",
+        "space": "left-posterior-superior",
         "space directions": np.array([
             [spacings[0], 0.0, 0.0],
             [0.0, spacings[1], 0.0],

@@ -21,18 +21,15 @@ def get_file_list(txt_file):
 
 def extract_image(filename):
     """Extract the image into a 3D numpy array [x, y, z]. As it was saved in RAS
-
     Args:
       filename: Path and name of nifti file.
 
     Returns:
       data: A 3D numpy array [x, y, z]
-      pix_dim: pixel spacings
-
+      header: An OrderedDict
     """
 
     data, header = nrrd.read(filename)
-
     if len(data.shape) == 4:
         data=data[:, :, :, 0]
 

@@ -38,10 +38,21 @@ def perform_preprocessing(dataframe, params, logger=None):
     ct = 0
     ct_not_found = 0
     dataframe.loc[:, 'csvfound'] = True
-    # txt_path = os.path.join(params.preprocessing.params.gtpp.file_paths.list_files.test)
-    # with open(txt_path, "w", encoding="utf-8") as f:
-    #     f.write("\n".join(map(str, filedirs_)))
-    # print(params.preprocessing)
+    # Build paths
+    outputDir = os.path.join(params.ds.sys, params.preprocessing.save_dir)
+
+    landmarksDir = os.path.join(outputDir, "landmarks")
+    volumesDir = os.path.join(outputDir, "volumes")
+    csvDir = os.path.join(landmarksDir, "csv")
+    fcsvDir = os.path.join(landmarksDir, "fcsv")
+
+    # Create directories if missing
+    directories = [outputDir, landmarksDir, volumesDir, csvDir, fcsvDir]
+
+    for directory in directories:
+        if not os.path.exists(directory):
+            os.mkdir(directory)
+
     if params.preprocessing.gtpp:
         gtpp(dataframe, params.preprocessing.params.gtpp)
     else: # Usual routine
@@ -55,6 +66,25 @@ def perform_preprocessing(dataframe, params, logger=None):
             save_csv_path = params.ds.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mcsv']
             save_lmk_path = params.ds.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mlmk']
 
+            # Skip processing if image already exists
+            if os.path.exists(save_im_path):
+                logger.warning("Attention!")
+                # ! ATTENTION ! 
+                # Temporary header update for imfusion
+                # Save processed image and transformed landmarks
+                V_pp, header_pp = extract_image(save_im_path)
+                # Determine pixel spacing information from header; fallback if keys missing
+                try:
+                    p = header_pp.get('spacings')[:3]
+                except Exception as e:
+                    p = np.array([header_pp['space directions'][0, 0],
+                                header_pp['space directions'][1, 1],
+                                header_pp['space directions'][2, 2]])
+                template_pp = create_template(p)
+                nrrd.write(save_im_path, V_pp, header=template_pp)
+                continue
+
+            # Load ultrasound image volume and header metadata
             V, header = extract_image(image_path)
             # Determine pixel spacing information from header; fallback if keys missing
             try:
@@ -63,21 +93,10 @@ def perform_preprocessing(dataframe, params, logger=None):
                 p = np.array([header['space directions'][0, 0],
                             header['space directions'][1, 1],
                             header['space directions'][2, 2]])
-                
-            # Skip processing if image already exists
-            if os.path.exists(save_im_path):
-                # ! ATTENTION ! 
-                # Temporary header update for imfusion
-                # Save processed image and transformed landmarks
-                template = create_template(p)
-                nrrd.write(save_im_path, V, header=template)
-                continue
+            # template = create_template(p)
 
-            # Load ultrasound image volume and header metadata
             V = np.array(V)
-
             lmk_path = dataframe.loc[i, '_fcsv']
-
             # Attempt to load landmarks CSV file
             try:
                 lmk = pd.read_csv(lmk_path)
@@ -96,7 +115,6 @@ def perform_preprocessing(dataframe, params, logger=None):
             # Log header info for debugging
             # logger.info(header)
             img_size = np.array(V.shape).astype(np.float32)
-
             # --------- #
             # STEP 1: Apply low-pass filter to the 3D ultrasound image volume
             # --------- #
@@ -104,11 +122,9 @@ def perform_preprocessing(dataframe, params, logger=None):
                 V = filter_3d_image(V, 
                                     params.preprocessing.params.filter.filter_size, 
                                     params.preprocessing.params.filter.mode)
-
             # ----------  #
             # STEP 2: Interpolate image to desired spacing and size
             # ----------  #
-
             if params.preprocessing.bspline:
                 image = sitk.GetImageFromArray(V)
                 image.SetSpacing(p)  # Set original spacing
@@ -126,23 +142,9 @@ def perform_preprocessing(dataframe, params, logger=None):
 
                 resampled_image = resampler.Execute(image)
                 V = sitk.GetArrayFromImage(resampled_image)
-                header['sizes'] = new_size
                 p = new_spacing
                 # Determine pixel spacing information from header; fallback if keys missing
-                if "spacings" in header:
-                    header["spacings"] = p
-                elif "space directions" in header:
-                    header["space directions"] = np.array(
-                        [
-                            [p[0], 0, 0],
-                            [0, p[1], 0],
-                            [0, 0, p[2]],
-                        ]
-                    )
-                else:
-                    raise KeyError(
-                        "Neither 'spacings' nor 'space directions' exists in the header."
-                    )                
+                # template = create_template(p)               
             # Convert landmarks from mm to pixel units
             L_in_pix = L_in_mm / p
             img_size = np.array(V.shape).astype(np.float32)
@@ -185,6 +187,7 @@ def perform_preprocessing(dataframe, params, logger=None):
                 V = Vhat.copy()
                 L_in_pix = Lhat_in_pix
             # Save processed image and transformed landmarks
+            header['spacings'] = p
             nrrd.write(save_im_path, V, header=header)
             save_transformed_landmarks(L_in_pix * p, lmk, save_csv_path, save_lmk_path)
 

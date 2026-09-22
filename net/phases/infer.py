@@ -104,7 +104,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
             visibles = batch['visibles'][0]  # Assuming batch size of 1
             # Forward pass through the model
             outputs = model(images)
-            template = create_template(p)
+            template = create_template(batch['spacings'][0])
 
             # Compute the losses
             losses = [criterion(outputs, targets) for criterion in criteria]
@@ -160,7 +160,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                         out=os.path.join(output_dir, f"{nsid}"),
                         coords=output_coord_tensor.cpu().numpy(),
                         selected_lmks=lmks,  
-                        p=p,
+                        spacing=p,
                     ) 
                 for i, lmk in enumerate(lmks):
                     ##### DEVRE DIŞI #####
@@ -175,7 +175,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                         if lmk in visibles:
                             # Extract the landmark coordinates for the current landmark
                             scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i], distance_map[i],
-                                                                                p=p, 
+                                                                                spacing=p, 
                                                                                 radii=radii,
                                                                                 save_dir=None,
                                                                                 detector=detector,
@@ -188,7 +188,7 @@ def infer_one_ep(model, loader, criteria, multi_loss, device, wandb_steps, use_w
                     else:
                         # Extract the landmark coordinates for the current landmark
                         scores_v3_distances = compute_aela(output_heatmap_i.unsqueeze(0), target_coord_tensor[i], distance_map[i],
-                                                                            p=p, 
+                                                                            spacing=p, 
                                                                             radii=radii,
                                                                             save_dir=None,
                                                                             detector=detector,
