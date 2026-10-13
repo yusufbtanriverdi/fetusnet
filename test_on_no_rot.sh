@@ -1,10 +1,11 @@
 python fetusnet.py \
   --mode=test \
-  --checkpoint="runs/2026-05-30/kendall6_norot_f2_1" \
+  --checkpoint="runs/2026-05-28/kendall6_norot" \
   --validation.use_model="best" \
   --ds.sys="/media/yusuf/HDD 4TB/" \
-  --ds.root="DATA2/" \
-  --ds.dataframe="sinMaternitat__fold2" \
+  --ds.root="DATA_unaligned/" \
+  --ds.dataframe="sinMaternitat__fold0" \
+  --ds.index_order="F" \
   --device="cuda" \
   --test_patients="[1014]" \
   --validation.detector="argmax" \

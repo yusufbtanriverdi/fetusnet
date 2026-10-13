@@ -148,6 +148,7 @@ ds:
   root: "Dataset root directory relative to ds.sys. Contains dataframe CSVs, preprocessed scans, and landmark files."
   sys: "Absolute system/storage prefix prepended to ds.root and other dataset paths."
   source: "Raw-source directory, relative to ds.sys, used by prepare mode to discover raw datasets."
+  index_order: "How to read the file using pynrrd. Must be string F or C."
 
 target:
   lmks: "Ordered list of landmark labels. The network output channel order follows this list."

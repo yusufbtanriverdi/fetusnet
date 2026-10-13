@@ -43,6 +43,7 @@ def get_train_val_dl(splitted_dataframe, params, transformations):
         params.ds.sys + params.ds.root,                     # Root directory
         (params.gh.alpha, params.gh.eps, params.gh.clip, params.gh.mask),                  # Additional parameters
         params.target.lmks,                                          # Landmark information
+        params.ds.index_order,
         transformations,                              # Preprocessing transformations
 
     )
@@ -50,7 +51,8 @@ def get_train_val_dl(splitted_dataframe, params, transformations):
         splitted_dataframe[splitted_dataframe['set'] == 1].reset_index(drop=True),   # Subset for validation
         params.ds.sys + params.ds.root,                     # Root directory
         (params.gh.alpha, params.gh.eps, params.gh.clip, params.gh.mask),                  # Additional parameters
-        params.target.lmks,                                          # Landmark information
+        params.target.lmks,                                          # Landmark information        
+        params.ds.index_order,
         transformations,                              # Preprocessing transformations
     )
 
@@ -112,6 +114,7 @@ def get_test_dl(splitted_dataframe, params, transformations):
         params.ds.sys + params.ds.root,                    # Root directory
         (params.gh.alpha, params.gh.eps, params.gh.clip, params.gh.mask),                  # Additional parameters
         params.target.lmks,                                        # Landmark information
+        params.ds.index_order,
         transformations,                             # Preprocessing transformations
 
     )

@@ -68,20 +68,10 @@ def perform_preprocessing(dataframe, params, logger=None):
 
             # Skip processing if image already exists
             if os.path.exists(save_im_path):
-                logger.warning("Attention!")
+                logger.warning("Attention! Image exists!")
                 # ! ATTENTION ! 
                 # Temporary header update for imfusion
                 # Save processed image and transformed landmarks
-                V_pp, header_pp = extract_image(save_im_path)
-                # Determine pixel spacing information from header; fallback if keys missing
-                try:
-                    p = header_pp.get('spacings')[:3]
-                except Exception as e:
-                    p = np.array([header_pp['space directions'][0, 0],
-                                header_pp['space directions'][1, 1],
-                                header_pp['space directions'][2, 2]])
-                template_pp = create_template(p)
-                nrrd.write(save_im_path, V_pp, header=template_pp)
                 continue
 
             # Load ultrasound image volume and header metadata
@@ -93,7 +83,7 @@ def perform_preprocessing(dataframe, params, logger=None):
                 p = np.array([header['space directions'][0, 0],
                             header['space directions'][1, 1],
                             header['space directions'][2, 2]])
-            # template = create_template(p)
+            template = create_template(p)
 
             V = np.array(V)
             lmk_path = dataframe.loc[i, '_fcsv']
@@ -112,6 +102,8 @@ def perform_preprocessing(dataframe, params, logger=None):
                 logger.warning('Something wrong!! Landmark count mismatch: %s', filename)
             # Convert landmark points to matrix format in millimeters
             L_in_mm = get_matrix_of_lmks(lmk)
+            # ADDED with NEW DEFAULT MISMATCHES
+            L_in_mm = swap_xz_coordinates(L_in_mm)
             # Log header info for debugging
             # logger.info(header)
             img_size = np.array(V.shape).astype(np.float32)
@@ -144,7 +136,7 @@ def perform_preprocessing(dataframe, params, logger=None):
                 V = sitk.GetArrayFromImage(resampled_image)
                 p = new_spacing
                 # Determine pixel spacing information from header; fallback if keys missing
-                # template = create_template(p)               
+                template = create_template(p)               
             # Convert landmarks from mm to pixel units
             L_in_pix = L_in_mm / p
             img_size = np.array(V.shape).astype(np.float32)
@@ -186,9 +178,15 @@ def perform_preprocessing(dataframe, params, logger=None):
                 Lhat_in_pix = (Lhat_in_pix_norm / (2.0 / img_size).astype(np.float32)) + img_size / 2.0
                 V = Vhat.copy()
                 L_in_pix = Lhat_in_pix
+
+            else: 
+                if params.preprocessing.swap:
+                    V = np.transpose(V, (2, 1, 0))
+                    L_in_pix = swap_xz_coordinates(L_in_pix)
             # Save processed image and transformed landmarks
-            header['spacings'] = p
-            nrrd.write(save_im_path, V, header=header)
+            # header['spacings'] = p
+            # ADDED with NEW DEFAULT MISMATCHES: Index Order explicit set
+            nrrd.write(save_im_path, V, header=template, index_order='F')
             save_transformed_landmarks(L_in_pix * p, lmk, save_csv_path, save_lmk_path)
 
         logger.info("Number of images with missing csvs: %d", ct_not_found)

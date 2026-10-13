@@ -141,6 +141,7 @@ ds:
   root: "DATA/"
   sys: "/media/yusuf/HDD 4TB/"
   source: ""
+  index_order: "F"
 
 target:
   lmks:

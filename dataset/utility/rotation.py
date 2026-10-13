@@ -19,7 +19,8 @@ def get_file_list(txt_file):
         filenames = f.read().splitlines()
     return filenames
 
-def extract_image(filename):
+# ADDED with NEW DEFAULT MISMATCHES: Index Order explicit set
+def extract_image(filename, index_order='C'):
     """Extract the image into a 3D numpy array [x, y, z]. As it was saved in RAS
     Args:
       filename: Path and name of nifti file.
@@ -29,7 +30,7 @@ def extract_image(filename):
       header: An OrderedDict
     """
 
-    data, header = nrrd.read(filename)
+    data, header = nrrd.read(filename, index_order=index_order)
     if len(data.shape) == 4:
         data=data[:, :, :, 0]
 

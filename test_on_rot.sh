@@ -1,0 +1,16 @@
+python fetusnet.py \
+  --mode=test \
+  --checkpoint="runs/2026-05-19/kendall6" \
+  --validation.use_model="best" \
+  --ds.sys="/media/yusuf/HDD 4TB/" \
+  --ds.root="DATA_reproduced_fin/" \
+  --ds.dataframe="sinMaternitat__fold0" \
+  --ds.index_order="C" \
+  --device="cuda" \
+  --test_patients="[1014]" \
+  --validation.detector="argmax" \
+  --validation.radius_eval=100 \
+  --validation.radius_num=100 \
+  --validation.save_outputs=True \
+  --validation.save_targets=True \
+  --validation.show_figures=False

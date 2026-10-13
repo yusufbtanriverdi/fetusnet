@@ -14,7 +14,7 @@ class MyDataset(Dataset):
     Custom dataset class for handling 3D NIfTI images and their ground truth (GT) heatmaps.
     """
 
-    def __init__(self, dataframe, root, target_params, lmks, transformations=None):
+    def __init__(self, dataframe, root, target_params, lmks, index_order='F', transformations=None):
         """
         Initializes the MyDataset class for loading and processing 3D medical imaging data.
 
@@ -44,12 +44,15 @@ class MyDataset(Dataset):
             raise TypeError("lmk must be a list of strings.")
         if transformations is not None and not callable(transformations):
             raise TypeError("transformations must be callable or None.")
+        if index_order not in ['F', 'C']:
+            raise TypeError("index order must be F or C.")
         
         self.dataframe = dataframe
         self.root = root
         self.alpha, self.eps, self.mask, self.clip = target_params
         self.lmks = lmks
         self.transformations = transformations
+        self.index_order = index_order
 
     def __len__(self): 
         """Returns the number of 3D volumes in the dataset."""
@@ -76,7 +79,7 @@ class MyDataset(Dataset):
         """
         # Load the 3D volume from the specified path
         image_path = os.path.join(self.root, self.dataframe.loc[idx, 'mscan'])
-        volume, header = extract_image(image_path)
+        volume, header = extract_image(image_path, self.index_order)
         volume = torch.from_numpy(volume)
         image_tensor = volume.unsqueeze(0)  # Add channel dimension (C, H, W, D)
 

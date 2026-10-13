@@ -20,6 +20,16 @@ def create_template(spacings):
         "space origin": np.array([0.0, 0.0, 0.0]),
         "encoding": "raw",
     }
+    # header = {
+    #     'type': 'float',
+    #     'dimension': 3,
+    #     'sizes': [128, 128, 128],
+    #     'kinds': ['space', 'space', 'space'],
+    #     'endian': 'little',
+    #     'encoding': 'raw',
+    #     'spacings': np.array([1, 1, 1,]),
+    #     'labels': np.array(["x", "y", "z"]),
+    # }
     # with open("templates/2.pkl", "wb") as f:
     #     pickle.dump(header, f)
 
