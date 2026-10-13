@@ -190,7 +190,7 @@ script:
     html_name: "spatial_prior_3D_2026-05-20_kendall6_f3.html"
     validation: true
     progress_bar: true
-    exp_dir: "runs/2026-05-20/kendall6_f3/"
+    exp_dir: false
   mean_template:
     recompute: true
     df_name: "mean_template_2026-05-20_kendall6_f3.csv"

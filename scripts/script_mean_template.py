@@ -43,7 +43,6 @@ def plot_mean_volume(
     mean_volume_path = os.path.join(temp_dir, 'mean_volumes')
     fig_path = os.path.join(output_dir, fig_name)
 
-
     if os.path.exists(mean_volume_path) and not recompute:
         print(f"Loading existing mean volumes from {mean_volume_path}...")
         pass
@@ -65,7 +64,7 @@ def plot_mean_volume(
             nsid = batch['name'][0]
             volume = batch['image']['data'][0].to(device)
             week_group = int(batch['week'][0].replace('semanas', '').strip())
-            p = batch['spacings'][0][0] # Assuming ISO p for simplicity
+            p = batch['spacings'][0]
             template = create_template(p)
 
             if week_group <= 20:
@@ -99,7 +98,6 @@ def plot_mean_volume(
                     'category': category,
                 }
             )
-            break
 
         df = pd.DataFrame.from_records(records)
         df.to_csv(df_path, index=False)
@@ -139,7 +137,7 @@ def plot_mean_volume(
             week_output_dir,
             f'mean_volume_week_{week_group}.nrrd',
         )
-        nrrd.write(output_path, week_mean_volumes[week_group], header=template)
+        nrrd.write(output_path, week_mean_volumes[week_group][0].numpy(), header=template)
 
     for category in ['20', '20-30', '30+']:
         if category not in category_mean_volumes:
@@ -149,6 +147,6 @@ def plot_mean_volume(
             category_output_dir,
             f'mean_volume_{category_name}.nrrd',
         )
-        nrrd.write(output_path, category_mean_volumes[category], header=template)
+        nrrd.write(output_path, category_mean_volumes[category][0].numpy(), header=template)
 
     return df, df_path
