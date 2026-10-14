@@ -1,0 +1,13 @@
+python fetusnet.py \
+    --mode=preprocess \
+    --ds.sys="/media/yusuf/HDD 4TB/" \
+    --ds.dataframe="sinMaternitat__fold0" \
+    --preprocessing.save_dir="DATA_gtpp" \
+    --preprocessing.filter=False \
+    --preprocessing.bspline=False \
+    --preprocessing.swap=False \
+    --preprocessing.affine=False \
+    --preprocessing.gtpp=True \
+    --preprocessing.params.filter.filter_size=3 \
+    --preprocessing.params.bspline.spacing="[0.3, 0.3, 0.3]" \
+    --preprocessing.params.bspline.size="[256, 256, 256]"

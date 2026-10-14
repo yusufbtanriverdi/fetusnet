@@ -6,10 +6,12 @@ import pandas as pd
 from tqdm import tqdm
 import SimpleITK as sitk
 import nrrd
+import torch
 
 from dataset.utility.rotation import extract_image, get_file_list, get_matrix_of_lmks, filter_3d_image, affine3Dmatrix, grid_transform_3d, swap_xz_coordinates, affine_transform, save_transformed_landmarks
-from dataset.utility.standardization import gtpp
+from dataset.utility.standardization import single_gtpp
 from doc.info.template import create_template
+from dataset.utility.gtpp.utils.SonoNet import SonoNet
 
 def perform_preprocessing(dataframe, params, logger=None):
     """
@@ -54,7 +56,112 @@ def perform_preprocessing(dataframe, params, logger=None):
             os.mkdir(directory)
 
     if params.preprocessing.gtpp:
-        gtpp(dataframe, params.preprocessing.params.gtpp)
+        # Define model.
+        model = SonoNet(params.preprocessing.params.gtpp.model, dropout_p = 0.25)
+        model.to(params.device)
+        if params.preprocessing.params.gtpp.model.resume:
+            # Resume previous training.
+            checkpoint = torch.load(os.path.join(params.preprocessing.params.gtpp.model_dir, 
+                                                params.preprocessing.params.gtpp.checkpoint_name))
+            model.load_state_dict(checkpoint['model_state_dict'])
+        model.eval()
+        
+        for i, filename in tqdm(enumerate(filenames), total=len(filenames)):
+            # Prepare file paths and identifiers from dataframe row
+            image_path = os.path.join(dataframe.loc[i, 'fscan'])
+            name = dataframe.loc[i, 'osid']
+        
+            save_im_path = params.ds.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mscan']
+            save_csv_path = params.ds.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mcsv']
+            save_lmk_path = params.ds.sys + params.preprocessing.save_dir + '/' + dataframe.loc[i, 'mlmk']
+           
+            # Skip processing if image already exists
+            if os.path.exists(save_im_path):
+                logger.warning("Attention! Image exists!")
+                # ! ATTENTION ! 
+                # Temporary header update for imfusion
+                # Save processed image and transformed landmarks
+                continue
+
+            lmk_path = dataframe.loc[i, '_fcsv']
+            # Attempt to load landmarks CSV file
+            try:
+                lmk = pd.read_csv(lmk_path)
+            except Exception as e:
+                logger.error(str(e))
+                ct_not_found += 1
+                logger.warning(f"Could not load landmarks from {lmk_path} for {name}! Skipping!! Count: {ct_not_found}")
+                dataframe.loc[i, 'csvfound'] = False
+                continue
+
+            # Verify landmarks count
+            if len(lmk) != 19:
+                logger.warning('Something wrong!! Landmark count mismatch: %s', filename)
+            # Convert landmark points to matrix format in millimeters
+            L_in_mm = get_matrix_of_lmks(lmk)
+            # Log header info for debugging
+            # logger.info(header)
+
+            # Load ultrasound image volume and header metadata
+            V, header = extract_image(image_path, index_order='F')
+            # Determine pixel spacing information from header; fallback if keys missing
+            try:
+                p = header.get('spacings')[:3]
+            except Exception as e:
+                p = np.array([header['space directions'][0, 0],
+                            header['space directions'][1, 1],
+                            header['space directions'][2, 2]])
+            template = create_template(p)
+            # nrrd.write(save_im_path.replace('.nrrd', '_orig.nrrd'), V, header=template, index_order='F')
+            # save_transformed_landmarks(L_in_mm, lmk, 
+            #                            save_csv_path.replace('.csv', '_orig.csv'), 
+            #                            save_lmk_path.replace('.fcsv', '_orig.fcsv'), )           
+            # Preprocessing of SonoNet
+            downsample = params.preprocessing.params.gtpp.model.downsampling_factor
+            p *= downsample
+            V = V[
+                0:V.shape[0]:downsample,
+                0:V.shape[1]:downsample,
+                0:V.shape[2]:downsample
+            ]
+            desired_size = params.preprocessing.params.gtpp.model.desired_size
+            diff_size = np.array(desired_size) - np.array(V.shape[0:3])
+            diff_size = diff_size / 2
+            a = int(diff_size[2])
+            b = int(diff_size[1])
+            c = int(diff_size[0])
+            if (diff_size[2]*2)%2 == 0:
+                x = 0
+            else:
+                x=1
+                
+            if (diff_size[1]*2)%2 == 0:
+                y = 0
+            else:
+                y=1
+                
+            if (diff_size[0]*2)%2 == 0:
+                z = 0
+            else:
+                z=1     
+            m = torch.nn.ConstantPad3d([a+x,a,b+y,b,c+z,c], 0)
+            V = torch.from_numpy(V.astype(np.float32))
+            V = m(V)
+            lmk_pad = np.array([c + z, b + y, a + x], dtype=np.float64)
+            L_in_pix = L_in_mm / p
+            L_in_pix += lmk_pad
+            # Swapping
+            V = torch.permute(V, (2, 1, 0))
+            # L_in_pix = swap_xz_coordinates(L_in_pix)
+
+            # Affine transform with SonoNet      
+            V, L_in_pix, ct = single_gtpp(params, model, params.device, 
+                                          V, L_in_pix, ct)
+            template = create_template(p)
+            V = V.cpu().numpy().astype(np.float32)
+            nrrd.write(save_im_path, V, header=template, index_order='F')
+            L_in_pix = swap_xz_coordinates(L_in_pix)
+            save_transformed_landmarks(L_in_pix * p, lmk, save_csv_path, save_lmk_path)
     else: # Usual routine
         # Iterate over each file for processing
         for i, filename in tqdm(enumerate(filenames), total=len(filenames)):
@@ -96,7 +203,6 @@ def perform_preprocessing(dataframe, params, logger=None):
                 logger.warning(f"Could not load landmarks from {lmk_path} for {name}! Skipping!! Count: {ct_not_found}")
                 dataframe.loc[i, 'csvfound'] = False
                 continue
-
             # Verify landmarks count
             if len(lmk) != 19:
                 logger.warning('Something wrong!! Landmark count mismatch: %s', filename)
@@ -143,7 +249,7 @@ def perform_preprocessing(dataframe, params, logger=None):
             # ------ -------------- #
             # STEP 5: Apply affine transformation to image and landmarks
             # ------ -------------- #
-            if params.preprocessing.affine:
+            if params.preprocessing.affine:       
                 # Retrieve ground truth plane data from dictionary for current image
                 plane = dicto.get(name)
                 if plane is None:
@@ -178,7 +284,6 @@ def perform_preprocessing(dataframe, params, logger=None):
                 Lhat_in_pix = (Lhat_in_pix_norm / (2.0 / img_size).astype(np.float32)) + img_size / 2.0
                 V = Vhat.copy()
                 L_in_pix = Lhat_in_pix
-
             else: 
                 if params.preprocessing.swap:
                     V = np.transpose(V, (2, 1, 0))

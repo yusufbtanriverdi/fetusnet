@@ -58,7 +58,7 @@ preprocessing:
         data_dir: "Base directory used by the GTPP preprocessing utilities."
         ddir: "Input/output directory used by the GTPP data loader utilities."
         label_dir: "Path to the GTPP label file."
-        out_dir_pre_pross: "Output directory for GTPP preprocessed results. Name is kept for compatibility with current code."
+        temp_dir: "Output directory for GTPP preprocessed results. Name is kept for compatibility with current code."
         list_files:
           test: "Text file listing test/input scans for the GTPP branch."
       params:

@@ -64,7 +64,7 @@ def print_custom_help(config_ns, help_ns):
     print("="*60)
     print("\n📝 Dynamic Overrides Syntax:")
     print("  python main.py --mode=train --training.epochs=100")
-    print("  python main.py --preprocessing.params.gtpp.params.desired_size=\"[128,128,128]\"\n")
+    print("  python main.py --preprocessing.params.gtpp.model.desired_size=\"[128,128,128]\"\n")
     print("⚙️ Configured Parameter Tree & Descriptions:")
     
     flat_config = flatten_namespace_to_dict(config_ns)

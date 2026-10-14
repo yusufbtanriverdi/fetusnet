@@ -14,7 +14,7 @@ import pandas as pd
 from dataset.utility.gtpp.utils import utils
 from dataset.utility.rotation import get_matrix_of_lmks, get_file_list, extract_image
 
-def Create_Ultrasound_loader(dataframe, file_list, data_dir, label_dir, out_dir, size_desired, prefix, nSamples=None, transform=None, scan_transform= None, downsample= None):
+def gtpp_loader(dataframe, file_list, data_dir, label_dir, out_dir, size_desired, prefix, num_samples=None, transform=None, downsample= None):
 
     """Load the input images and the standard planes.
 
@@ -23,7 +23,7 @@ def Create_Ultrasound_loader(dataframe, file_list, data_dir, label_dir, out_dir,
       data_dir: Directory storing images.
       label_dir: Directory storing standard planes.
       out_dir: Directory to save pre-processed data.
-      nSamples: Number of samples in the set.
+      num_samples: Number of samples in the set.
       transform: Transformation that is applied to the original data.
       size_desired: ultrasound fixed size to input the network.
       
@@ -34,8 +34,8 @@ def Create_Ultrasound_loader(dataframe, file_list, data_dir, label_dir, out_dir,
       gt_transform: transformation to obtain standard planes  [3, 4]"""
     
     filenames = get_file_list(file_list)
-    if nSamples is not None:
-        filenames= filenames[0:nSamples]    
+    if num_samples is not None:
+        filenames= filenames[0:num_samples]    
 
     if not os.path.exists(join(out_dir,prefix)):
         os.makedirs(join(out_dir,prefix))
@@ -104,7 +104,6 @@ def Create_Ultrasound_loader(dataframe, file_list, data_dir, label_dir, out_dir,
             diff_size = np.array(size_desired) - img_siz
             diff_size = diff_size/2
             
-            
             a= int(diff_size[2]) 
             b= int(diff_size[1]) 
             c= int(diff_size[0]) 
@@ -127,60 +126,14 @@ def Create_Ultrasound_loader(dataframe, file_list, data_dir, label_dir, out_dir,
             m= torch.nn.ConstantPad3d([a+x,a,b+y,b,c+z,c], 0)
             image = m(image)
             image=  torch.permute(image, (2, 1, 0))
-
-
-        '''
-        # Extract image standard planes
-        mat_t_gt = torch.zeros(3, 4)
-        mat_t_gt[:,:3]= torch.eye(3)
-        
-        mat_t_gt[:,3] =torch.from_numpy(trans_gt.astype(np.float32))
-         
-    
-        # Translate image 
-        slices_t = slicer_to_torch_transform.affine_transform(image.unsqueeze(0), mat_t_gt.unsqueeze(0))
-        
-        # Center image is the standard plane 
-        c_idx = (np.array(size_desired)/2)+1
-        
-        
-        plt.imshow(slices_t[0,0,:,:,int(c_idx[2])],cmap='gray')
-        plt.show()
-        plt.savefig('gt_plane_translate'+'.jpg')
-  
-        # Rotate image 
-        mat_gt = torch.from_numpy(mat)
-        slices_t = slicer_to_torch_transform.affine_transform(slices_t[:,0,:,:,:], mat_gt.unsqueeze(0)) 
-        
-
-        
-        slices_gt = torch.zeros(3,size_desired[0],size_desired[1])
-        
-        # Ground truth slices
-        slices_gt[0,:,:] = slices_t[0,0,:,:,int(c_idx[2])].unsqueeze(0)
-        slices_gt[1,:,:] = slices_t[0,0,:,int(c_idx[1]),:].unsqueeze(0)
-        slices_gt[2,:,:] = slices_t[0,0,int(c_idx[0]),:,:].unsqueeze(0)  
-               
-        names_planes = ["saggital","axial","coronal"]
-        for i in range(3):
-              if not os.path.exists(join(out_dir,prefix,names_planes[i])):
-                  os.makedirs(join(out_dir,prefix,names_planes[i]))
-                  
-              plt.imshow(slices_gt[i,:, :],cmap='gray')
-              plt.show()
-              plt.savefig(join(out_dir,prefix,names_planes[i],'gt_plane_'+name_gt+names_planes[i]+'.jpg'))'''
                     
         # Center image is the standard plane 
         c_idx = (np.array(size_desired)/2)+1        
-        
-        # Extract image standard planes
-
-        # Rotate image 
+        # Extract image standard planes 
         mat_gt = torch.from_numpy(mat)
         slices_t = utils.affine_transform(image.unsqueeze(0), mat_gt.unsqueeze(0)) 
-      
         slices_gt = torch.zeros(3,size_desired[0],size_desired[1])
-
+        # Rotate image
         try:         
             # Ground truth slices
             slices_gt[0,:,:] = slices_t[0,0,:,:,int(c_idx[2])].unsqueeze(0)
@@ -201,19 +154,16 @@ def Create_Ultrasound_loader(dataframe, file_list, data_dir, label_dir, out_dir,
               plt.savefig(join(out_dir,prefix,names_planes[i],'gt_plane_R&T_'+name_gt+names_planes[i]+'.jpg'))          
               plt.close()
         data = (name_gt, image, coord, pix_dim, slices_gt, torch.from_numpy(np.array(trans_gt).astype(np.float32)), torch.from_numpy(np.array(quats.squeeze(0)).astype(np.float32)), mat_gt )
-        
-        '''mdic = {'filename': name_gt, 'image': image.numpy(), 'slices_gt': slices_gt.numpy(), 'trans': trans_gt, 'quat': quats, 'rot': mat_gt.numpy()}
-        sio.savemat('Dataloader_debug.mat',mdic)'''
         torch.save(data, join(out_dir,prefix, ('US_Data_'+ name_gt + '.pt')))
         
 
-class US_3D_dataset_fast(Dataset):
-    def __init__(self, prefix, out_dir, scan_transform, nSamples = None):
+class gtpp_dataset(Dataset):
+    def __init__(self, prefix, out_dir, scan_transform=None, num_samples = None):
         self.out_dir = join(out_dir,prefix)
         self.data_files = [x for x in os.listdir(self.out_dir) if x.endswith('.pt')]
         #print(self.data_files)
-        if nSamples is not None:
-            self.data_files = self.data_files[:nSamples]
+        if num_samples is not None:
+            self.data_files = self.data_files[:num_samples]
            
         self.scan_transform = scan_transform
 
@@ -237,12 +187,5 @@ class US_3D_dataset_fast(Dataset):
             slices_gt[0,:,:] = slices_t[0,0,:,:,int(c_idx[2])].unsqueeze(0)
             slices_gt[1,:,:] = slices_t[0,0,:,int(c_idx[1]),:].unsqueeze(0)
             slices_gt[2,:,:] = slices_t[0,0,int(c_idx[0]),:,:].unsqueeze(0)  
-            
-            '''names_planes = ["saggital","axial","coronal"]
-            for i in range(3):
-   
-                  plt.imshow(slices_gt[i,:, :],cmap='gray')
-                  plt.show()
-                  plt.savefig(join('gt_plane_R&T_'+filename+names_planes[i]+'.jpg'))'''    
             
         return filename, image, coord, pix_dim, slices_gt, trans_vecs, quats, mat_gt

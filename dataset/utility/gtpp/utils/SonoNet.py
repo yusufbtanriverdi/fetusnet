@@ -214,13 +214,17 @@ class SonoNet(nn.Module):
         'SN64': [64, 128, 256, 512, 512]
     }
       
-    def __init__(self,config,input_dim, num_output_t, num_output_r, dropout_p = 0.25, nonlocal_mode='concatenation_mean_flow'):
+    def __init__(self, 
+                 config, 
+                 dropout_p = 0.25, 
+                 nonlocal_mode='concatenation_mean_flow'
+                 ):
         
         self.limit_tran = config.limit_translation
         self.filters_n = self.net_dict[config.net]
-        self.output_dim_t = num_output_t 
-        self.output_dim_r = num_output_r
-        self.output_dim = num_output_t + num_output_r
+        self.output_dim_t = config.num_output_tr 
+        self.output_dim_r = config.num_output_rr
+        self.output_dim = config.num_output_tr + config.num_output_rr
         self.latent_feat = config.latent
         self.latent_feat2 = config.latent2
         self.last_bn = config.last_bn

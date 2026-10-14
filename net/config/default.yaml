@@ -31,12 +31,14 @@ optimizer:
     momentum: 0.9
 
 preprocessing:
+  label_dir: "doc/info/gt.txt"
   skip: false
   filter: true
   bspline: true
   swap: true
   affine: true
   gtpp: false
+  save_dir: "DATA/"
   params:
     filter:
       filter_size: 3
@@ -45,16 +47,11 @@ preprocessing:
       spacing: [1.0, 1.0, 1.0]
       size: [128, 128, 128]
     gtpp:
+      prefix: "test"
       checkpoint_name: "best_model_514"
-      model_dir: "net/dataset/utility/gtpp/checkpoints/"
-      file_paths:
-        data_dir: "/media/yusuf/HDD 4TB/"
-        ddir: "/media/yusuf/HDD 4TB/DATA3/Pre_process_ST_s256/"
-        label_dir: "doc/info/gt.txt"
-        out_dir_pre_pross: "/media/yusuf/HDD 4TB/DATA3/Pre_process_ST_s256/"
-        list_files:
-          test: "temp/sample.txt"
-      params:
+      model_dir: "dataset/utility/gtpp/checkpoints/"
+      list_txt: "temp/sample.txt"
+      model:
         desired_size: [256, 256, 256]
         save_jpg: false
         save_nrrd: true
@@ -92,8 +89,7 @@ preprocessing:
         grid_loss: true
         only_grid_loss: true
         dropout: 0.5
-      dic_name: "dictionary_transform_yusuf"
-  save_dir: "DATA/"
+      dic_name: "dictionary_transform_predicted"
 
 repro:
   model_seed: 42

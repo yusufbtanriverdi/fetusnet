@@ -121,7 +121,7 @@ def sample_euler_angles_fix_range(num, max_angle1=torch.pi, max_angle2=torch.pi/
     return angles
 
 def get_slices(config, image, rot, trans, factor=1):
-    desi_s = np.array(config.params.desired_size)/factor
+    desi_s = np.array(config.model.desired_size)/factor
     batch_size = rot.shape[0]
     
     mat_rot = torch.zeros(batch_size, 3, 4)
@@ -129,12 +129,9 @@ def get_slices(config, image, rot, trans, factor=1):
     mat_rot[:,:,3] = trans
     # Translate image 
     image_i = affine_transform(image, mat_rot)
-    
     # Center image is the standard plane 
     c_idx = (np.array(desi_s)/2)+1
-    
     slices = torch.zeros(batch_size,3,int(desi_s[0]),int(desi_s[1]))
-    
     # Input slices to the network
     slices[:,0,:,:] = image_i[:,0,:,:,int(c_idx[2])]
     slices[:,1,:,:] = image_i[:,0,:,int(c_idx[1]),:]
