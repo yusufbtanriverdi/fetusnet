@@ -159,9 +159,44 @@ def perform_preprocessing(dataframe, params, logger=None):
                                           V, L_in_pix, ct)
             template = create_template(p)
             V = V.cpu().numpy().astype(np.float32)
-            nrrd.write(save_im_path, V, header=template, index_order='F')
             L_in_pix = swap_xz_coordinates(L_in_pix)
-            save_transformed_landmarks(L_in_pix * p, lmk, save_csv_path, save_lmk_path)
+            # nrrd.write(save_im_path, V, header=template, index_order='F')
+            # save_transformed_landmarks(L_in_pix * p, lmk, save_csv_path, save_lmk_path)
+            # --------- #
+            # STEP EXTRA: Apply low-pass filter to the 3D ultrasound image volume
+            # --------- #   
+            if params.preprocessing.filter:
+                V = filter_3d_image(V, 
+                                    params.preprocessing.params.filter.filter_size, 
+                                    params.preprocessing.params.filter.mode)
+            # ----------  #
+            # STEP EXTRA: Interpolate image to desired spacing and size
+            # ----------  #
+            L_in_mm = L_in_pix * p
+            if params.preprocessing.bspline:
+                image = sitk.GetImageFromArray(V)
+                image.SetSpacing(p)  # Set original spacing
+
+                new_spacing = params.preprocessing.params.bspline.spacing
+                new_size = params.preprocessing.params.bspline.size
+
+                # Configure the resampler filter for image interpolation
+                resampler = sitk.ResampleImageFilter()
+                resampler.SetOutputSpacing(new_spacing)
+                resampler.SetSize(new_size)
+                resampler.SetInterpolator(sitk.sitkBSpline)
+                resampler.SetOutputDirection(image.GetDirection())
+                resampler.SetOutputOrigin(image.GetOrigin())
+
+                resampled_image = resampler.Execute(image)
+                V = sitk.GetArrayFromImage(resampled_image)
+                p = new_spacing
+                # Determine pixel spacing information from header; fallback if keys missing
+                template = create_template(p)               
+            # Convert landmarks from mm to pixel units
+            nrrd.write(save_im_path, V, header=template, index_order='F')
+            save_transformed_landmarks(L_in_mm, lmk, save_csv_path, save_lmk_path)
+
     else: # Usual routine
         # Iterate over each file for processing
         for i, filename in tqdm(enumerate(filenames), total=len(filenames)):
