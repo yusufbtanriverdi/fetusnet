@@ -77,7 +77,7 @@ def perform_preprocessing(dataframe, params, logger=None):
            
             # Skip processing if image already exists
             if os.path.exists(save_im_path):
-                logger.warning("Attention! Image exists!")
+                # logger.warning("Attention! Image exists!")
                 # ! ATTENTION ! 
                 # Temporary header update for imfusion
                 # Save processed image and transformed landmarks
@@ -143,10 +143,13 @@ def perform_preprocessing(dataframe, params, logger=None):
             if (diff_size[0]*2)%2 == 0:
                 z = 0
             else:
-                z=1     
+                z = 1     
             m = torch.nn.ConstantPad3d([a+x,a,b+y,b,c+z,c], 0)
             V = torch.from_numpy(V.astype(np.float32))
             V = m(V)
+            if not np.array_equal(np.array(V.shape), np.array(desired_size)):
+                logger.warning("Skipped inconsistent dimension!!!!")
+                continue
             lmk_pad = np.array([c + z, b + y, a + x], dtype=np.float64)
             L_in_pix = L_in_mm / p
             L_in_pix += lmk_pad
