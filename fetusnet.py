@@ -332,7 +332,7 @@ if params.mode == 'script_mean_template':
 
 if params.mode == 'test':
     params.wandb.log = False
-    logger.info("I am starting to test")
+    logger.info("...... Evaluation mode has started  .......")
     # Initialize model, loss, optimizer
     model, criteria, optimizer, multi_noise_loss, _ = get_fresh_model(params)
     experiment_dir = params.checkpoint
@@ -346,13 +346,16 @@ if params.mode == 'test':
     # test_patients = getattr(params, 'test_patients', [''])
     logger.info(f"The selected patient(s) are {params.test_patients} .")
     main_dataframe.loc[main_dataframe['npid'].isin(params.test_patients), "set"] = 2
+    # Filter test patients of 3dfetus first
+    if params.validation.filter_3dFetusTest: 
+        main_dataframe = main_dataframe[main_dataframe["TEST_LIST_GA"] == 1]
+        logger.info(f"The dataframe is filtered with scan(s) that are on test list of 3DFetus. The new total number is {len(main_dataframe)} \n Check the the number of remaining test samples in the next lines.")
     # Filter test patients first
     test_dl = get_test_dl(main_dataframe.loc[main_dataframe['npid'].isin(params.test_patients)], params, transformations=transformations)
     logger.info(f"!__[U]__! Test subset size: {len(test_dl)}")
     if len(test_dl) == 0: 
         test_dl = get_test_dl(main_dataframe, params, transformations)
         logger.info(f"!__[U]__! Couldn't find test patients, switch to entire test subset. Subset size: {len(test_dl)}")
-
         if len(test_dl) == 0:         
                 _, test_dl = get_train_val_dl(main_dataframe, params, transformations=transformations)
                 logger.info(f"!__[U]__! Switched to val subset. Subset size: {len(test_dl)}")

@@ -113,6 +113,7 @@ training:
 validation:
   batch_size: 1
   check_visibility: true
+  filter_3dFetusTest: false
   use_model: "last"
   detector: "argmax"
   radius_eval: 100

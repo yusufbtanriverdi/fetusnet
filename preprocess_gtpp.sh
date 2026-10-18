@@ -2,9 +2,9 @@ python fetusnet.py \
     --mode=preprocess \
     --ds.sys="/media/yusuf/HDD 4TB/" \
     --ds.dataframe="sinMaternitat__fold0" \
-    --preprocessing.save_dir="DATA_gtpp_fin" \
+    --preprocessing.save_dir="DATA_gtpp_C_downsample" \
     --preprocessing.filter=True \
-    --preprocessing.bspline=True \
+    --preprocessing.bspline=False \
     --preprocessing.swap=False \
     --preprocessing.affine=False \
     --preprocessing.gtpp=True \

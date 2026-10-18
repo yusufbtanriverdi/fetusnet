@@ -5,9 +5,9 @@ python fetusnet.py \
   --ds.sys="/media/yusuf/HDD 4TB/" \
   --ds.root="DATA_unaligned/" \
   --ds.dataframe="sinMaternitat__fold0" \
-  --ds.index_order="F" \
+  --ds.index_order="C" \
   --device="cuda" \
-  --test_patients="[1014]" \
+  --test_patients="[1003]" \
   --validation.detector="argmax" \
   --validation.radius_eval=100 \
   --validation.radius_num=100 \
