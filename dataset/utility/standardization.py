@@ -9,6 +9,7 @@ import numpy as np
 
 from dataset.utility.gtpp.utils import utils
 from dataset.utility.gtpp.utils.pytorch3d import euler_angles_to_matrix, quaternion_to_matrix
+from dataset.utility.rotation import affine3Dmatrix, grid_transform_3d, affine_transform
 
 # GLOBAL VARIABLES
 torch.cuda.empty_cache()
@@ -18,9 +19,9 @@ max_euler = [(0.0)*torch.pi,              # Maximum range to sample the three Eu
                 (0.0)*torch.pi,
                 (0.0)*torch.pi]
 
-def single_gtpp(params, model, device, V, L_in_pix, ct):
+def standardize_with_model(params, model, device, V, L_in_pix, ct):
     V = V.unsqueeze(0)
-    params = params.preprocessing.params.gtpp
+    params = params.preprocessing.gtpp
     # INITIALIZE MODEL CONFIG SET
     if params.model.seed_val is not None:
         gen = torch.torch.Generator()
@@ -72,3 +73,33 @@ def single_gtpp(params, model, device, V, L_in_pix, ct):
     Lhat_in_pix = (Lhat_in_pix_norm / (2.0 / img_size).astype(np.float32)) + img_size / 2.0
     # ------------------ For landmarks -------------------------
     return Vhat.squeeze(0), Lhat_in_pix, ct
+
+def standardize_with_gt(plane_metadata, name, V, p, L_in_pix, ct, logger):
+    img_size = np.array(V.shape).astype(np.float32)
+    # Retrieve ground truth plane data from dictionary for current image
+    plane = plane_metadata.get(name)
+    if plane is None:
+        logger.warning(f"Ground truth for {name} not found!")
+        return None, None, ct
+    # Assumption: Centers are in RAS coordinate system
+    center_gt_in_pix = np.array([-1 * plane["center"][0], -1 * plane["center"][1], plane["center"][2]]) / p
+    # Compute translation vector for affine transform
+    translation_vector = (center_gt_in_pix - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
+    # Compute rotation matrix from plane parameters
+    rotation_3x3 = affine3Dmatrix(plane)
+    # Construct full 3x4 affine transformation matrix
+    transform_matrix = np.zeros((3, 4))
+    transform_matrix[:3, :3] = rotation_3x3
+    transform_matrix[:3, 3] = translation_vector
+    # Apply affine transformation to the image volume
+    Vhat = grid_transform_3d(V.astype(np.float32), transform_matrix.astype(np.float32))
+    V = Vhat.copy()
+    # ------------------ For landmarks -------------------------
+    L_in_pix_norm = (L_in_pix - img_size / 2.0) * (2.0 / img_size).astype(np.float32)
+    inv_translation_vector = -1 * translation_vector
+    Lhat_in_pix_norm = affine_transform(L_in_pix_norm, np.linalg.inv(rotation_3x3), inv_translation_vector)
+    Lhat_in_pix = (Lhat_in_pix_norm / (2.0 / img_size).astype(np.float32)) + img_size / 2.0
+    L_in_pix = Lhat_in_pix
+    ct += 1
+    # ------------------ For landmarks -------------------------
+    return V, L_in_pix, ct

@@ -36,7 +36,7 @@ def load_heatmap_as_grid(nrrd_path: str) -> pv.ImageData:
     grid.point_data["heatmap"] = data.flatten(order="F")
     return grid
 
-def perform_plot_3d(df, experiment_dir, params):
+def plot_3d(df, experiment_dir, params):
     """ Visualize predicted vs ground truth heatmaps from a DataFrame row.
 
     Expected columns in row:

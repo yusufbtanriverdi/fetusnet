@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from sklearn.model_selection import GroupKFold
 
-def perform_crossfold_split(master_dataframe, params):
+def crossfold_split(master_dataframe, params):
     """
     Perform data splitting and write resulting dataframes to disk.
     Returns the path to the last written file (or last fold if crossfold).

@@ -35,7 +35,7 @@ def create_template(spacings):
 
     return header
 
-def perform_header_matching(new_data_dir, old_data_dir):
+def header_matching(new_data_dir, old_data_dir):
     # Ensure output directory exists
     os.makedirs(new_data_dir, exist_ok=True)
     # Find all .nrrd files in volumes/

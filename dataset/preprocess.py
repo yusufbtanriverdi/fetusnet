@@ -175,6 +175,7 @@ def perform_preprocessing(dataframe, params, logger=None):
             # ----------  #
             # STEP EXTRA: Interpolate image to desired spacing and size
             # ----------  #
+            L_in_mm = L_in_pix * p
             if params.preprocessing.bspline:
                 image = sitk.GetImageFromArray(V)
                 image.SetSpacing(p)  # Set original spacing
@@ -192,12 +193,11 @@ def perform_preprocessing(dataframe, params, logger=None):
 
                 resampled_image = resampler.Execute(image)
                 V = sitk.GetArrayFromImage(resampled_image)
-                p = new_spacing     
+                p = new_spacing
+                # Determine pixel spacing information from header; fallback if keys missing
+                template = create_template(p)               
             # Convert landmarks from mm to pixel units
-            # V = np.transpose(V, (2, 1, 0))
-            L_in_mm = L_in_pix * p
-            L_in_mm = swap_xz_coordinates(L_in_mm)
-            nrrd.write(save_im_path, V, header=template, index_order='C')
+            nrrd.write(save_im_path, V, header=template, index_order='F')
             save_transformed_landmarks(L_in_mm, lmk, save_csv_path, save_lmk_path)
 
     else: # Usual routine

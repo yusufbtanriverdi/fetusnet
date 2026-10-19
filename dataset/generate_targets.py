@@ -9,7 +9,7 @@ from dataset.target.gaussian_heatmap import create_gaussian_heatmap
 from dataset.utility.rotation import extract_image
 from doc.info.template import create_template
 
-def perform_generate(sinfo, exp_dir, params):
+def generate(sinfo, exp_dir, params):
     """
     Main function to generate target heatmaps or distance matrices for 3D volumes.
 

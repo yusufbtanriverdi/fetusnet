@@ -32,64 +32,64 @@ optimizer:
 
 preprocessing:
   label_dir: "doc/info/gt.txt"
-  skip: false
-  filter: true
-  bspline: true
-  swap: true
-  affine: true
-  gtpp: false
   save_dir: "DATA/"
-  params:
-    filter:
-      filter_size: 3
-      mode: "reflect"
-    bspline:
-      spacing: [1.0, 1.0, 1.0]
-      size: [128, 128, 128]
-    gtpp:
-      prefix: "test"
-      checkpoint_name: "best_model_514"
-      model_dir: "dataset/utility/gtpp/checkpoints/"
-      list_txt: "temp/sample.txt"
-      model:
-        desired_size: [256, 256, 256]
-        save_jpg: false
-        save_nrrd: true
-        downsampling_factor: 2
-        num_samples: 5
-        spacing: 0.3
-        permute: true
-        input_plane: 3
-        resume: true
-        learning_rate: 0.0001
-        test_it: 3
-        int_rad: false
-        epochs: 100000
-        save_interval: 1
-        batch_size: 12
-        debug: false
-        normalize_quaternion: "None"
-        seed_val: 42
-        num_output_tr: 3
-        num_output_rr: 4
-        ViT_model: "vit_small"
-        classification: false
-        perceptual_loss: false
-        limit_translation: 0.5
-        euler: false
-        vgg: "11"
-        image_loss: true
-        instance_norm: false
-        data_augment_close: true
-        net: "SN16"
-        latent: 128
-        latent2: 64
-        last_bn: false
-        name_model_old: false
-        grid_loss: true
-        only_grid_loss: true
-        dropout: 0.5
-      dic_name: "dictionary_transform_predicted"
+  filter:
+    filter_size: 3
+    mode: "reflect"
+  bspline:
+    spacing: [1.0, 1.0, 1.0]
+    size: [128, 128, 128]
+  downsampling_factor: 2
+  gtpp:
+    prefix: "test"
+    checkpoint_name: "best_model_514"
+    model_dir: "dataset/utility/gtpp/checkpoints/"
+    list_txt: "temp/sample.txt"
+    model:
+      desired_size: [256, 256, 256]
+      save_jpg: false
+      save_nrrd: true
+      num_samples: 5
+      spacing: 0.3
+      permute: true
+      input_plane: 3
+      resume: true
+      learning_rate: 0.0001
+      test_it: 3
+      int_rad: false
+      epochs: 100000
+      save_interval: 1
+      batch_size: 12
+      debug: false
+      normalize_quaternion: "None"
+      seed_val: 42
+      num_output_tr: 3
+      num_output_rr: 4
+      ViT_model: "vit_small"
+      classification: false
+      perceptual_loss: false
+      limit_translation: 0.5
+      euler: false
+      vgg: "11"
+      image_loss: true
+      instance_norm: false
+      data_augment_close: true
+      net: "SN16"
+      latent: 128
+      latent2: 64
+      last_bn: false
+      name_model_old: false
+      grid_loss: true
+      only_grid_loss: true
+      dropout: 0.5
+    dic_name: "dictionary_transform_predicted"
+  read_index_order: "F"
+  write_index_order: "C"
+  path1: false
+  path2: false
+  path3: false
+  path4: false
+  path5: false
 
 repro:
   model_seed: 42

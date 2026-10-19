@@ -8,12 +8,13 @@ import torch
 import random
 import numpy as np
 import yaml
+from pprint import pformat
 
 from net.config.parser import setup_config
-from dataset.statistics.split import perform_crossfold_split
-from dataset.statistics.prepare import perform_prepare
-from dataset.preprocess import perform_preprocessing
-from dataset.generate_targets import perform_generate
+from dataset.statistics.split import crossfold_split
+from dataset.statistics.prepare import prepare
+from dataset.preprocess_ import preprocess
+from dataset.generate_targets import generate
 from logger_setup import setup_logger
 from dataset.utility.loaders import get_train_val_dl, get_test_dl
 from net.model.utility.get_fresh_model import get_fresh_model
@@ -21,7 +22,7 @@ from net.phases.train import train_one_ep
 from net.phases.infer import infer_one_ep
 from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
 from net.config.wandb import initialize_wandb
-from net.plot.volumes import perform_plot_3d, start_game_3d
+from net.plot.volumes import plot_3d, start_game_3d
 from scripts.script_concept_fig import create_disc_figure
 from scripts.script_weeks_fig import create_weeks_plot
 from scripts.script_spatial_prior import plot_spatial_prior
@@ -159,7 +160,7 @@ if params.mode == 'script_concept':
     exit(0)  # Exit after running the script to prevent further execution
 
 if params.mode == 'prepare':
-    main_dataframe_path = perform_prepare(params) # Create info frames
+    main_dataframe_path = prepare(params) # Create info frames
 
 # Load or create sinfo dataframe
 main_dataframe_path = os.path.join(params.ds.sys, params.ds.root, params.ds.dataframe + '.csv')
@@ -170,11 +171,26 @@ else:
     raise FileNotFoundError("Master dataframe not found.")
 
 if params.mode == 'presplit':
-    splitdataframe_path = perform_crossfold_split(main_dataframe, params)
+    splitdataframe_path = crossfold_split(main_dataframe, params)
 
 if params.mode == 'preprocess':
-    perform_preprocessing(main_dataframe, params, logger)
-
+    ct, ct_not_found, sample_list, params = preprocess(main_dataframe, params, logger)
+    # Save the preprocessing summary alongside the generated outputs.
+    log_path = os.path.join(params.ds.sys, params.preprocessing.save_dir, "preprocessing_summary.log")
+    summary = "\n".join([
+        f"ct: {ct}",
+        f"ct_not_found: {ct_not_found}",
+        "",
+        "sample_list:",
+        pformat(sample_list),
+        "",
+        "params:",
+        pformat(params.preprocessing),
+        "",
+    ])
+    with open(log_path, 'w') as f:
+        f.write(summary)
+    
 logger.info(f"Master dataframe path: {main_dataframe_path}")
 logger.info(f"Total number of input in master dataframe: {len(main_dataframe)}")
 logger.info(f"Training - validation - test subset sizes: {len(main_dataframe[main_dataframe['set'] == 0]), len(main_dataframe[main_dataframe['set'] == 1]), len(main_dataframe[main_dataframe['set'] == 2])}")
@@ -210,9 +226,9 @@ if params.mode in ['generate', 'interactive_plot', 'interactive_game']:
     if len(main_dataframe) == 0:
         raise KeyError("No test patient is given. Aborting mission...")
     if params.mode == 'interactive_plot':
-        perform_plot_3d(main_dataframe, experiment_dir, params)
+        plot_3d(main_dataframe, experiment_dir, params)
     elif params.mode == 'generate':
-        perform_generate(main_dataframe, experiment_dir, params)
+        generate(main_dataframe, experiment_dir, params)
     elif params.mode == 'interactive_game':
         start_game_3d(main_dataframe, experiment_dir, params)
 

@@ -25,7 +25,7 @@ def extract_list_lmks_fromfcsv(file_path: str):
                     lmks.append(val)
     return lmks
 
-def perform_prepare(params):
+def prepare(params):
     """
     Main function to scan datasets, gather patient and scan metadata,
     and save info CSV files.

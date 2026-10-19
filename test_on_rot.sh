@@ -3,8 +3,8 @@ python fetusnet.py \
   --checkpoint="runs/2026-05-19/kendall6" \
   --validation.use_model="best" \
   --ds.sys="/media/yusuf/HDD 4TB/" \
-  --ds.root="DATA/" \
-  --ds.dataframe="sinMaternitat__fold0" \
+  --ds.root="DATA_path3_F/" \
+  --ds.dataframe="3dfetus_test_fold0" \
   --ds.index_order="F" \
   --device="cuda" \
   --test_patients="[0]" \
@@ -13,4 +13,5 @@ python fetusnet.py \
   --validation.radius_num=100 \
   --validation.save_outputs=False \
   --validation.save_targets=False \
-  --validation.show_figures=False
+  --validation.show_figures=False \
+  --validation.filter_3dFetusTest=True \
