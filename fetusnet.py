@@ -13,7 +13,7 @@ from pprint import pformat
 from net.config.parser import setup_config
 from dataset.statistics.split import crossfold_split
 from dataset.statistics.prepare import prepare
-from dataset.preprocess_ import preprocess
+from dataset.preprocess import preprocess
 from dataset.generate_targets import generate
 from logger_setup import setup_logger
 from dataset.utility.loaders import get_train_val_dl, get_test_dl

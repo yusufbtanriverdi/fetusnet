@@ -187,3 +187,4 @@ configs
 assets/_*
 faster_rcnn_3d copy.ipynb
 *.nrrd
+assets/mean_volumes.zip
