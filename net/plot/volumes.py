@@ -1,15 +1,15 @@
+import ast
 import os
+
 import nrrd
 import numpy as np
 import pandas as pd
-import ast
-import numpy as np
-import numpy as np
 import pyvista as pv
 from pyvista.trame.ui import plotter_ui
 from trame.app import get_server
-from trame.widgets import vuetify3 as v
 from trame.ui.vuetify3 import SinglePageLayout
+from trame.widgets import vuetify3 as v
+
 
 def load_landmarks_as_point_cloud(csv_path: str):
     """Load lmk coordinates from CSV → PyVista point cloud + labels."""
@@ -65,7 +65,6 @@ def plot_3d(df, experiment_dir, params):
     nsid = row["nsid"]
     if params.target.lmks[0] in row['lmks_array']:
         lmk = params.target.lmks[0]
-        pass
     else:
         lmk = row["lmks_array"][0] # visibles? then loop 
     
@@ -161,7 +160,6 @@ def start_game_3d(df, experiment_dir, params):
     nsid = row["nsid"]
     if params.target.lmks[0] in row['lmks_array']:
         lmk = params.target.lmks[0]
-        pass
     else:
         lmk = row["lmks_array"][0] # visibles? then loop 
     
@@ -309,7 +307,6 @@ def start_game_3d_local(df, experiment_dir, params):
     nsid = row["nsid"]
     if params.target.lmks[0] in row['lmks_array']:
         lmk = params.target.lmks[0]
-        pass
     else:
         lmk = row["lmks_array"][0] # visibles? then loop 
     

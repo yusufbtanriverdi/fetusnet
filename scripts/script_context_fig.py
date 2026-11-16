@@ -9,13 +9,12 @@ Outputs:
     anatomical_context_refinement.pdf
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+from matplotlib.lines import Line2D
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
-from matplotlib.lines import Line2D
-import seaborn as sns
-
 
 np.random.seed(7)
 

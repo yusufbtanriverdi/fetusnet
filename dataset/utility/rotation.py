@@ -1,40 +1,7 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
-import nrrd
-import numpy as np
-from os.path import join
-from scipy import ndimage
 
-def get_file_list(txt_file):
-    """Get a list of filenames.
-
-    Args:
-      txt_file: Name of a txt file containing a list of filenames for the images.
-
-    Returns:
-      filenames: A list of filenames for the images.
-
-    """
-    with open(txt_file) as f:
-        filenames = f.read().splitlines()
-    return filenames
-
-# ADDED with NEW DEFAULT MISMATCHES: Index Order explicit set
-def extract_image(filename, index_order='C'):
-    """Extract the image into a 3D numpy array [x, y, z]. As it was saved in RAS
-    Args:
-      filename: Path and name of nifti file.
-
-    Returns:
-      data: A 3D numpy array [x, y, z]
-      header: An OrderedDict
-    """
-
-    data, header = nrrd.read(filename, index_order=index_order)
-    if len(data.shape) == 4:
-        data=data[:, :, :, 0]
-
-    return data, header
 
 def affine_grid_generator_3D(theta, size):
     """
@@ -47,7 +14,7 @@ def affine_grid_generator_3D(theta, size):
     Returns:
         torch.Tensor: A 3D grid of shape (N, D, H, W, 3) for affine transformation.
     """
-    N, C, D, H, W = size
+    N, _, D, H, W = size
 
     # Create an empty grid with an additional dimension for homogeneous coordinates
     base_grid = torch.zeros((N, D, H, W, 4), dtype=torch.float32)
@@ -68,13 +35,6 @@ def affine_grid_generator_3D(theta, size):
     grid = grid.view(N, D, H, W, 3)  # Reshape to the target 3D grid shape
 
     return grid
-
-def filter_3d_image(volume, filter_size=3, mode='reflect'):
-
-    low_pass_filter = np.ones((filter_size,) * 3) / (filter_size ** 3)
-
-    # Apply filtering for smoothing
-    return ndimage.convolve(volume, low_pass_filter, mode=mode)
 
 def grid_transform_3d(moving_image, transform_matrix):
     """
@@ -139,90 +99,3 @@ def affine3Dmatrix(gt):
     M = np.transpose(np.linalg.solve(V0, V1))
     
     return M
-
-def get_matrix_of_lmks(landmarks_df):
-    """
-    Convert the DataFrame of landmarks into a matrix in LPS (Left-Posterior-Superior) format.
-    
-    Parameters:
-    landmarks_df (pd.DataFrame): DataFrame containing landmark data.
-    
-    Returns:
-    np.ndarray: Numpy array representing the matrix of landmarks in LPS format.
-    """
-    # Assuming the DataFrame has columns named 'x', 'y', 'z' for the coordinates
-    # Modify according to your actual column names
-    # x = -landmarks_df['x'].values  # Flip x for LPS
-    # y = -landmarks_df['y'].values  # Flip y for LPS
-    # z = landmarks_df['z'].values
-
-    # There are some instances that is in RAS but do not need this sign change. Maybe abs is better?
-    x = abs(landmarks_df['x'].values)  # Flip x for LPS
-    y = abs(landmarks_df['y'].values)  # Flip y for LPS
-    z = abs(landmarks_df['z'].values)
-
-    # This works but still the case 39-20s-08 is shifted a bit. 
-    coords = np.array([x, y, z])
-    lmk_matrix = np.column_stack(coords).astype(np.float32)
-    
-    return lmk_matrix
-
-def swap_xz_coordinates(lmks):
-    """
-    Swaps the x and z coordinates of each landmark point in the given array.
-
-    Args:
-        lmks (numpy.ndarray or torch.Tensor): A 2D array of landmarks with shape (N, 3), 
-                                              where N is the number of landmarks, and the 
-                                              coordinates are [x, y, z].
-    Returns:
-        numpy.ndarray or torch.Tensor: The array with x and z coordinates swapped.
-    """
-    lmks[:, [0, 2]] = lmks[:, [2, 0]]
-    return lmks
-
-# def pad_3d_image(image, lmks, centers_gt, desired_size):
-#     pad_width = [(max(d - s, 0) // 2, max(d - s, 0) - max(d - s, 0) // 2) for s, d in zip(image.shape, desired_size)]
-#     padded_image = np.pad(image, pad_width, mode='constant')
-    
-#     # Adjust landmarks
-#     pad_before = np.array([p[0] for p in pad_width])
-#     adjusted_lmks = lmks + pad_before
-#     adjusted_centers_gt = centers_gt + pad_before
-    
-#     return padded_image, adjusted_lmks, adjusted_centers_gt
-
-def save_transformed_landmarks(Lhat, lmk, output_csv_path, output_fscv_path):
-    """
-    Save transformed landmarks to CSV and FCSV files with predefined header lines.
-
-    Parameters:
-    - Lhat (np.ndarray): Array containing transformed landmark coordinates.
-    - lmk (pd.DataFrame): DataFrame to copy structure from.
-    - output_path (str): Directory path to save the files.
-    - name (str): Base name for the output files.
-    """
-    # Copy structure of landmarks and update with transformed coordinates
-    Lhat_df = lmk.copy()
-    for idx in range(Lhat.shape[0]):
-        Lhat_df.loc[idx, ['x', 'y', 'z']] = Lhat[idx, :]
-
-    # Save CSV file
-    Lhat_df.to_csv(output_csv_path, index=False)
-
-    # Define the predefined lines for FCSV format
-    predefined_lines = [
-        "# Markups fiducial file version = 5.2\n",
-        "# CoordinateSystem = LPS\n",
-        "# columns = id,x,y,z,ow,ox,oy,oz,vis,sel,lock,label,desc,associatedNodeID\n"
-    ]
-
-    # Save FCSV file with predefined lines
-    fcsv_path = output_fscv_path
-    with open(fcsv_path, 'w') as f:
-        # Write predefined lines
-        f.writelines(predefined_lines)
-        
-        # Write each row as a comma-separated string
-        for index, row in Lhat_df.iterrows():
-            f.write(','.join(map(str, row.values)) + '\n')

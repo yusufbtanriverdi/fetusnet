@@ -1,10 +1,11 @@
 import torch
-import torch.nn as nn
 import torchvision.models.video as video_models
+from torch import nn
+
 
 class R3D_18(nn.Module):
     def __init__(self, num_landmarks, pretrained=False, coordinate_regression=False):
-        super(R3D_18, self).__init__()
+        super().__init__()
         # Load pre-trained 3D ResNet-34
         resnet34_3d = video_models.r3d_18(pretrained=pretrained)  # Using R3D-18 as a 3D backbone
         self.num_landmarks = num_landmarks

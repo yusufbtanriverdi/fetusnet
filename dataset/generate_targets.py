@@ -1,13 +1,15 @@
 import os
-import torch
-import pandas as pd
-import nrrd
 import time
-import numpy as np
 
+import nrrd
+import numpy as np
+import pandas as pd
+import torch
+
+from dataset.preprocess import extract_image
 from dataset.target.gaussian_heatmap import create_gaussian_heatmap
-from dataset.utility.rotation import extract_image
 from doc.info.template import create_template
+
 
 def generate(sinfo, exp_dir, params):
     """
@@ -40,7 +42,7 @@ def generate(sinfo, exp_dir, params):
                 raise ValueError(f"Landmark '{lmk}' not found in {landmark_path}")
             try:
                 p = header.get('spacings')[:3]
-            except:
+            except Exception:
                 p = np.array([header['space directions'][0, 0], 
                             header['space directions'][1, 1], 
                             header['space directions'][2, 2]])

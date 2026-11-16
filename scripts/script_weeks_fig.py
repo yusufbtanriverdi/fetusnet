@@ -2,6 +2,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 
+
 def load_and_process_data(filepath):
     """Load CSV and process week column."""
     df = pd.read_csv(filepath)

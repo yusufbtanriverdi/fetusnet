@@ -1,6 +1,7 @@
 import logging
 import os
 
+
 def setup_logger(log_dir, log_filename="experiment.log", level=logging.INFO):
     """
     Sets up a logger to log to both console and a file.

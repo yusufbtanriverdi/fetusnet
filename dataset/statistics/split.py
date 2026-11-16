@@ -1,6 +1,8 @@
 import os
+
 import pandas as pd
 from sklearn.model_selection import GroupKFold
+
 
 def crossfold_split(master_dataframe, params):
     """

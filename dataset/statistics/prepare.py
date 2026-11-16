@@ -1,9 +1,11 @@
+import json
 import os
+
 import pandas as pd
 from tqdm import tqdm
-import json
 
-from dataset.utility.rotation import extract_image, get_file_list
+from dataset.preprocess import extract_image, get_file_list
+
 
 def extract_list_lmks_fromfcsv(file_path: str):
     """
@@ -107,7 +109,6 @@ def prepare(params):
                             'npid': npid,
                             'opid': caso,
                             'week': week,
-                            'opid': caso,
                             'osid': osid,
                             'fcaso': fcaso,
                             'fweek': fweek,
@@ -149,14 +150,13 @@ def prepare(params):
                                 scan_dict['visibles'] = extract_list_lmks_fromfcsv(flmk)
                                 scan_dict['num_visibles'] = len(scan_dict['visibles'])
                             
-                            if os.path.exists(fcsv): scan_dict['_fcsv'] = fcsv
-                            elif os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
+                            if os.path.exists(fcsv) or os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
                             else: 
                                 scan_dict['_fcsv'] = ''
                                 scan_dict['csv_found'] = False
                             try: 
                                 pd.read_csv(scan_dict['_fcsv'])
-                            except Exception as e:
+                            except Exception:
                                 scan_dict['csv_found'] = False
 
                         scan_dict['lmks_found'] = lmks_found
@@ -234,7 +234,6 @@ def prepare(params):
                             'npid': npid,
                             'opid': caso,
                             'week': week,
-                            'opid': caso,
                             'osid': osid,
                             'fcaso': fcaso,
                             'fweek': fweek,
@@ -276,14 +275,13 @@ def prepare(params):
                                 scan_dict['visibles'] = extract_list_lmks_fromfcsv(flmk)
                                 scan_dict['num_visibles'] = len(scan_dict['visibles'])
                             
-                            if os.path.exists(fcsv): scan_dict['_fcsv'] = fcsv
-                            elif os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
+                            if os.path.exists(fcsv) or os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
                             else: 
                                 scan_dict['_fcsv'] = ''
                                 scan_dict['csv_found'] = False
                             try: 
                                 pd.read_csv(scan_dict['_fcsv'])
-                            except Exception as e:
+                            except Exception:
                                 scan_dict['csv_found'] = False
                             
                         scan_dict['lmks_found'] = lmks_found
@@ -310,9 +308,6 @@ def prepare(params):
             ds_id = '3'
             raw_files = params.ds.sys + params.ds.source + dataset
             casos = os.listdir(os.path.join(raw_files, 'Casos'))
-            ds_dict = {'ds_id': ds_id, 
-                       'ds': dataset,
-                       'num_casos': len(casos)}
             # Iterate over patient folders with progress bar
             for caso in tqdm(casos, total=len(casos), desc='--------------------Scanning subfolders (Casos)..................'):
                 caso_id = caso.split('-')[-1]
@@ -362,7 +357,6 @@ def prepare(params):
                             'npid': npid,
                             'opid': caso,
                             'week': week,
-                            'opid': caso,
                             'osid': osid,
                             'fcaso': fcaso,
                             'fweek': fweek,
@@ -405,14 +399,13 @@ def prepare(params):
                                 scan_dict['visibles'] = extract_list_lmks_fromfcsv(flmk)
                                 scan_dict['num_visibles'] = len(scan_dict['visibles'])
                             
-                            if os.path.exists(fcsv): scan_dict['_fcsv'] = fcsv
-                            elif os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
+                            if os.path.exists(fcsv) or os.path.exists(fcsv_modified): scan_dict['_fcsv'] = fcsv
                             else: 
                                 scan_dict['_fcsv'] = ''
                                 scan_dict['csv_found'] = False
                             try: 
                                 pd.read_csv(scan_dict['_fcsv'])
-                            except Exception as e:
+                            except Exception:
                                 scan_dict['csv_found'] = False
                         scan_dict['lmks_found'] = lmks_found
                         if lmks_found:                         

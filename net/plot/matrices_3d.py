@@ -1,14 +1,15 @@
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import widgets
+
 import imageio
-from typing import List, Optional
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from matplotlib import widgets
+
 
 def plot_3d_matrices(
     *matrices: torch.Tensor,
-    titles: Optional[List[str]] = None,
-    gif_path: Optional[str] = None,
+    titles: list[str] | None = None,
+    gif_path: str | None = None,
     axis: int = 0,
     interactive: bool = True,
     fps: int = 2,

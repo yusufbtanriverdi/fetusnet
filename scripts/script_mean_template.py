@@ -1,11 +1,13 @@
-from pathlib import Path
-import pandas as pd
-from tqdm import tqdm
 import os
-import torch
+from pathlib import Path
+
 import nrrd
+import pandas as pd
+import torch
+from tqdm import tqdm
 
 from doc.info.template import create_template
+
 
 def plot_mean_volume(
     loader,
@@ -41,11 +43,9 @@ def plot_mean_volume(
     os.makedirs(category_output_dir, exist_ok=True)
 
     mean_volume_path = os.path.join(temp_dir, 'mean_volumes')
-    fig_path = os.path.join(output_dir, fig_name)
 
     if os.path.exists(mean_volume_path) and not recompute:
         print(f"Loading existing mean volumes from {mean_volume_path}...")
-        pass
 
     else:
         print(f"Collecting volumes from the DataLoader and saving to {mean_volume_path}...")

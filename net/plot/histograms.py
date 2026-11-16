@@ -1,17 +1,18 @@
-import torch
+
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Optional, Dict
+import torch
+
 
 def plot_histograms_and_stats(
     outputs: torch.Tensor,
     targets: torch.Tensor,
     bins: int = 50,
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     show: bool = True,
     range_percentile: float = 99.0,
     log_scale: bool = True,
-    ) -> Dict[str, Dict[str, float]]:
+    ) -> dict[str, dict[str, float]]:
     """
     Plot histograms of model outputs and targets with both full-range
     and zoomed-in views, and compute basic statistics.
@@ -31,7 +32,7 @@ def plot_histograms_and_stats(
     outputs_np = outputs.detach().cpu().numpy().flatten()
     targets_np = targets.detach().cpu().numpy().flatten()
 
-    def compute_stats(arr: np.ndarray) -> Dict[str, float]:
+    def compute_stats(arr: np.ndarray) -> dict[str, float]:
         return {
             "min": float(arr.min()),
             "max": float(arr.max()),

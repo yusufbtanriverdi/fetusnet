@@ -1,5 +1,6 @@
 import torch
 
+
 def d_mean_mm(outputs, targets, spacings):
     """
     Computes the mean Euclidean distance (d_mean) between predicted and ground truth landmarks in mm.

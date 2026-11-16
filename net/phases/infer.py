@@ -1,24 +1,22 @@
-from tqdm import tqdm
-import torch
-import wandb
+import gc
 import os
-import pandas as pd
-import numpy as np
-import gc 
-import nrrd 
 import random
 
+import nrrd
+import numpy as np
+import pandas as pd
+import torch
+import wandb
+from tqdm import tqdm
+
+from doc.info.template import create_template
+from net.evaluation.dMean import d_mean_mm
+from net.loss.losses import EucEMDLoss, SoftmaxCELoss, SSELoss
 from net.plot.curves import compute_aela, plot_aela_figure
-from net.plot.histograms import plot_histograms_and_stats
-from net.plot.matrices_3d import plot_3d_matrices
 from net.plot.heatmaps import plot_heatmaps_slices_from_coord
 from net.postprocess.save_fscv_csv import save_fscv_csv
 from net.postprocess.where_is_landmark import get_peak_location
-from dataset.utility.rotation import extract_image
-from net.plot.heatmaps import plot_heatmaps_slices_from_coord
-from net.loss.losses import *
-from net.evaluation.dMean import d_mean_mm
-from doc.info.template import create_template
+
 
 def compute_landmark_metrics(outputs, targets, spacings):
     """

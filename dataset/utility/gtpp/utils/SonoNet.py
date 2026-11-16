@@ -2,10 +2,11 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+
 class _GridAttentionBlockND_TORR(nn.Module):
     def __init__(self, in_channels, gating_channels, inter_channels=None, dimension=3, mode='concatenation',
                  sub_sample_factor=(1,1,1), bn_layer=True, use_W=True, use_phi=True, use_theta=True, use_psi=True, nonlinearity1='relu'):
-        super(_GridAttentionBlockND_TORR, self).__init__()
+        super().__init__()
 
         assert dimension in [2, 3]
         assert mode in ['concatenation', 'concatenation_softmax',
@@ -37,7 +38,7 @@ class _GridAttentionBlockND_TORR(nn.Module):
             bn = nn.BatchNorm2d
             self.upsample_mode = 'bilinear'
         else:
-            raise NotImplemented
+            raise NotImplementedError
 
         # initialise id functions
         # Theta^T * x_ij + Phi^T * gating_signal + bias
@@ -178,7 +179,7 @@ class GridAttentionBlock2D_TORR(_GridAttentionBlockND_TORR):
                  sub_sample_factor=(1,1), bn_layer=True,
                  use_W=True, use_phi=True, use_theta=True, use_psi=True,
                  nonlinearity1='relu'):
-        super(GridAttentionBlock2D_TORR, self).__init__(in_channels,
+        super().__init__(in_channels,
                                                inter_channels=inter_channels,
                                                gating_channels=gating_channels,
                                                dimension=2, mode=mode,

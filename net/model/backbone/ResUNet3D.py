@@ -1,6 +1,8 @@
 import torch
-import torch.nn as nn
+from torch import nn
+
 from net.model.modules.resnet import *
+
 
 class ResUNet3D(nn.Module):
     def __init__(self, input_channels, output_channels, base_features, coord_reg=False):

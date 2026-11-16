@@ -1,7 +1,9 @@
-import sys
-import yaml
 import ast
+import sys
 from types import SimpleNamespace
+
+import yaml
+
 from utils import flatten_namespace_to_dict
 
 # Hide the top-level mode mappings from the main options list

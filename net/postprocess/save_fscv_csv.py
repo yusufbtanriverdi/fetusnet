@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 
 # Global row template for landmarks
@@ -116,8 +115,7 @@ def write_fcsv_file(out, landmarks_as_df):
         f.writelines(predefined_lines)
 
         # Write each row of the DataFrame as a comma-separated string
-        for _, row in landmarks_as_df.iterrows():
-            f.write(','.join(map(str, row.values)) + '\n')
+        f.writelines(','.join(map(str, row.values)) + '\n' for _, row in landmarks_as_df.iterrows())
 
 
 

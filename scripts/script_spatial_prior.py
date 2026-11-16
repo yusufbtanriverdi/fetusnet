@@ -1,9 +1,11 @@
+import os
 from pathlib import Path
-import pandas as pd
+
 import matplotlib.pyplot as plt
-from tqdm import tqdm
-import os 
+import pandas as pd
 import pyvista as pv
+from tqdm import tqdm
+
 
 def plot_spatial_prior(
     loader,

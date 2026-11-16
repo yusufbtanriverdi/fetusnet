@@ -1,12 +1,13 @@
-from dataset.target import gaussian_heatmap
-from dataset.utility.rotation import extract_image
-from net.plot.heatmaps import plot_heatmaps_slices_from_coord
-import torch
-import os 
-import pandas as pd
+import os
+
 import numpy as np
-from torch.utils.data import Dataset
+import pandas as pd
+import torch
 import torchio as tio
+from torch.utils.data import Dataset
+
+from dataset.preprocess import extract_image
+from dataset.target import gaussian_heatmap
 
 
 class MyDataset(Dataset):

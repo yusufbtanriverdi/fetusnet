@@ -1,9 +1,12 @@
-import numpy as np
-import nrrd
 import glob
 import os
-from tqdm import tqdm 
-from dataset.utility.rotation import extract_image
+
+import nrrd
+import numpy as np
+from tqdm import tqdm
+
+from dataset.preprocess import extract_image
+
 
 def create_template(spacings):
     """ To save template header for your image. 
@@ -45,7 +48,7 @@ def header_matching(new_data_dir, old_data_dir):
         data, header = extract_image(os.path.join(old_data_dir, name))
         try:
             p = header.get('spacings')[:3]
-        except Exception as e:
+        except Exception:
             p = np.array([header['space directions'][0, 0],
                           header['space directions'][1, 1],
                           header['space directions'][2, 2]])

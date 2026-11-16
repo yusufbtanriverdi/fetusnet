@@ -1,5 +1,6 @@
 import wandb
 
+
 def initialize_wandb(params, exp_id):
     """ Initializes wandb for selected parameters. """
     wandb.init(

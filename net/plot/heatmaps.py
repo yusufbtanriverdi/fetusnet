@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
+
 # from mpl_toolkits.mplot3d import Axes3D  # Required for 3D plotting
 from matplotlib.patches import Circle
-import seaborn as sns
 
 sns.set_style('whitegrid', {'font.family':'sans-serif', 'font.sans-serif': 'Verdana'})
 sns.set_theme('paper', 'whitegrid', font_scale=1.25, palette='husl')

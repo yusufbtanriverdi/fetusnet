@@ -1,10 +1,12 @@
-import torch.optim as optim
-import torch
 from functools import partial
 
-from net.model.backbone import ResUNet3D
+import torch
+from torch import optim
+
 from net.loss.losses import *
+from net.model.backbone import ResUNet3D
 from utils import flatten_namespace_to_dict
+
 
 def get_fresh_model(params):
     """

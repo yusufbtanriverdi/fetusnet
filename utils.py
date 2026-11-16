@@ -1,8 +1,10 @@
 import datetime
-import os
-import wandb
 import json
+import os
 from types import SimpleNamespace
+
+import wandb
+
 
 def flatten_namespace_to_dict(ns, prefix=""):
     """Recursively flattens a namespace tree to help match keys against help.yaml."""
@@ -164,4 +166,3 @@ def test_loaders(dataloader):
     """
     for _ in tqdm(dataloader):
         pass
-    return

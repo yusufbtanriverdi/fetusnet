@@ -1,6 +1,8 @@
-import torch
 import matplotlib.pyplot as plt
+import torch
+
 from net.postprocess.where_is_landmark import get_peak_location
+
 
 def plot_aela_figure(radii, edr, save_dir='average_expected_local_accuracy.png', show=False):
     """
@@ -64,7 +66,6 @@ def compute_aela(
 
     # Initialize distances array
     distances = torch.zeros(len(radii), dtype=torch.float32)
-    _, D, H, W = output.shape
 
     # Compute AELA for each radius
     for ind, radius in enumerate(radii[:-1]):

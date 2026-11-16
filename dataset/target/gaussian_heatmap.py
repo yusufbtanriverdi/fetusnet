@@ -1,4 +1,5 @@
-import torch 
+import torch
+
 
 def create_gaussian_heatmap(coord, template, alpha = 3, eps=1e-6, clip=False, mask=False):
 

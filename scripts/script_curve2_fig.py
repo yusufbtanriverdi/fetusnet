@@ -1,7 +1,8 @@
 import os
-from matplotlib import pyplot as plt
+
 import numpy as np
 import seaborn as sns
+from matplotlib import pyplot as plt
 
 sns.set_style(
     'whitegrid',
@@ -24,7 +25,7 @@ def plot_aela_figure(radii, edrs, titles, dict, save_dir='assets/ela2.svg', show
     """
     upper_limit = [0.75 * r for r in radii]  # 3/4 upper limit
     markersize=5
-    fig = plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(10, 6))
     fills = ['full', 'full', 'none', 'none']
     for edr, title, color, fill in zip(edrs, titles, colors, fills):
         plt.plot(radii, edr, label=dict[title], marker='D', fillstyle=fill, markersize=markersize, linewidth=1.5, color=color,)
@@ -49,9 +50,6 @@ def plot_aela_figure(radii, edrs, titles, dict, save_dir='assets/ela2.svg', show
 
 
 def get_edr_lmks(directory):
-    """
-    """
-
     curves = {}
     for exp_name in os.listdir(directory):
         csv_file = os.path.join(directory, exp_name)

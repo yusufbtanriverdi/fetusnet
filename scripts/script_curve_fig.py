@@ -1,8 +1,9 @@
 import os
-from matplotlib import pyplot as plt
 from glob import glob
+
 import numpy as np
 import seaborn as sns
+from matplotlib import pyplot as plt
 
 sns.set_style(
     'whitegrid',
@@ -26,7 +27,7 @@ def plot_aela_figure(radii, edrs, titles, dict, save_dir='assets/ela.svg', show=
     """
     upper_limit = [0.75 * r for r in radii]  # 3/4 upper limit
     markersize=5
-    fig = plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(10, 6))
     for edr, title in zip(edrs, titles):
         plt.plot(radii, edr, label=dict[title], marker=9, fillstyle='top', markersize=markersize, linewidth=1.5)
         # plt.hlines(

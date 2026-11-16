@@ -1,7 +1,8 @@
 import torch
-from net.model.modules.dsnt import dsnt_3d_separable
-from net.plot.matrices_3d import plot_3d_matrices
 from torch.nn import functional as F
+
+from net.model.modules.dsnt import dsnt_3d_separable
+
 
 def _softmax(volume):
     C, D, H, W = volume.shape

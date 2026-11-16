@@ -1,9 +1,11 @@
 import os
-import numpy as np
-import matplotlib.pyplot as plt
+
 import imageio.v2 as imageio
-from tqdm import tqdm
+import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.ticker import NullFormatter
+from tqdm import tqdm
+
 
 def _softmax_numpy(volume):
     exp_volume = np.exp(volume - np.max(volume))
@@ -65,7 +67,7 @@ def create_disc_figure(save_dir, temp_dir, w=2, **kwargs):
     DistPenalty = safe_normalize(np.array(DistPenalty))
     SoftmaxCE = safe_normalize(np.array(SoftmaxCE))
 
-    fig, axs = plt.subplots(2, 2, figsize=(12, 8)) 
+    fig, _ = plt.subplots(2, 2, figsize=(12, 8)) 
     I0 = Images[0]
     displacements = np.sqrt(np.sum((np.array(ts) - ts[0])**2, axis=1))
 

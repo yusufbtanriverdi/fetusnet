@@ -1,33 +1,42 @@
 import datetime
 import os
-import pandas as pd
-import torchio as tio
-import warnings
-import wandb
-import torch
 import random
-import numpy as np
-import yaml
+import sys
+import warnings
 from pprint import pformat
 
-from net.config.parser import setup_config
-from dataset.statistics.split import crossfold_split
-from dataset.statistics.prepare import prepare
-from dataset.preprocess import preprocess
+import numpy as np
+import pandas as pd
+import torch
+import torchio as tio
+import wandb
+import yaml
+
 from dataset.generate_targets import generate
+from dataset.preprocess import preprocess
+from dataset.statistics.prepare import prepare
+from dataset.statistics.split import crossfold_split
+from dataset.utility.loaders import get_test_dl, get_train_val_dl
 from logger_setup import setup_logger
-from dataset.utility.loaders import get_train_val_dl, get_test_dl
-from net.model.utility.get_fresh_model import get_fresh_model
-from net.phases.train import train_one_ep
-from net.phases.infer import infer_one_ep
-from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
+from net.config.parser import setup_config
 from net.config.wandb import initialize_wandb
+from net.model.utility.checkpoints import load_checkpoint, save_checkpoint
+from net.model.utility.get_fresh_model import get_fresh_model
+from net.phases.infer import infer_one_ep
+from net.phases.train import train_one_ep
 from net.plot.volumes import plot_3d, start_game_3d
 from scripts.script_concept_fig import create_disc_figure
-from scripts.script_weeks_fig import create_weeks_plot
-from scripts.script_spatial_prior import plot_spatial_prior
 from scripts.script_mean_template import plot_mean_volume
-from utils import *
+from scripts.script_spatial_prior import plot_spatial_prior
+from scripts.script_weeks_fig import create_weeks_plot
+from utils import (
+    create_experiment_id,
+    log_epoch_to_wandb,
+    namespace_to_dict,
+    test_loaders,
+    update_dataframe,
+)
+
 
 def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps, validate=True):
     train_dl, val_dl = get_train_val_dl(dataframe, params, transformations=transformations)
@@ -43,7 +52,7 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
     val_losses = []
     val_loss = torch.inf
     # Epoch training loop
-    for epoch in range(0, params.training.epochs):
+    for epoch in range(params.training.epochs):
         logger.info(f" \n[Epoch {epoch + 1}/{params.training.epochs}] \n ")
 
         # Train for one epoch
@@ -78,11 +87,11 @@ def pipe(dataframe, experiment_dir, params, transformations, global_wandb_steps,
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 save_checkpoint(model, optimizer, epoch, val_loss, 
-                                os.path.join(experiment_dir, f'best.pt'))
+                                os.path.join(experiment_dir, 'best.pt'))
 
         # Save last model
         save_checkpoint(model, optimizer, epoch, val_loss, 
-                        os.path.join(experiment_dir, f'last.pt'))
+                        os.path.join(experiment_dir, 'last.pt'))
 
         logger.info(f"Train loss: {train_loss}")
         logger.info(f"Validation loss: {val_loss}")
@@ -157,7 +166,7 @@ if params.mode == 'script_concept':
     logger.info("Running script_concept_fig.py")
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     create_disc_figure(params.script.save_dir, params.script.temp_dir, params.loss.w, **namespace_to_dict(params.script.concept))
-    exit(0)  # Exit after running the script to prevent further execution
+    sys.exit()  # Exit after running the script to prevent further execution
 
 if params.mode == 'prepare':
     main_dataframe_path = prepare(params) # Create info frames
@@ -199,7 +208,7 @@ if params.mode == 'script_weeks':
     logger.info("Running script_weeks_fig.py")
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     create_weeks_plot(params.script.save_dir, main_dataframe)
-    exit(0)  # Exit after running the script to prevent further execution
+    sys.exit()  # Exit after running the script to prevent further execution
 
 # Define transformations for 3D images
 transforms = [
@@ -210,7 +219,7 @@ transformations = tio.Compose(transforms)
 logger.info("Transformations are created.")
 
 if params.mode == 'test_loaders':
-    logger.info(f"I have been asked to test loaders... Here it goes.")
+    logger.info("I have been asked to test loaders... Here it goes.")
     train_dl, val_dl = get_train_val_dl(main_dataframe, params, transformations=transformations)
     test_loaders(train_dl)
     test_loaders(val_dl)
@@ -221,7 +230,7 @@ logger.info(f"After cleaning, total number of input in master dataframe: {len(ma
 logger.info(f"!__[U]__! Training - validation - test subset sizes: {len(main_dataframe[main_dataframe['set'] == 0]), len(main_dataframe[main_dataframe['set'] == 1]), len(main_dataframe[main_dataframe['set'] == 2])}")
 
 if params.mode in ['generate', 'interactive_plot', 'interactive_game']:
-    logger.info(f"Running one of the interactive modes...")
+    logger.info("Running one of the interactive modes...")
     main_dataframe = main_dataframe.loc[main_dataframe['npid'].isin(params.test_patients)]
     if len(main_dataframe) == 0:
         raise KeyError("No test patient is given. Aborting mission...")
@@ -307,7 +316,7 @@ if params.mode == 'train':
     if params.wandb.log: wandb.finish()
 
 if params.mode == 'script_spatial_prior':
-    logger.info(f"Running script_spatial_prior.py")
+    logger.info("Running script_spatial_prior.py")
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if params.script.spatial_prior.validation:
         shape_dl = get_test_dl(main_dataframe, params, transformations=transformations)
@@ -329,7 +338,7 @@ if params.mode == 'script_spatial_prior':
                     )
 
 if params.mode == 'script_mean_template':
-    logger.info(f"Running script_mean_template.py")
+    logger.info("Running script_mean_template.py")
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if params.script.mean_template.validation:
         shape_dl = get_test_dl(main_dataframe, params, transformations=transformations)

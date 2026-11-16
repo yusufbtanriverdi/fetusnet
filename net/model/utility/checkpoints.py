@@ -1,6 +1,8 @@
-import torch, os
 
-def save_checkpoint(model, optimizer, epoch, val_loss, checkpoint_name=None):
+import torch
+
+
+def save_checkpoint(model, optimizer, epoch, val_loss, checkpoint_path=None):
     """
     Save a model checkpoint to the specified directory.
 
@@ -19,12 +21,6 @@ def save_checkpoint(model, optimizer, epoch, val_loss, checkpoint_name=None):
         'optimizer_state_dict': optimizer.state_dict(),
         'val_loss': val_loss,
     }
-
-    # Save checkpoint
-    if not checkpoint_name:
-        checkpoint_path = os.path.join(checkpoint_path, f'checkpoint_ep{epoch}.pt')
-    else:
-        checkpoint_path = checkpoint_name
 
     torch.save(checkpoint, checkpoint_path)
     # print(f"Checkpoint saved at {checkpoint_path}")

@@ -1,4 +1,5 @@
-import torch 
+import torch
+
 
 def dsnt_3d_separable(probs, device, dtype):
     # spacing: (dz, dy, dx) in real physical units

@@ -1,18 +1,18 @@
 """Functions for reading input data (image (nrrd), and standard planes)."""
 
-import numpy as np
-import os
-import torch
-import nrrd
 import json
-import numpy as np
-import matplotlib.pyplot as plt
-from torch.utils.data import Dataset
+import os
 from os.path import join
-import pandas as pd
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import torch
+from torch.utils.data import Dataset
+
+from dataset.preprocess import extract_image, get_file_list, get_matrix_of_lmks
 from dataset.utility.gtpp.utils import utils
-from dataset.utility.rotation import get_matrix_of_lmks, get_file_list, extract_image
+
 
 def gtpp_loader(dataframe, file_list, data_dir, label_dir, out_dir, size_desired, prefix, num_samples=None, transform=None, downsample= None):
 
@@ -48,7 +48,7 @@ def gtpp_loader(dataframe, file_list, data_dir, label_dir, out_dir, size_desired
         filename =''.join((data_dir,filenames[i].strip()))
         osid = os.path.splitext(os.path.basename(filename))[0]
         coord_file = join(data_dir, dataframe[dataframe['osid']==osid]['_fcsv'].values[0])
-        print("Loading image {}/{}: {}".format(i+1, len(filenames), filename))
+        print(f"Loading image {i+1}/{len(filenames)}: {filename}")
         name=filename.split('/')[-1][:-5]
         
         if len(name)<9:
@@ -90,7 +90,7 @@ def gtpp_loader(dataframe, file_list, data_dir, label_dir, out_dir, size_desired
         img_siz = np.array(img.shape[0:3])
         try:
             gt_item=gt[name]
-        except:
+        except Exception:
             print('Not in dictionay')
             continue
         # Compute translation and rotation of GT plane wrt reference coordinate system (origin at centre of volume)

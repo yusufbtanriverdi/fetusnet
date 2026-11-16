@@ -4,12 +4,15 @@
 #
 # ==============================================================================
 
-import torch 
 import numpy as np
+import torch
+from dataset.preprocessing import affine3Dmatrix, affine_transform, grid_transform_3d
 
 from dataset.utility.gtpp.utils import utils
-from dataset.utility.gtpp.utils.pytorch3d import euler_angles_to_matrix, quaternion_to_matrix
-from dataset.utility.rotation import affine3Dmatrix, grid_transform_3d, affine_transform
+from dataset.utility.gtpp.utils.pytorch3d import (
+    euler_angles_to_matrix,
+    quaternion_to_matrix,
+)
 
 # GLOBAL VARIABLES
 torch.cuda.empty_cache()
@@ -52,7 +55,7 @@ def standardize_with_model(params, model, device, V, L_in_pix, ct):
     R = rot.to(device)
     T = tran.to(device)
     with torch.no_grad():
-        for it in range(0, params.model.test_it):
+        for it in range(params.model.test_it):
             ytr_es, yrr_es, _, _ = model(slices_in.to(device))
             # Estimate output slices / update slices that will be the next input.
             rot = quaternion_to_matrix(yrr_es)  

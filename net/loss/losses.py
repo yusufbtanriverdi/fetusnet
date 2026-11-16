@@ -1,6 +1,7 @@
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
+
 
 def _softmax(volume):
     B, C, D, H, W = volume.shape
@@ -18,7 +19,7 @@ def _log_softmax(volume):
 
 class baseLoss(nn.Module):
     def __init__(self, _lambda, reduction: str = 'mean',**args):
-        super(baseLoss, self).__init__()
+        super().__init__()
         # Ensure the reduction method is valid
         assert reduction in ['mean', 'sum', 'none'], "Reduction must be 'mean', 'sum', or 'none'."
         self.reduction = reduction
@@ -47,7 +48,7 @@ class baseLoss(nn.Module):
 
 class SSELoss(baseLoss):
     def __init__(self, reduction: str = 'mean', _lambda: float = 1.0, sigmoid: bool = False, **args):
-        super(SSELoss, self).__init__(
+        super().__init__(
             _lambda=_lambda,
             reduction=reduction,
             **args
@@ -66,7 +67,7 @@ class SSELoss(baseLoss):
 
 class SoftmaxCELoss(baseLoss):
     def __init__(self, reduction: str = 'mean', _lambda: float = 1.0, eps: float = 1e-15, normalize_targets: bool = True, **args) -> torch.Tensor:
-        super(SoftmaxCELoss, self).__init__(
+        super().__init__(
             _lambda=_lambda,
             reduction=reduction,
             **args
@@ -92,7 +93,7 @@ class SoftmaxCELoss(baseLoss):
 
 class EucEMDLoss(baseLoss):
     def __init__(self, reduction: str = 'mean', _lambda: float = 1.0, w: float = 2, **args) -> torch.Tensor:
-        super(EucEMDLoss, self).__init__(
+        super().__init__(
             _lambda=_lambda,
             reduction=reduction,
             **args
@@ -120,15 +121,15 @@ class MultiNoiseLoss(nn.Module):
     Ref: https://github.com/murnanedaniel/Dynamic-Loss-Weighting/blob/master/loss_models.py 
     """
     def __init__(self, n_losses: int, device: str = 'cuda'):
-        super(MultiNoiseLoss, self).__init__()
+        super().__init__()
         self.noise_params = nn.Parameter(torch.rand(n_losses, device=device))
     
     def forward(self, losses: list) -> torch.tensor:
         """
         Computes the total loss as a function of a list of classification losses.
 
-        Each loss coeff is of the form: :math:`\frac{1}{\sqrt{\eta_i}} \cdot \ell_i + \log(\eta_i)`
-        Total loss: :math:`\ell = \sum_{i=1}^{k} \left\[ \frac{1}{\sqrt{\eta_i}} \cdot \ell_i + \log(\eta_i) \right\]`
+        Each loss coeff is of the form: :math:`\frac{1}{\\sqrt{\\eta_i}} \\cdot \\ell_i + \\log(\\eta_i)`
+        Total loss: :math:`\\ell = \\sum_{i=1}^{k} \\left\\[ \frac{1}{\\sqrt{\\eta_i}} \\cdot \\ell_i + \\log(\\eta_i) \right\\]`
         """
         total_loss = 0
         for i, loss in enumerate(losses):

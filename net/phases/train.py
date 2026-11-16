@@ -1,5 +1,6 @@
-from tqdm import tqdm
 import wandb
+from tqdm import tqdm
+
 
 def train_one_ep(model, loader, criteria, multi_loss, optimizer, device, wandb_steps, use_wandb, progress_bar):
     """
@@ -58,7 +59,7 @@ def train_one_ep(model, loader, criteria, multi_loss, optimizer, device, wandb_s
 
         # Update the progress bar description with the running average loss
         if progress_bar:
-            t.set_description(desc='Running Average Loss: {:.4f}'.format(avg_loss)) 
+            t.set_description(desc=f'Running Average Loss: {avg_loss:.4f}') 
 
         if use_wandb:
             # Log step loss and mean loss to Weights & Biases (wandb)
